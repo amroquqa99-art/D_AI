@@ -102,7 +102,8 @@
     "@deepseek-ai/dsh-atomic-write": "workspace:*",
     "@deepseek-ai/dsh-agent-preset": "workspace:*",
     "@deepseek-ai/dsh-experimental-voice-input-bundle": "workspace:*",
-    "@deepseek-ai/dsh-experimental-auto-review": "workspace:*"
+    "@deepseek-ai/dsh-experimental-auto-review": "workspace:*",
+    "@deepseek-ai/dsh-client-d-ai-locale": "workspace:*"
   },
   "devDependencies": {
     "@agentclientprotocol/sdk": "1.4.0",
@@ -151,7 +152,8 @@
     "@types/ws": "8.18.1",
     "ajv": "^8.20.0",
     "execa": "^10.0.0",
-    "ws": "8.21.0"
+    "ws": "8.21.0",
+    "@deepseek-ai/dsh-experimental-d-ai": "workspace:*"
   },
   "exports": {
     "./profile-boot": {

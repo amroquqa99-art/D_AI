@@ -1,0 +1,6 @@
+# D_AI native additions to the owner's Web-derived profile.
+- insert:
+    - id: d-ai-missions
+      name: './src/index.ts'
+    - id: d-ai-locale
+      name: '@deepseek-ai/dsh-client-d-ai-locale'

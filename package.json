@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "prepare:primary-runtime": "tsx scripts/primary-runtime/prepare.ts",
-    "build": "tsx scripts/build.ts",
+    "build": "node --import tsx/esm scripts/build.ts",
     "build:bench": "npm run build:native-system && npm run build:lib && tsdown --config-loader native --config benchmarks/tsdown.config.ts",
     "build:official": "tsx scripts/build.ts --profile official",
     "build:lib": "pnpm run build:lib:host && pnpm run build:lib:client",
@@ -55,7 +55,7 @@
     "duplication": "jscpd --config .jscpd.json packages scripts",
     "test": "pnpm run build:native-system && vitest run",
     "test:coverage": "pnpm run build:native-system && vitest run --coverage",
-    "build:native-system": "tsx native/system/scripts/build.ts --host-addon-only",
+    "build:native-system": "node --import tsx/esm native/system/scripts/build.ts --host-addon-only",
     "test:coverage:partitioned": "tsx scripts/run-coverage-partitions.ts",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:bench": "npm run build:bench && npm run build:web && npm run test:bench:built",
@@ -201,7 +201,9 @@
     "mock:llm": "node --import tsx packages/test-support/llm-mock-server/src/bin.ts",
     "start:web": "node --import tsx/esm apps/cli/src/bin.ts web",
     "dev:web": "tsx scripts/dev-web.ts --poll",
-    "postinstall": "node scripts/install-lefthook.mjs"
+    "postinstall": "node scripts/install-lefthook.mjs",
+    "start:dai": "node --import tsx/esm apps/cli/src/bin.ts --profile d-ai --patch packages/experimental/d-ai/cordis.source.patch.yml",
+    "init:dai": "node --import tsx/esm apps/cli/src/bin.ts --profile d-ai --from-default-profile web --dump-config"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-agent": "workspace:*",

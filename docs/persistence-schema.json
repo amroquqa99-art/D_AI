@@ -6450,6 +6450,448 @@
       }
     },
     {
+      "key": "event:d_ai/fact",
+      "kind": "event",
+      "event": "d_ai/fact",
+      "surface": false,
+      "digest": "fc0e119f85ebcc12d7ed14fe895b7b471c069f7c31aab6a9bef90ca765f5ed67",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 40,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 41,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "mission",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 33,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 39,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "claims",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "delegations",
+                "type": 13,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "objective",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "sources",
+                "type": 17,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 26,
+                "optional": false
+              },
+              {
+                "name": "system",
+                "type": 23,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 5
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "contradicts",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "excerpt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "scope",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "sourceId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "state",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "text",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "verifierId",
+                "type": 2,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "VERIFIED_WITH_SCOPE"
+          },
+          {
+            "kind": "literal",
+            "value": "ARCHIVED"
+          },
+          {
+            "kind": "literal",
+            "value": "CONTESTED"
+          },
+          {
+            "kind": "literal",
+            "value": "DERIVED"
+          },
+          {
+            "kind": "literal",
+            "value": "OBSERVED"
+          },
+          {
+            "kind": "literal",
+            "value": "SUPERSEDED"
+          },
+          {
+            "kind": "array",
+            "element": 14
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "research",
+                "type": 15,
+                "optional": false
+              },
+              {
+                "name": "verification",
+                "type": 15,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "agentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "array",
+            "element": 18
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "capturedAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "finalUrl",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "hashEncoding",
+                "type": 19,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "kind",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "originSystem",
+                "type": 23,
+                "optional": false
+              },
+              {
+                "name": "originTool",
+                "type": 24,
+                "optional": false
+              },
+              {
+                "name": "requestedUrl",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "sha256",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "statusCode",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "truncated",
+                "type": 25,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": "utf8-decoded-content"
+          },
+          {
+            "kind": "union",
+            "types": [
+              21,
+              22
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "html"
+          },
+          {
+            "kind": "literal",
+            "value": "text"
+          },
+          {
+            "kind": "literal",
+            "value": "investigation"
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai_capture_source"
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "union",
+            "types": [
+              27,
+              28,
+              29,
+              30,
+              31,
+              32
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_HUMAN"
+          },
+          {
+            "kind": "literal",
+            "value": "ACTIVE"
+          },
+          {
+            "kind": "literal",
+            "value": "BLOCKED_BUDGET"
+          },
+          {
+            "kind": "literal",
+            "value": "BLOCKED_POLICY"
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETE"
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "union",
+            "types": [
+              34,
+              35,
+              36,
+              37,
+              38
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_CLAIM"
+          },
+          {
+            "kind": "literal",
+            "value": "CAPTURE_SOURCE"
+          },
+          {
+            "kind": "literal",
+            "value": "DELEGATE"
+          },
+          {
+            "kind": "literal",
+            "value": "CREATE"
+          },
+          {
+            "kind": "literal",
+            "value": "STATUS"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/fact"
+          }
+        ]
+      }
+    },
+    {
       "key": "event:deliverables/presented",
       "kind": "event",
       "event": "deliverables/presented",
@@ -21868,6 +22310,11 @@
       "sources": []
     },
     {
+      "digest": "091658503fca81c6aa4dbd280c4e685b32a7e49196c48d65317491b4898f7dd8",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "09655b34d7f3cf1e9005974de2357de2d4a60deea165d16dac1eadaa6ec539a8",
       "names": [],
       "sources": []
@@ -22234,6 +22681,15 @@
       ]
     },
     {
+      "digest": "1cfa20fd62bd7703c2f970a8468e09b459a259e1b1d2a85d6da4b733e5d5ed5d",
+      "names": [
+        "packages/experimental/d-ai/src/state.ts#MissionFact"
+      ],
+      "sources": [
+        "packages/experimental/d-ai/src/state.ts:52"
+      ]
+    },
+    {
       "digest": "1d5f04a03ea75fc8eeece544129eba0f49f0c82046e9c404461920390135c7b2",
       "names": [],
       "sources": []
@@ -22284,6 +22740,11 @@
       "sources": []
     },
     {
+      "digest": "1e5599362e5eb2e2e44083014ebc77cabbafd21910053fbd55cbb671c7f8089f",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "1e709346005826eb81809eeb76a3f713cf13ad6c5cec75146d07020ab9adc938",
       "names": [],
       "sources": []
@@ -22323,6 +22784,11 @@
       "sources": [
         "packages/plan/plan-mode/src/index.ts:52"
       ]
+    },
+    {
+      "digest": "20dba5dab02f4457766d6154d92d5cf559138d72fa896e9cb22ac4b903977c14",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "2142e391b9ccb60d487afcf373ce74db98d952f69e8289eddb352a7e16e996c5",
@@ -22422,6 +22888,16 @@
       "sources": []
     },
     {
+      "digest": "27b3a05564a9ef1a6a6a2e220a8f7971cbec515a50271f57f52df69a8ebba5a6",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "27f08cecab7cacdc27a248d791d0055a37773363f053fef59e19def3dbe49a50",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "287211846beea1eccb5f9acee00d20388a38fcb2e95858fa2332d6f58529379a",
       "names": [],
       "sources": [
@@ -22435,6 +22911,11 @@
     },
     {
       "digest": "290f32bfd81ff85a8095886a8066fae06e885942b63a8bcd6a8d66d328445808",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "296f529fedc6e5dce868976c4880f6a5f7110d1273e84efc88f09b12c8072de1",
       "names": [],
       "sources": []
     },
@@ -22472,6 +22953,11 @@
     },
     {
       "digest": "2c64d4bc7264fd3f8bed47e96ab8a593bce05a1e4e1c436dcd244a3b7e0c2a9d",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "2ce09816fd523d2aebbd876217ee9a484adcff19cb759d92537270f4efba2d78",
       "names": [],
       "sources": []
     },
@@ -22599,6 +23085,11 @@
       "sources": []
     },
     {
+      "digest": "356a8843205ff9cc2ee70c0d25fe2dec63123820a261b7d5717195322f11e500",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "36d6a9a871d949ea4f3edd919d81d66aa69218bebef38899d2a1282c39420a1f",
       "names": [],
       "sources": []
@@ -22699,6 +23190,11 @@
     },
     {
       "digest": "3c2535ca0a2062f172f15344f8040755002b5ac506cf94fc4ebaa822b15feb8c",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "3c81afaf2fadd9182436c219ba93bc7b571d8bf333fbfaff0aaa92e9da872002",
       "names": [],
       "sources": []
     },
@@ -23088,6 +23584,11 @@
       "sources": []
     },
     {
+      "digest": "562105411b34e8e0366ae40621a36a033d1fc6d1a7d34234904a6e63b2e7c487",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "5654685d7557ec747e74887237065e626a5bdfa426ca43f7fbb0b6fee9b0916c",
       "names": [],
       "sources": []
@@ -23101,6 +23602,11 @@
     },
     {
       "digest": "570e85022434613394418ad33e77e9f1f7a05699b33d0b62eae0677a638c3833",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "571962d233820451612729b9d05eba1a9834d81d5d42048f332d1f53c6d98f68",
       "names": [],
       "sources": []
     },
@@ -23140,6 +23646,11 @@
     },
     {
       "digest": "589d0d91239681f89ee485459dc8c2f73ea47183b5534289d966637024a2c35d",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "58cd84df79983bebfe7bdf5aee5fff70066a84d94d6457673140a2648ac2926e",
       "names": [],
       "sources": []
     },
@@ -23187,6 +23698,11 @@
     },
     {
       "digest": "5c45bf4c544a7211dcd8ba6ba7e5f1bc39b49e7a9df9d5cbdc8e87c22771b37b",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "5ca626a31d79891bb166f3c5c181638c6fe255eb968fe962c92f032550567cc6",
       "names": [],
       "sources": []
     },
@@ -23254,6 +23770,11 @@
       "sources": [
         "packages/subagent/subagent/src/descriptor.ts:61"
       ]
+    },
+    {
+      "digest": "5fb32ca2edf4a04e732bc705a06ca3c2c8ec1f2c0756ca4f4b3bc2a35f1fa85a",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "6085488d223aeffdef51d7ae17655fc26ab22ee13cbed82a50e62e2b6fb5b918",
@@ -23394,6 +23915,11 @@
       "sources": []
     },
     {
+      "digest": "6b480f57cbcebdf95af32a01542b15db1e8d8a5bf4c4208b0ba76705f92be2e6",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "6bbe793f6a93dc8d50a4d4d3fbb6f8ed15650bcb7e151d28669628f7b7c3fc25",
       "names": [
         "packages/goal/goal/src/types.ts#GoalSnapshot"
@@ -23435,6 +23961,11 @@
     },
     {
       "digest": "6cda0d6d3b4336d83998fe580628426df81c2afbab5d768b8813b56d569120e8",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "6dea78283b5223cffbdf223710557ef2d07c4e5d6338ac8223ac5b2895f6ab83",
       "names": [],
       "sources": []
     },
@@ -23526,6 +24057,11 @@
     },
     {
       "digest": "7382c4fc95fe8c5db65ca4d9da572b115d0dbb818b7f32c22ab040318ffbb4bc",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "74ade27d8fc67ef2acd76fac414fbdb906edb7a03f61936e057189fee9ab6f9d",
       "names": [],
       "sources": []
     },
@@ -23830,6 +24366,11 @@
       "sources": []
     },
     {
+      "digest": "8a52c5d14e18215f8d2db547fc8e5f4f2fed656824e9fac16fd9d7982a6146af",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "8a6e1ec9e8db346b0e02f027db73c07a94f067a26d40c1aef1abd09c47ce7ba0",
       "names": [],
       "sources": []
@@ -23921,6 +24462,11 @@
       "sources": [
         "packages/core/tools/src/index.ts:34"
       ]
+    },
+    {
+      "digest": "9004bf4f72c9d0c15583e8c60d4bc79db06e550abb5733d8c9dadf9fbd0844db",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "904bf499d98be4a3a5f836fcac533b6c4899569b018071e6604e1d32657d00fd",
@@ -24074,7 +24620,17 @@
       "sources": []
     },
     {
+      "digest": "9b3bc3d55b6af7dd5723f4d419ad84ec324a67fb544820df236cdd3d3e065738",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "9b4fd974c124c83743efe030ba4e1250e087505f3f74588716a521fb8d453267",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "9c5a17bac6481290870f6cc1aac5cad721d2484339df2d196cd3c81b0767d6c2",
       "names": [],
       "sources": []
     },
@@ -24198,6 +24754,11 @@
       "sources": [
         "packages/core/session/src/types.ts:311"
       ]
+    },
+    {
+      "digest": "a622314ed2f27e0104626e9bc281be228c39906d8fa15cbedd7b0235da09eb7b",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "a6567ccb2e530606b775371eb4fa31468d72084339968e8b0440a516a23b39dc",
@@ -24378,6 +24939,11 @@
       "sources": []
     },
     {
+      "digest": "aea1fa70752dcdb36bf328e528b6549e4a8f2552db24f000b46576d25238b07b",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "aec150797b655c5f15ebb7a501454b0c208fbaccec9ace49d7de2171fc02f47d",
       "names": [],
       "sources": []
@@ -24516,6 +25082,11 @@
       "sources": []
     },
     {
+      "digest": "b625a634581c15c6de073782fc8cc18fbe3a79734cf87002cb94da5aa9ad591d",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "b63b089a00b3b9357675b3e0c3d3e9aa4fdbda1fba9c91a6b0c59ffdbb89f505",
       "names": [
         "packages/schedule/schedule/src/types.ts#LegacyAtScheduleRecord"
@@ -24548,6 +25119,11 @@
     },
     {
       "digest": "b765ee31033cea463863faf3fc6a0a1b85c47c6a2f13fe1ce833abe56105114b",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "b7838e0e1ab07a0f17931de600b377605f30a5d7fe3a1a433da98b7c6cdeef50",
       "names": [],
       "sources": []
     },
@@ -24654,6 +25230,11 @@
       ]
     },
     {
+      "digest": "bd094664478eb7b794ad35867cda4946bfa8e285a47278d4725380d02f23d1eb",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "bd499eac047efe091a4df7382eadd06d25cf0cb31fee3981e8b24d85762841cd",
       "names": [],
       "sources": []
@@ -24697,6 +25278,11 @@
     },
     {
       "digest": "c219efbdfd53b836786202ab4532913d555798f0a8615a4e9629736e3799fb70",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "c2a89a042dbade119c128e33153a4ff8ea04e5303eb480bfa5ae9de53ef32099",
       "names": [],
       "sources": []
     },
@@ -24847,6 +25433,16 @@
       "sources": []
     },
     {
+      "digest": "d2dcedce67315f3a52f7f8eac93b4c05b67120daf75ac3332fedf95750a489f8",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "d33d109e617442d4f054ddb4c3b527dd5f6dc52d23792819a4fad0a70d129085",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "d4b739491689cc6bb13d07ffac1a32239875abda364c0d5edd8f74faf5e9c00d",
       "names": [],
       "sources": [
@@ -24870,6 +25466,11 @@
     },
     {
       "digest": "d6e654b88b584fcdf290a56802b1730bc7b9847ae86baa4265ab7769eb48990c",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "d71d062c5e0fef3e6197d09ab34296ab64105b9ae6cbb81ca53998f841d47f68",
       "names": [],
       "sources": []
     },
@@ -24980,6 +25581,11 @@
     },
     {
       "digest": "e0a787e6ec76c7c94fecbc501b489164ab0293db05bc947914077ad01e674f05",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "e14d17eff9a97c0b40e588dbc350cb04a16755023aef451492464078b3851afc",
       "names": [],
       "sources": []
     },
@@ -25136,6 +25742,11 @@
     },
     {
       "digest": "edbbfff1128099fda7b792c56330d2cb04debc9790988e66d1c3f4026e813e0e",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "ee12efb7fc2be8d5f8f93b4c2b3a4ac5bd0ea3d49a7ae5aa9d4c4c7d5efe5114",
       "names": [],
       "sources": []
     },
@@ -25359,6 +25970,11 @@
       "sources": []
     },
     {
+      "digest": "fc0e119f85ebcc12d7ed14fe895b7b471c069f7c31aab6a9bef90ca765f5ed67",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "fc2ae6962f9f8801c2b1e414668e1e17cbb7544c4f39381198977a38bd10c093",
       "names": [
         "packages/skill/tool-skill/src/index.ts#SkillCatalogSource"
@@ -25383,6 +25999,11 @@
       "sources": []
     },
     {
+      "digest": "fda19b5f5b4e1200c05835399784e7f42f3822802ef02f1475f8be82b9adb481",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "fe1a7acdeed4d0f5ab483396eaa5b3dc97263b7c10eb4da2f0028cb01728bfc9",
       "names": [],
       "sources": []
@@ -25395,6 +26016,11 @@
       "sources": [
         "packages/session/session-title-llm/src/index.ts:34"
       ]
+    },
+    {
+      "digest": "fe770491cffd96dcc5ce518631e93f2a1999532d6b9761d26248facdeef23f42",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "fe792a6cd430494503837e21e79f91677704ccdd9e870c679aabd7d43ed47ddd",

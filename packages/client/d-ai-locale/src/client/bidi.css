@@ -1,0 +1,23 @@
+/* Technical content remains readable inside Arabic prose without changing data. */
+html[dir="rtl"] pre,
+html[dir="rtl"] code,
+html[dir="rtl"] math,
+html[dir="rtl"] .katex,
+html[dir="rtl"] input[type="url"],
+html[dir="rtl"] input[type="email"],
+html[dir="rtl"] input[type="number"],
+html[dir="rtl"] [data-d-ai-bidi="ltr"] {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: start;
+}
+html[dir="rtl"] bdi,
+html[dir="rtl"] a[href],
+html[dir="rtl"] [data-d-ai-bidi="auto"] {
+  unicode-bidi: isolate;
+}
+/* An explicit island also works while the surrounding UI is English. */
+[data-d-ai-bidi="ltr"] {
+  direction: ltr;
+  unicode-bidi: isolate;
+}

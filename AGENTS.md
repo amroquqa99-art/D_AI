@@ -1,3 +1,7 @@
+# D_AI engineering
+
+Read [the approved product specification](docs/PRODUCT_SPEC.md), [feature acceptance](docs/FEATURE_MATRIX.md) and [test evidence](docs/TEST_REPORT.md) before extending D_AI. Build native Harness components, preserve source attribution, isolate parallel edits and separate live-provider evidence from fixtures. Owner-managed permissions are configurable; enforce grants in execution and record access. Upstream updates are manual and never activate automatically.
+
 # AGENTS.md
 
 DeepSeek Harness is an all-plugin Cordis agent harness. Read [docs/architecture.md](docs/architecture.md) before changing `packages/`; follow [docs/AGENTS.md](docs/AGENTS.md) for documentation.

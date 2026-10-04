@@ -1,10 +1,11 @@
 /**
  * Build this host's declared system binaries. Landlock is a static musl
  * executable; flock uses stable Node-API with separate Linux libc builds.
- * Node headers come from the Node installation running this script.
+ * Node headers come from NODE_HEADERS_DIR when supplied, otherwise from the
+ * Node installation running this script.
  */
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 
@@ -32,7 +33,15 @@ const host = `${process.platform}-${process.arch}`
 const libc = process.platform === 'linux'
   ? ((process.report.getReport() as { header: { glibcVersionRuntime?: string } }).header.glibcVersionRuntime ? 'glibc' : 'musl')
   : undefined
-const headers = resolve(dirname(process.execPath), '../include/node')
+const configuredHeaders = process.env.NODE_HEADERS_DIR
+if (configuredHeaders !== undefined && (configuredHeaders.trim() === ''
+  || !existsSync(configuredHeaders) || !statSync(configuredHeaders).isDirectory()
+  || !existsSync(join(configuredHeaders, 'node_api.h')))) {
+  throw new Error('build: NODE_HEADERS_DIR must name a directory containing node_api.h')
+}
+const headers = configuredHeaders === undefined
+  ? resolve(dirname(process.execPath), '../include/node')
+  : resolve(configuredHeaders)
 let built = 0
 
 for (const name of readdirSync(join(root, 'packages')).sort()) {
