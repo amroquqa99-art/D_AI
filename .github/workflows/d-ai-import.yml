@@ -40,7 +40,7 @@ jobs:
             git add README.md
           fi
           # Upstream CI is repository-specific. Keep only this owner's workflows.
-          git rm -r --ignore-unmatch .github/workflows
+          git rm -r --cached --ignore-unmatch .github/workflows
           git checkout HEAD -- .github/workflows
           git commit -m "Import official Harness at $UPSTREAM_SHA with original ancestry"
           git merge-base --is-ancestor "$UPSTREAM_SHA" HEAD
