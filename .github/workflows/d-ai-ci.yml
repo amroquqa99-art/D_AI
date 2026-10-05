@@ -1,0 +1,59 @@
+name: D_AI CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  foundation:
+    name: foundation / node 24
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      DSH_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - name: Install immutable dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the host native addon
+        run: pnpm run build:native-system
+
+      - name: Run D_AI foundation tests
+        run: >-
+          pnpm exec vitest run
+          packages/experimental/d-ai/tests/mission.spec.ts
+          packages/experimental/d-ai/tests/orchestration.spec.ts
+          packages/client/d-ai-locale/tests/locale.client.spec.ts
+
+      - name: Verify D_AI profile composition
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DSH_HOME="${RUNNER_TEMP}/d-ai-home"
+          pnpm run init:dai > "${RUNNER_TEMP}/d-ai-base.yml"
+          node --import tsx/esm apps/cli/src/bin.ts +            --profile d-ai +            --patch packages/experimental/d-ai/cordis.source.patch.yml +            --dump-config > "${RUNNER_TEMP}/d-ai-effective.yml"
+          grep -q -- '- id: d-ai-missions' "${RUNNER_TEMP}/d-ai-effective.yml"
+          grep -q -- '- id: d-ai-locale' "${RUNNER_TEMP}/d-ai-effective.yml"
+
+      - name: Reject whitespace errors
+        run: git diff --check
