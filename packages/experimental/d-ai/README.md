@@ -1,4 +1,21 @@
+---
+description: "Native D_AI investigative missions, evidence records, anchored claims, and bounded child-agent review over the Harness runtime."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-experimental-d-ai
+
+## Summary
+
+This experimental Cordis service adds the first native D_AI investigation slice to Harness. It creates owner-scoped missions, captures authorized public HTTP(S) sources, stores anchored observations and counterclaims in append-only Session facts, and delegates bounded research and independent review to fresh child Agents. Its current tests use scripted model and web fixtures, so the package establishes an integrated foundation without claiming live-provider or production readiness.
+
+## Table of Contents
+
+- [Use this package](#use-this-package)
+- [Verification](#verification)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 Native experimental D_AI investigation service over the original Harness Agent, Session, subagent, tools, web and storage services. Activate explicitly through a D_AI profile overlay; this package does not change shipped upstream profiles.
 
@@ -32,6 +49,19 @@ Tool registration changes the assembled tool prefix once at activation. Subseque
 
 ## Known Limitations and Deferred Work
 
-Only the investigation slice executes. Other system registrations are foundations. A distinct durable system-manager tree, continuable grandchildren, task DAG leases/retries, cross-system grants, experimental laboratory execution, original binary artifacts, and claim verification authority remain future milestones. Child runs are sequential one-shot native Agents; this is not a durable scheduler. Selecting worker model IDs remains on the owner Agent provider. Resource limits are bounds rather than measured money/VRAM reservations.
+- **Only the investigation slice executes** — other system registrations remain foundations, and claim verification authority is not implemented.
+- **Delegation is not a durable scheduler** — child runs are sequential one-shot native Agents; continuable grandchildren, DAG leases, retries, and crash recovery remain future milestones.
+- **Resource limits are bounds** — worker model selection remains on the owner Agent provider, and the package does not reserve or meter money or VRAM.
+- **Evidence storage is incomplete** — captured text is decoded content rather than an original binary artifact, and the Session/index split has no cross-store transaction.
+- **Institutional control is pending** — cross-system grants, full owner control surfaces, and laboratory execution remain future milestones.
 
 The index is not reconciled automatically after a Session-success/index-failure. A failed Session flush rejects the mutation but native pending in-memory Session events remain visible until retry or restart; no cross-store transaction or rollback is promised. Events emitted inside an interrupted turn retain native Harness recovery semantics. Process-crash fault injection and live-provider acceptance remain unverified.
+
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+Keep mission state on native Session facts and preserve exact live-owner checks, fail-closed approvals, and the child tool allow-list. Any durable scheduler or cross-store transaction belongs in a separate reviewed milestone rather than an implicit expansion of this package.
+
+</details>

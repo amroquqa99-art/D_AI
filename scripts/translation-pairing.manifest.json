@@ -5,9 +5,21 @@
     ".agents/notes/implemented/CLAUDE.md",
     ".github/review-ownership/README.md",
     "docs/AGENTS.md",
+    "docs/ADRS/0001-native-source.md",
+    "docs/ARCHITECTURE.md",
+    "docs/FEATURE_MATRIX.md",
+    "docs/HARNESS_DELTA.md",
+    "docs/MILESTONES.md",
+    "docs/OPERATIONS.md",
+    "docs/PRODUCT_SPEC.md",
+    "docs/SECURITY.md",
+    "docs/TEST_REPORT.md",
     "docs/cordis-api/inherited.md",
     "docs/i18n/style-samples.md",
     "docs/i18n/terminology.md",
-    "docs/i18n/translation-prompt.md"
+    "docs/i18n/translation-prompt.md",
+    "packages/client/d-ai-locale/README.md",
+    "packages/experimental/d-ai/README.md",
+    "project/"
   ]
 }

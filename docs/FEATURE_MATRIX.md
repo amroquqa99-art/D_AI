@@ -8,11 +8,12 @@
 
 | Capability | Owner | Implementation/evidence location | Status | Blocker or missing proof |
 |---|---|---|---|---|
-| Official native source baseline | Integrator | Upstream runtime and TEST_REPORT | INTEGRATED | Complete build/start evidence pending; private source import verified |
-| Portable native build | Runtime engineer | native/system/scripts/build.ts; root scripts | IMPLEMENTED | Full monorepo build needs high-memory runner; native addon build verified |
-| Arabic common/language dictionary | Frontend engineer | packages/client/d-ai-locale | IMPLEMENTED | Profile loading and browser verification pending |
+| Official native source baseline | Integrator | Upstream runtime and TEST_REPORT | VERIFIED | Build and loopback start pass; live-provider acceptance remains separate |
+| Portable native build | Runtime engineer | native/system/scripts/build.ts; root scripts | VERIFIED | This execution image needs explicit verified Node headers and an 8 GiB heap |
+| Arabic common/language dictionary | Frontend engineer | packages/client/d-ai-locale | INTEGRATED | Built profile loads package; visual browser verification pending |
 | Bidi layout isolation | Frontend engineer | Locale client CSS | FOUNDATION | Full shell RTL, keyboard and accessibility QA |
-| D_AI profile and mission workspace | Integrator/frontend | Native package and overlay in packages/experimental/d-ai | FOUNDATION | No accepted D_AI mission UI/startup; overlay launch still pending |
+| D_AI profile composition and boot | Integrator | Native package and overlay in packages/experimental/d-ai | INTEGRATED | Built loopback server passes; no live provider configured |
+| D_AI Mission Control workspace | Frontend engineer | Product and UX specifications | FOUNDATION | No accepted mission UI or evidence inspection path |
 | Investigative manager and real child tree | Orchestration engineer | packages/experimental/d-ai/src/index.ts, orchestration.ts; native tests | INTEGRATED | Fixture models only; durable scheduler and live provider pending |
 | Durable mission/task scheduling | Orchestration engineer | Native session extension required | NOT_STARTED | DAG, concurrency, leases/fencing and process recovery tests |
 | Evidence/claim verification | Evidence engineer | packages/experimental/d-ai/src/index.ts, state.ts; native tests | INTEGRATED | Verification authority and live source/provider acceptance pending |
@@ -25,5 +26,6 @@
 | Model engineering laboratory | AI/ML engineer | Approved product specification | NOT_STARTED | Registry/contracts plus real baseline evaluation |
 | Collaborative rooms/scoped memory | Systems engineer | Native persisted domain integration required | NOT_STARTED | Two-system sharing and permission evidence |
 | Backup/export/import and Arch handoff | Integrator/QA | Operations and test report | NOT_STARTED | Fresh-checkout and restore verification |
+| Private-repository CI baseline | Integrator/QA | .github/workflows/d-ai-ci.yml | IMPLEMENTED | Requires first GitHub run on this branch before VERIFIED |
 
 Exact commands and test identifiers are maintained in [TEST_REPORT.md](TEST_REPORT.md). This checkpoint makes no live-model, mission-UI or completed-domain claim. Update rows only after the responsible integration is inspected and appropriate tests have run.

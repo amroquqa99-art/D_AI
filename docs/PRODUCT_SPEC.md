@@ -6,7 +6,7 @@ D_AI is a locally hosted, multi-domain AI operating environment based on a sourc
 ## 1. User decisions (binding)
 - Product goal: answer questions / complete missions to the needed depth, seeking the best evidence-backed result rather than shallow synthesis. Never falsely promise all questions have knowable answers. Explicitly track uncertainty and unresolved questions.
 - Owner autonomy: system may propose intermediate goals and novel research directions, but activating newly proposed independent missions needs owner approval. Sensitive external side effects require explicit approvals.
-- Engineering base: fork official DeepSeek Harness and rebuild D_AI within its native plugin/package/profile ecosystem; adjust core where necessary for real functionality, not arbitrary renaming. Low priority on frictionless upstream merges, but preserve provenance and maintain an `upstream` remote and documented patch log where practical. Design long-term capability interfaces so replacing Harness is possible later.
+- Engineering base: fork official DeepSeek Harness and rebuild D_AI within its native plugin/package/profile ecosystem; adjust core where necessary for real functionality, not arbitrary renaming. Low priority on frictionless upstream merges, but preserve source lineage and maintain an `upstream` remote and documented patch log where practical. Design long-term capability interfaces so replacing Harness is possible later.
 - Earlier D_AI Kernel v0.1–v0.3 are untrusted prototypes, not an authoritative product foundation. Do not continue them blindly. Audit them if supplied and reuse only correct, tested ideas/code. Start from real upstream fork.
 - Systems, in priority order: (1) Investigative Research and OSINT, (2) Scientific Research, (3) Scientific Innovation, (4) Financial Analysis, (5) Cybersecurity (authorized, defensive, isolated). In addition, create real extensibility foundations and skeleton registration/contracts for the future AI Model Engineering & Research Laboratory.
 - Each system starts with one primary Manager Agent; dynamic subordinate hierarchy may descend as needed, with worker-role specialization. The primary can spawn assistants/sub-managers. No blanket one-model-one-agent allocation.
@@ -36,18 +36,18 @@ D_AI fork of DeepSeek Harness / Cordis
   Scoped Tool Gateway, sandboxed tool builder and cross-system grants
   Domain Systems: Investigative | Scientific Research | Innovation | Finance | Cyber
   Collaborative Rooms: linked missions, shared evidence, isolated strategies, attribution
-  Evidence Graph / Provenance / Claim Verification / Artifacts / Knowledge Memory
+  Evidence Graph / Source Lineage / Claim Verification / Artifacts / Knowledge Memory
   Reproducibility / Eval / Observability / Human Approval / Governance
   Future AI Research & Model Engineering Laboratory (scaffold and stable contracts)
   DeepSeek Harness model loop, sessions, subagents, tools, jobs, plugins and clients
 ```
-Never confuse: ownership tree (agents), dependency DAG (tasks), evidence/knowledge graph (claims/provenance). They solve different problems. Thousands of logical agents/tasks are not thousands of simultaneous LLM requests. Scheduler must bound actual compute and provider concurrency.
+Never confuse: ownership tree (agents), dependency DAG (tasks), evidence/knowledge graph (claims/source lineage). They solve different problems. Thousands of logical agents/tasks are not thousands of simultaneous LLM requests. Scheduler must bound actual compute and provider concurrency.
 
 ## 3. Domain contracts
 Each domain module has: manifest, semantic version, primary System Agent, allowed tools and cross-system grants, workflows, evidence types, safety policy, evaluation metrics, mission templates, UI contributions, optional dependent systems, state migration and regression suite. A newly installed domain cannot read all data by default.
 
 ### Investigative Research
-Investigative question decomposition, hypothesis and counter-hypothesis tree, original source discovery (public/licensed web, scholarly, archival, documents, public registries, geospatial/satellite, flight and economic data, media, social platforms where lawful and authorized), provenance, entity resolution, temporal graph, GIS, source reliability, independent verification, contradiction detection, uncertainty and source gaps. Do not treat unverified social media as truth. Privacy, authorization and data-licensing restrictions apply. No covert profiling or generalized mass surveillance.
+Investigative question decomposition, hypothesis and counter-hypothesis tree, original source discovery (public/licensed web, scholarly, archival, documents, public registries, geospatial/satellite, flight and economic data, media, social platforms where lawful and authorized), source lineage, entity resolution, temporal graph, GIS, source reliability, independent verification, contradiction detection, uncertainty and source gaps. Do not treat unverified social media as truth. Privacy, authorization and data-licensing restrictions apply. No covert profiling or generalized mass surveillance.
 
 ### Scientific Research
 Research gap/literature mapping across primary and grey literature, study design, hypotheses, methods, statistical rigor, reproducible calculations, ethics, requested human observations/experiments, methods and result reports. Explicit evidence and uncertainty; revisitable research projects.
@@ -56,7 +56,7 @@ Research gap/literature mapping across primary and grey literature, study design
 Hypothesis engines, counterexample/adversarial generation, formal mathematical checks (e.g., Lean/SymPy/SMT when installed), scientific simulations, engineering alternatives, experiments, novelty/prior-art analysis, verified claims, failure memory and reproducible artifact lineage. Outcomes: VERIFIED (within scope), REFUTED, OPEN, NEEDS EXPERIMENT. Do not call generated conjectures discoveries.
 
 ### Finance
-Company accounts and filings, macro/micro market data, event/news/social signals with provenance, scenario/forecasting, historical simulation and backtest safeguards (look-ahead bias, survivorship bias, fees, slippage), portfolio/risk analysis and uncertainty. Owner approval gate for any real capital movement; no guaranteed returns.
+Company accounts and filings, macro/micro market data, event/news/social signals with source records, scenario/forecasting, historical simulation and backtest safeguards (look-ahead bias, survivorship bias, fees, slippage), portfolio/risk analysis and uncertainty. Owner approval gate for any real capital movement; no guaranteed returns.
 
 ### Cybersecurity
 Authorized vulnerability research, inventory, code/configuration review, threat modeling, controlled security testing and remediation. Written scope-of-authorization and isolated lab policies for active testing; human approvals for high-risk actions; no covert persistence, credential theft, real-world unauthorized intrusion, or audit evasion.

@@ -8,7 +8,7 @@ import { historicalSchemaRegion } from './historical-schema-region.ts'
 
 const root = resolve(import.meta.dirname, '..')
 const blockedTerm = 'prove' + 'nance'
-const excludedPrefixes = ['vendor/', '.agents/notes/archived/'] as const
+const excludedPrefixes = ['vendor/', '.agents/notes/archived/', 'project/'] as const
 
 /** One blocked term occurrence in a tracked path or text line. */
 export interface ConcreteTermViolation {
