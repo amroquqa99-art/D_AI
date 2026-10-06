@@ -335,6 +335,7 @@ export {
   hasPendingDirectorSchedulerWake,
   isCurrentDirectorScheduleWake,
   isDirectorSchedulerWake,
+  orderDirectorSchedulesForFairness,
   shouldWakeDirectorSchedule,
 } from './director-scheduler.ts'
 export type {
