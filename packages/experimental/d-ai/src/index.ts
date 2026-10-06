@@ -47,6 +47,9 @@ import { selectDurableRunnableTasks } from './runtime-scheduler.ts'
 import { budgetFactSchema, budgetProjection } from './budget-state.ts'
 import type { BudgetFact, BudgetLedger, BudgetProfile, BudgetState } from './budget-state.ts'
 import type { ResourceBudget, ResourceUsage } from './resource-value.ts'
+import { evidenceStoreFactSchema, evidenceStoreProjection } from './evidence-store-state.ts'
+import type { EvidenceStore, EvidenceStoreFact, EvidenceStoreState } from './evidence-store-state.ts'
+import type { EvidenceEdge, EvidenceNode } from './evidence-graph.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
@@ -100,6 +103,8 @@ export { selectDurableRunnableTasks } from './runtime-scheduler.ts'
 export type { SchedulerSelection } from './runtime-scheduler.ts'
 export { budgetFactSchema, budgetProjection, projectBudgetFact, budgetProfileSchema, resourceBudgetSchema, resourceUsageSchema } from './budget-state.ts'
 export type { BudgetFact, BudgetLedger, BudgetProfile, BudgetState } from './budget-state.ts'
+export { evidenceStoreFactSchema, evidenceStoreProjection, projectEvidenceStoreFact, durableEvidenceNodeSchema, durableEvidenceEdgeSchema } from './evidence-store-state.ts'
+export type { EvidenceStore, EvidenceStoreFact, EvidenceStoreState } from './evidence-store-state.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
@@ -236,6 +241,7 @@ export class DAI extends Service {
     ctx.effect(() => ctx.sessionProjections.register(taskLedgerProjection), 'dai.taskLedgerProjection()')
     ctx.effect(() => ctx.sessionProjections.register(controlPlaneProjection), 'dai.controlPlaneProjection()')
     ctx.effect(() => ctx.sessionProjections.register(budgetProjection), 'dai.budgetProjection()')
+    ctx.effect(() => ctx.sessionProjections.register(evidenceStoreProjection), 'dai.evidenceStoreProjection()')
     ctx.effect(() => async () => { await Promise.all([...this.tails.values()]); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
   }
@@ -359,6 +365,25 @@ export class DAI extends Service {
       ownerAgentId: agent.id,
       revision: 0,
       tasks: [],
+    }
+  }
+
+  /** Read the durable shared Evidence/Knowledge Graph for the owner. */
+  readEvidenceStore(agent: Agent): EvidenceStoreState {
+    this.authorize(agent)
+    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiEvidenceStore')
+    if (state === undefined) fail('Evidence-store projection is not mounted', 'D_AI_PROJECTION_MISSING')
+    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
+    return immutable(state)
+  }
+
+  private evidenceStore(agent: Agent): EvidenceStore {
+    const existing = this.readEvidenceStore(agent).stores.find(item => item.ownerAgentId === agent.id)
+    return existing ?? {
+      ownerAgentId: agent.id,
+      revision: 0,
+      nodes: [],
+      edges: [],
     }
   }
 
@@ -514,6 +539,75 @@ export class DAI extends Service {
     return immutable(fact.ledger)
   }
 
+  private async appendEvidenceStore(agent: Agent, operation: EvidenceStoreFact['operation'], store: EvidenceStore): Promise<EvidenceStore> {
+    this.authorize(agent)
+    const fact = immutable(evidenceStoreFactSchema.parse({ version: 1, operation, actorId: agent.id, store }))
+    if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('evidence store storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+    this.requireOpenTurn(agent)
+    agent.session.append('d_ai/evidence-store-fact', fact)
+    await this.ctx.sessions.flush(agent.session)
+    return immutable(fact.store)
+  }
+
+
+
+  /** Append one provenance-carrying node to the shared D_AI evidence graph. */
+  async addSharedEvidenceNode(
+    agent: Agent,
+    input: Omit<EvidenceNode, 'id' | 'createdAt'>,
+  ): Promise<EvidenceStore> {
+    if (input.label.trim().length === 0 || input.provenance.length === 0 || input.provenance.some(item => item.trim().length === 0)) {
+      fail('evidence node requires a label and non-empty provenance references', 'D_AI_INVALID_INPUT')
+    }
+    if (input.confidence !== undefined && (!Number.isFinite(input.confidence) || input.confidence < 0 || input.confidence > 1)) {
+      fail('evidence confidence must be between 0 and 1', 'D_AI_INVALID_INPUT')
+    }
+    return this.transact(agent, async () => {
+      const current = this.evidenceStore(agent)
+      const node: EvidenceNode = {
+        id: randomUUID(),
+        kind: input.kind,
+        systemId: input.systemId,
+        label: input.label,
+        createdAt: new Date().toISOString(),
+        provenance: [...input.provenance],
+        ...(input.confidence === undefined ? {} : { confidence: input.confidence }),
+      }
+      return this.appendEvidenceStore(agent, 'ADD_NODE', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        nodes: [...current.nodes, node],
+        edges: [...current.edges],
+      })
+    })
+  }
+
+  /** Append one relation between existing shared evidence nodes. */
+  async addSharedEvidenceEdge(
+    agent: Agent,
+    input: Omit<EvidenceEdge, 'id' | 'createdAt' | 'actorId'>,
+  ): Promise<EvidenceStore> {
+    return this.transact(agent, async () => {
+      const current = this.evidenceStore(agent)
+      if (!current.nodes.some(node => node.id === input.from) || !current.nodes.some(node => node.id === input.to)) {
+        fail('shared evidence edge endpoints must already exist', 'D_AI_INVALID_INPUT')
+      }
+      const edge: EvidenceEdge = {
+        id: randomUUID(),
+        from: input.from,
+        to: input.to,
+        kind: input.kind,
+        createdAt: new Date().toISOString(),
+        actorId: agent.id,
+      }
+      return this.appendEvidenceStore(agent, 'ADD_EDGE', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        nodes: [...current.nodes],
+        edges: [...current.edges, edge],
+      })
+    })
+  }
 
   /**
    * Create or update one scoped resource budget after native human approval.
@@ -1653,6 +1747,45 @@ export class DAI extends Service {
         const states = ['PENDING', 'READY', 'RUNNING', 'WAITING_FOR_HUMAN', 'WAITING_FOR_TOOL', 'BLOCKED_POLICY', 'BLOCKED_BUDGET', 'PAUSED', 'FAILED', 'COMPLETED', 'CANCELLED'] as const
         if (!states.includes(args.next_state as typeof states[number])) fail('invalid durable task state', 'D_AI_INVALID_INPUT')
         return encoded(this.transitionDurableTask(owner(exec.agent), args.task_id, args.next_state as TaskState))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_evidence_read', description: 'Read the durable shared D_AI Evidence/Knowledge Graph with provenance-carrying nodes and append-only relations.',
+      parameters: {}, output,
+      execute: (_args, exec) => encoded(this.readEvidenceStore(owner(exec.agent))) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_evidence_add_node', description: 'Append one node to the shared D_AI evidence graph. Every node requires at least one provenance reference.',
+      parameters: {
+        kind: { type: 'string', required: true },
+        system_id: { type: 'string', required: true },
+        label: { type: 'string', required: true },
+        provenance: { type: 'string', required: true },
+        confidence: { type: 'number' },
+      }, output,
+      execute: (args, exec) => {
+        const kinds = ['SOURCE', 'CLAIM', 'ENTITY', 'EVENT', 'HYPOTHESIS', 'ARTIFACT', 'DATASET', 'EXPERIMENT', 'DECISION'] as const
+        if (!kinds.includes(args.kind as typeof kinds[number])) fail('invalid evidence node kind', 'D_AI_INVALID_INPUT')
+        if (!SYSTEMS.some(system => system.id === args.system_id)) fail('unknown evidence system id', 'D_AI_INVALID_INPUT')
+        const provenance = args.provenance.split(/[\n,]+/).map(value => value.trim()).filter(Boolean)
+        return encoded(this.addSharedEvidenceNode(owner(exec.agent), {
+          kind: args.kind as EvidenceNode['kind'],
+          systemId: args.system_id as EvidenceNode['systemId'],
+          label: args.label,
+          provenance,
+          ...(args.confidence === undefined ? {} : { confidence: args.confidence }),
+        }))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_evidence_add_edge', description: 'Append one relation between two existing shared evidence nodes.',
+      parameters: {
+        from: { type: 'string', required: true },
+        to: { type: 'string', required: true },
+        kind: { type: 'string', required: true },
+      }, output,
+      execute: (args, exec) => {
+        const kinds = ['SUPPORTS', 'CONTRADICTS', 'DERIVED_FROM', 'MENTIONS', 'RELATES_TO', 'PRECEDES', 'DUPLICATES', 'SUPERSEDES'] as const
+        if (!kinds.includes(args.kind as typeof kinds[number])) fail('invalid evidence edge kind', 'D_AI_INVALID_INPUT')
+        return encoded(this.addSharedEvidenceEdge(owner(exec.agent), {
+          from: args.from,
+          to: args.to,
+          kind: args.kind as EvidenceEdge['kind'],
+        }))
       } }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_budget_read', description: 'Read durable D_AI resource budgets and measured usage. Budget changes require human approval.',
       parameters: {}, output,
