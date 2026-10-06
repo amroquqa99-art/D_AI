@@ -165,6 +165,30 @@ describe('D_AI side-effect gateway', () => {
     expect(calls).toEqual(['dispatch-mark', 'unknown'])
   })
 
+  it('recovers success when commit became durable before its caller observed an error', async () => {
+    const calls: string[] = []
+    const runtime: SideEffectGatewayRuntime = {
+      reserveSideEffect: async () => record('RESERVED'),
+      markSideEffectDispatched: async () => record('DISPATCHED'),
+      commitSideEffect: async () => {
+        calls.push('commit-ack-lost')
+        throw new Error('commit acknowledgement lost')
+      },
+      markSideEffectOutcomeUnknown: async () => {
+        calls.push('journal-readback')
+        return record('COMMITTED')
+      },
+    }
+
+    const result = await runFencedSideEffect(runtime, agent, input, async () => ({
+      resultDigest: digestC,
+    }))
+
+    expect(calls).toEqual(['commit-ack-lost', 'journal-readback'])
+    expect(result.record.state).toBe('COMMITTED')
+    expect(result.replaySuppressed).toBe(false)
+  })
+
   it('records outcome unknown if durable commit fails after the connector returns', async () => {
     const calls: string[] = []
     const runtime: SideEffectGatewayRuntime = {
