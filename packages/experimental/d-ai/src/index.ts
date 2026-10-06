@@ -50,6 +50,8 @@ import type { ResourceBudget, ResourceUsage } from './resource-value.ts'
 import { evidenceStoreFactSchema, evidenceStoreProjection } from './evidence-store-state.ts'
 import type { EvidenceStore, EvidenceStoreFact, EvidenceStoreState } from './evidence-store-state.ts'
 import type { EvidenceEdge, EvidenceNode } from './evidence-graph.ts'
+import { executionFactSchema, executionProjection } from './execution-state.ts'
+import type { ExecutionFact, ExecutionLedger, ExecutionState, TaskCheckpoint, TaskLease } from './execution-state.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
@@ -105,6 +107,8 @@ export { budgetFactSchema, budgetProjection, projectBudgetFact, budgetProfileSch
 export type { BudgetFact, BudgetLedger, BudgetProfile, BudgetState } from './budget-state.ts'
 export { evidenceStoreFactSchema, evidenceStoreProjection, projectEvidenceStoreFact, durableEvidenceNodeSchema, durableEvidenceEdgeSchema } from './evidence-store-state.ts'
 export type { EvidenceStore, EvidenceStoreFact, EvidenceStoreState } from './evidence-store-state.ts'
+export { executionFactSchema, executionProjection, projectExecutionFact, taskLeaseSchema, taskCheckpointSchema } from './execution-state.ts'
+export type { ExecutionFact, ExecutionLedger, ExecutionState, TaskCheckpoint, TaskLease } from './execution-state.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
@@ -242,6 +246,7 @@ export class DAI extends Service {
     ctx.effect(() => ctx.sessionProjections.register(controlPlaneProjection), 'dai.controlPlaneProjection()')
     ctx.effect(() => ctx.sessionProjections.register(budgetProjection), 'dai.budgetProjection()')
     ctx.effect(() => ctx.sessionProjections.register(evidenceStoreProjection), 'dai.evidenceStoreProjection()')
+    ctx.effect(() => ctx.sessionProjections.register(executionProjection), 'dai.executionProjection()')
     ctx.effect(() => async () => { await Promise.all([...this.tails.values()]); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
   }
@@ -365,6 +370,25 @@ export class DAI extends Service {
       ownerAgentId: agent.id,
       revision: 0,
       tasks: [],
+    }
+  }
+
+  /** Read durable long-running task leases and checkpoints. */
+  readExecution(agent: Agent): ExecutionState {
+    this.authorize(agent)
+    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiExecution')
+    if (state === undefined) fail('Execution projection is not mounted', 'D_AI_PROJECTION_MISSING')
+    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
+    return immutable(state)
+  }
+
+  private executionLedger(agent: Agent): ExecutionLedger {
+    const existing = this.readExecution(agent).ledgers.find(item => item.ownerAgentId === agent.id)
+    return existing ?? {
+      ownerAgentId: agent.id,
+      revision: 0,
+      leases: [],
+      checkpoints: [],
     }
   }
 
@@ -601,7 +625,173 @@ export class DAI extends Service {
     return immutable(fact.store)
   }
 
+  private async appendExecutionLedger(agent: Agent, operation: ExecutionFact['operation'], ledger: ExecutionLedger): Promise<ExecutionLedger> {
+    this.authorize(agent)
+    const fact = immutable(executionFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
+    if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('execution ledger storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+    this.requireOpenTurn(agent)
+    agent.session.append('d_ai/execution-fact', fact)
+    await this.ctx.sessions.flush(agent.session)
+    return immutable(fact.ledger)
+  }
 
+
+
+
+  /** Claim the highest-priority runnable task and acquire a durable execution lease. */
+  async claimNextRunnableTask(
+    agent: Agent,
+    ttlMs = 300000,
+  ): Promise<{ readonly task: MissionTask; readonly lease: TaskLease }> {
+    if (!Number.isSafeInteger(ttlMs) || ttlMs < 1000 || ttlMs > 3600000) {
+      fail('task lease ttl must be an integer from 1000 to 3600000 ms', 'D_AI_INVALID_INPUT')
+    }
+
+    return this.transact(agent, async () => {
+      const tasks = this.taskLedger(agent)
+      const budgets = this.budgetLedger(agent)
+      const selection = selectDurableRunnableTasks(tasks, 1, budgets.profiles)
+      const selected = selection.selected[0]
+      if (selected === undefined) {
+        const budgetBlocked = selection.blocked.filter(item => item.reason === 'budget')
+        if (budgetBlocked.length > 0) fail('no runnable task: matching resource budget is exhausted', 'D_AI_BUDGET_EXCEEDED')
+        fail('no runnable D_AI task is available', 'D_AI_NO_RUNNABLE_TASK')
+      }
+
+      const now = new Date()
+      const nowIso = now.toISOString()
+      const executions = this.executionLedger(agent)
+      const active = executions.leases.find(lease =>
+        lease.taskId === selected.id
+        && lease.releasedAt === undefined
+        && Date.parse(lease.expiresAt) > now.getTime())
+      if (active !== undefined) fail('selected task already has an active execution lease', 'D_AI_BUSY')
+
+      let taskLedger = tasks
+      let task = selected
+      if (task.state === 'PENDING') {
+        const ready = transitionTaskInternal(task, 'READY')
+        taskLedger = await this.appendTaskLedger(agent, 'TRANSITION', {
+          ownerAgentId: agent.id,
+          revision: taskLedger.revision + 1,
+          tasks: taskLedger.tasks.map(item => item.id === task.id ? ready : item),
+        })
+        task = ready
+      }
+      const running = transitionTaskInternal(task, 'RUNNING')
+      taskLedger = await this.appendTaskLedger(agent, 'TRANSITION', {
+        ownerAgentId: agent.id,
+        revision: taskLedger.revision + 1,
+        tasks: taskLedger.tasks.map(item => item.id === task.id ? running : item),
+      })
+
+      const lease: TaskLease = {
+        id: randomUUID(),
+        taskId: running.id,
+        missionId: running.missionId,
+        holderId: agent.id,
+        acquiredAt: nowIso,
+        expiresAt: new Date(now.getTime() + ttlMs).toISOString(),
+      }
+      await this.appendExecutionLedger(agent, 'ACQUIRE_LEASE', {
+        ownerAgentId: agent.id,
+        revision: executions.revision + 1,
+        leases: [...executions.leases, lease],
+        checkpoints: [...executions.checkpoints],
+      })
+
+      return immutable({ task: running, lease })
+    })
+  }
+
+  /** Extend the current owner's active task lease. */
+  async renewTaskLease(agent: Agent, taskId: string, ttlMs = 300000): Promise<TaskLease> {
+    if (!Number.isSafeInteger(ttlMs) || ttlMs < 1000 || ttlMs > 3600000) {
+      fail('task lease ttl must be an integer from 1000 to 3600000 ms', 'D_AI_INVALID_INPUT')
+    }
+    return this.transact(agent, async () => {
+      const current = this.executionLedger(agent)
+      const now = Date.now()
+      const index = [...current.leases].reverse().findIndex(lease => lease.taskId === taskId && lease.releasedAt === undefined)
+      if (index < 0) fail('task has no active lease', 'D_AI_INVALID_INPUT')
+      const actualIndex = current.leases.length - 1 - index
+      const lease = current.leases[actualIndex]!
+      if (lease.holderId !== agent.id || Date.parse(lease.expiresAt) <= now) fail('task lease is expired or owned by another executor', 'D_AI_POLICY_DENIED')
+      const nextExpiry = new Date(Math.max(Date.parse(lease.expiresAt) + 1, now + ttlMs)).toISOString()
+      const renewed: TaskLease = { ...lease, expiresAt: nextExpiry }
+      await this.appendExecutionLedger(agent, 'RENEW_LEASE', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        leases: current.leases.map((item, itemIndex) => itemIndex === actualIndex ? renewed : item),
+        checkpoints: [...current.checkpoints],
+      })
+      return immutable(renewed)
+    })
+  }
+
+  /** Append a durable checkpoint for a leased long-running task. */
+  async checkpointTask(
+    agent: Agent,
+    taskId: string,
+    summary: string,
+    artifactRefs: readonly string[] = [],
+  ): Promise<TaskCheckpoint> {
+    if (summary.trim().length === 0 || artifactRefs.some(ref => ref.trim().length === 0)) {
+      fail('checkpoint summary and artifact references must be non-empty', 'D_AI_INVALID_INPUT')
+    }
+    return this.transact(agent, async () => {
+      const current = this.executionLedger(agent)
+      const now = Date.now()
+      const lease = [...current.leases].reverse().find(item =>
+        item.taskId === taskId
+        && item.holderId === agent.id
+        && item.releasedAt === undefined
+        && Date.parse(item.expiresAt) > now)
+      if (lease === undefined) fail('checkpoint requires an active task lease owned by this executor', 'D_AI_POLICY_DENIED')
+      const task = this.taskLedger(agent).tasks.find(item => item.id === taskId)
+      if (task === undefined || !['RUNNING', 'WAITING_FOR_HUMAN', 'WAITING_FOR_TOOL'].includes(task.state)) {
+        fail('checkpoint requires a running or waiting task', 'D_AI_INVALID_TRANSITION')
+      }
+      const sequence = current.checkpoints
+        .filter(item => item.taskId === taskId)
+        .reduce((max, item) => Math.max(max, item.sequence), 0) + 1
+      const checkpoint: TaskCheckpoint = {
+        id: randomUUID(),
+        taskId,
+        sequence,
+        at: new Date(now).toISOString(),
+        summary,
+        artifactRefs: [...artifactRefs],
+      }
+      await this.appendExecutionLedger(agent, 'CHECKPOINT', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        leases: [...current.leases],
+        checkpoints: [...current.checkpoints, checkpoint],
+      })
+      return immutable(checkpoint)
+    })
+  }
+
+  /** Release the latest un-released task lease owned by the current executor. */
+  async releaseTaskLease(agent: Agent, taskId: string): Promise<TaskLease> {
+    return this.transact(agent, async () => {
+      const current = this.executionLedger(agent)
+      const reverseIndex = [...current.leases].reverse().findIndex(lease =>
+        lease.taskId === taskId && lease.holderId === agent.id && lease.releasedAt === undefined)
+      if (reverseIndex < 0) fail('task has no releasable lease owned by this executor', 'D_AI_INVALID_INPUT')
+      const index = current.leases.length - 1 - reverseIndex
+      const lease = current.leases[index]!
+      const released: TaskLease = { ...lease, releasedAt: new Date().toISOString() }
+      await this.appendExecutionLedger(agent, 'RELEASE_LEASE', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        leases: current.leases.map((item, itemIndex) => itemIndex === index ? released : item),
+        checkpoints: [...current.checkpoints],
+      })
+      return immutable(released)
+    })
+  }
 
   /** Append one provenance-carrying node to the shared D_AI evidence graph. */
   async addSharedEvidenceNode(
@@ -1802,6 +1992,25 @@ export class DAI extends Service {
         if (!states.includes(args.next_state as typeof states[number])) fail('invalid durable task state', 'D_AI_INVALID_INPUT')
         return encoded(this.transitionDurableTask(owner(exec.agent), args.task_id, args.next_state as TaskState))
       } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_execution_read', description: 'Read durable D_AI task leases and checkpoints for long-running execution.', parameters: {}, output,
+      execute: (_args, exec) => encoded(this.readExecution(owner(exec.agent))) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_task_claim_next', description: 'Claim the highest-priority runnable D_AI task, move it to RUNNING and acquire a durable execution lease. Budget and dependency admission are enforced.',
+      parameters: { ttl_ms: { type: 'number' } }, output,
+      execute: (args, exec) => encoded(this.claimNextRunnableTask(owner(exec.agent), args.ttl_ms ?? 300000)) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_task_renew_lease', description: 'Extend the current executor lease for a long-running D_AI task.',
+      parameters: { task_id: { type: 'string', required: true }, ttl_ms: { type: 'number' } }, output,
+      execute: (args, exec) => encoded(this.renewTaskLease(owner(exec.agent), args.task_id, args.ttl_ms ?? 300000)) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_task_checkpoint', description: 'Persist a resumable checkpoint for a currently leased D_AI task.',
+      parameters: { task_id: { type: 'string', required: true }, summary: { type: 'string', required: true }, artifact_refs: { type: 'string' } }, output,
+      execute: (args, exec) => encoded(this.checkpointTask(
+        owner(exec.agent),
+        args.task_id,
+        args.summary,
+        args.artifact_refs === undefined ? [] : args.artifact_refs.split(/[\n,]+/).map(value => value.trim()).filter(Boolean),
+      )) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_task_release_lease', description: 'Release the current executor lease for a D_AI task. Task completion/failure state remains a separate explicit transition.',
+      parameters: { task_id: { type: 'string', required: true } }, output,
+      execute: (args, exec) => encoded(this.releaseTaskLease(owner(exec.agent), args.task_id)) }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_evidence_read', description: 'Read the durable shared D_AI Evidence/Knowledge Graph with provenance-carrying nodes and append-only relations.',
       parameters: {}, output,
       execute: (_args, exec) => encoded(this.readEvidenceStore(owner(exec.agent))) }))
