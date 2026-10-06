@@ -27,6 +27,7 @@ export const directorScheduleSchema = z.object({
   enabled: z.boolean(),
   intervalMs: z.number().int().positive(),
   maxTasksPerCycle: z.number().int().min(1).max(8),
+  maxParallelTasks: z.number().int().min(1).max(8).default(1),
   leaseTtlMs: z.number().int().positive(),
   nextWakeAt: z.string().datetime(),
   createdAt: z.string().datetime(),
@@ -76,6 +77,9 @@ const stateSchema: z.ZodType<DirectorScheduleState> = z.object({
 
 function assertSchedule(schedule: DirectorSchedule): void {
   if (schedule.intervalMs < 10) throw new Error('Director schedule interval must be at least 10 ms')
+  if (schedule.maxParallelTasks > schedule.maxTasksPerCycle) {
+    throw new Error('Director schedule parallelism cannot exceed maxTasksPerCycle')
+  }
   if (schedule.leaseTtlMs <= schedule.intervalMs) {
     throw new Error('Director schedule lease TTL must exceed its interval')
   }
@@ -157,6 +161,7 @@ export function projectDirectorScheduleFact(
           'enabled',
           'intervalMs',
           'maxTasksPerCycle',
+          'maxParallelTasks',
           'leaseTtlMs',
           'createdAt',
         ] as const) {
