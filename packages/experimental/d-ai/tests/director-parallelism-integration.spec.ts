@@ -180,6 +180,10 @@ describe('D_AI same-plan Director parallel execution', () => {
       expect(tasks.map(task => task.state)).toEqual(['COMPLETED', 'COMPLETED'])
       expect(adapter.maxActiveChildren).toBe(2)
       expect(execution.leases).toHaveLength(2)
+      expect(new Set(execution.leases.map(lease => lease.holderId)).size).toBe(2)
+      expect(execution.leases.every(lease =>
+        lease.holderId.startsWith('director-worker:')
+        && lease.holderId !== agent.id)).toBe(true)
       expect(execution.leases.every(lease => lease.releasedAt !== undefined)).toBe(true)
       expect(execution.checkpoints).toHaveLength(2)
       expect(ctx.dai.directorPlanView(agent, plan().id)).toMatchObject({ phase: 'COMPLETE' })
