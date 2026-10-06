@@ -104,6 +104,7 @@ describe('D_AI unattended Mission Director', () => {
         planId: plan().id,
         enabled: true,
         maxTasksPerCycle: 1,
+        maxParallelTasks: 1,
         leaseTtlMs: 60000,
       })
 
