@@ -110,6 +110,19 @@ describe('D_AI runtime architecture boundaries', () => {
     expect(admission).toBeGreaterThan(recovery)
   })
 
+  it('enforces scheduler stagnation inside the execution operation, not only wake admission', async () => {
+    const index = await source('index.ts')
+    const start = index.indexOf('async runScheduledDirectorCycle(')
+    const end = index.indexOf('async setDirectorPlanStatus(', start)
+    expect(start).toBeGreaterThanOrEqual(0)
+    expect(end).toBeGreaterThan(start)
+
+    const operation = index.slice(start, end)
+    expect(operation).toContain('directorScheduleStagnationReason(schedule)')
+    expect(operation.indexOf('directorScheduleStagnationReason(schedule)'))
+      .toBeLessThan(operation.indexOf('this.executeDirectorCycle('))
+  })
+
   it('keeps domain tool adapters outside domain state and orchestration modules', async () => {
     const domainCore = [
       'state.ts',
