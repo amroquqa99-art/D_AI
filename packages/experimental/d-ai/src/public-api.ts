@@ -332,6 +332,7 @@ export type {
 export {
   DirectorScheduler,
   createDirectorSchedulerWake,
+  directorSchedulerRemainingSlots,
   hasPendingDirectorSchedulerWake,
   isCurrentDirectorScheduleWake,
   isDirectorSchedulerWake,
