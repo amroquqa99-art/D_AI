@@ -1,7 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { CyberAuthorizationScope, CyberFinding } from './cyber-state.ts'
+import type { CyberAuthorizationScope, CyberEngagement, CyberFinding, CyberState } from './cyber-state.ts'
 import { encodeToolResult, jsonToolOutput, rejectInvalidInput } from './tool-support.ts'
 import type { ToolOwnerResolver } from './tool-support.ts'
 
@@ -11,8 +11,8 @@ export interface CyberToolRuntime {
     objective: string,
     authorization: CyberAuthorizationScope,
     signal?: AbortSignal,
-  ): Promise<unknown>
-  readCybersecurity(agent: Agent): unknown
+  ): Promise<CyberEngagement>
+  readCybersecurity(agent: Agent): CyberState
   addCyberFinding(
     agent: Agent,
     engagementId: string,
