@@ -665,6 +665,43 @@ export class DAI extends Service {
     this.ctx.tools.register(defineTool({ name: 'd_ai_scientific_delegate', description: 'Run fresh independent literature and methodology Agents for the approved Scientific Research question.',
       parameters: { project_id: { type: 'string', required: true } }, output, timeoutMs: this.scientificDelegation.timeoutMs * 2 + 10000,
       execute: (args, exec) => encoded(this.delegateScientific(owner(exec.agent), args.project_id, exec.signal)) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_investor_create', description: 'Create an explicitly user-requested Investor analysis case. This does not authorize real capital movement.',
+      parameters: { objective: { type: 'string', required: true } }, output,
+      execute: (args, exec) => encoded(this.createInvestor(owner(exec.agent), args.objective, exec.signal)) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_investor_read', description: 'Read durable Investor cases, captured sources, theses and independent analysis outputs.', parameters: {}, output,
+      execute: (_args, exec) => encoded(this.readInvestor(owner(exec.agent))) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_investor_capture_source', description: 'Capture an authorized financial, filing, market, macro, news or other HTTP(S) source with immutable provenance.',
+      parameters: {
+        case_id: { type: 'string', required: true },
+        url: { type: 'string', required: true },
+        category: { type: 'string', required: true },
+      }, output, timeoutMs: 30000,
+      execute: (args, exec) => {
+        const allowed = ['FILING', 'MARKET', 'MACRO', 'NEWS', 'SOCIAL', 'OTHER'] as const
+        if (!allowed.includes(args.category as typeof allowed[number])) fail('invalid investor source category', 'D_AI_INVALID_INPUT')
+        return encoded(this.captureInvestorSource(owner(exec.agent), args.case_id, args.url, args.category as InvestorSource['category'], exec.signal))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_investor_add_thesis', description: 'Append an investment thesis with an explicit horizon, rationale and invalidation conditions. This is analysis, not an execution order.',
+      parameters: {
+        case_id: { type: 'string', required: true },
+        statement: { type: 'string', required: true },
+        horizon: { type: 'string', required: true },
+        rationale: { type: 'string', required: true },
+        invalidation_conditions: { type: 'string', required: true },
+      }, output,
+      execute: (args, exec) => {
+        const horizons = ['SHORT', 'MEDIUM', 'LONG'] as const
+        if (!horizons.includes(args.horizon as typeof horizons[number])) fail('invalid investment horizon', 'D_AI_INVALID_INPUT')
+        return encoded(this.addInvestmentThesis(owner(exec.agent), args.case_id, {
+          statement: args.statement,
+          horizon: args.horizon as InvestmentThesis['horizon'],
+          rationale: args.rationale,
+          invalidationConditions: args.invalidation_conditions,
+        }))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_investor_delegate', description: 'Run fresh independent fundamental and adversarial-risk Agents for the approved Investor case.',
+      parameters: { case_id: { type: 'string', required: true } }, output, timeoutMs: this.investorDelegation.timeoutMs * 2 + 10000,
+      execute: (args, exec) => encoded(this.delegateInvestor(owner(exec.agent), args.case_id, exec.signal)) }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_mission_create', description: 'Create an explicitly user-requested investigative mission. Never activate a new independent mission proposed by a model without owner approval.',
       parameters: { objective: { type: 'string', required: true } }, output,
       execute: (args, exec) => encoded(this.create(owner(exec.agent), args.objective, exec.signal)) }))
