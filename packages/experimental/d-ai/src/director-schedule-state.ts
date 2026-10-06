@@ -219,6 +219,12 @@ export function projectDirectorScheduleFact(
         || fact.ledger.schedules.length !== 1) {
         throw new Error('Director schedule ledger must begin with one UPSERT')
       }
+      const initial = fact.ledger.schedules[0]!
+      if (initial.lastCycle !== undefined
+        || initial.consecutiveFailures !== 0
+        || initial.consecutiveIdleCycles !== 0) {
+        throw new Error('new Director schedule cannot contain historical cycle state')
+      }
     }
 
     return {
