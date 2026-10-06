@@ -255,7 +255,7 @@ export function registerTasksDirectorTools(
 
   ctx.tools.register(defineTool({
     name: 'd_ai_director_execute_cycle',
-    description: 'Execute a bounded batch of runnable Mission Director tasks sequentially. The cycle stops on failure, plan blocking, cancellation, no runnable work, or the explicit max_tasks limit.',
+    description: 'Execute a bounded batch of runnable Mission Director tasks in budget-safe parallel waves. Parallelism is explicit and never exceeds max_tasks; the cycle waits for every started worker before returning or surfacing failure.',
     parameters: {
       plan_id: { type: 'string', required: true },
       max_tasks: { type: 'number' },
