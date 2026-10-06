@@ -52,10 +52,12 @@ export async function withLeaseHeartbeat<T>(
 
   const operation = Promise.resolve().then(() => work(combined))
 
-  let result: T | undefined
+  let completed = false
+  let result!: T
   let failure: unknown
   try {
     result = await Promise.race([operation, heartbeat])
+    completed = true
   } catch (error) {
     failure = error
   } finally {
@@ -66,5 +68,6 @@ export async function withLeaseHeartbeat<T>(
   }
 
   if (failure !== undefined) throw failure
-  return result as T
+  if (!completed) throw new Error('leased operation ended without a result')
+  return result
 }
