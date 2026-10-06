@@ -95,6 +95,21 @@ describe('D_AI runtime architecture boundaries', () => {
     expect(state).toContain("'D_AI_CORRUPT_STATE'")
   })
 
+  it('recovers expired Director leases before scheduler admission', async () => {
+    const index = await source('index.ts')
+    const start = index.indexOf('async executeDirectorCycle(')
+    const end = index.indexOf('async setDirectorSchedule(', start)
+    expect(start).toBeGreaterThanOrEqual(0)
+    expect(end).toBeGreaterThan(start)
+
+    const cycle = index.slice(start, end)
+    const recovery = cycle.indexOf('await this.recoverExpiredTaskLeases(agent)')
+    const admission = cycle.indexOf('this.directorPlanView(agent, planId, 1)')
+
+    expect(recovery).toBeGreaterThanOrEqual(0)
+    expect(admission).toBeGreaterThan(recovery)
+  })
+
   it('keeps domain tool adapters outside domain state and orchestration modules', async () => {
     const domainCore = [
       'state.ts',
