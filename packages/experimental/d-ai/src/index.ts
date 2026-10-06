@@ -792,6 +792,199 @@ export class DAI extends Service {
     }
   }
 
+  /** Create a user-approved Operations & Intelligence analysis case. */
+  async createOperations(
+    agent: Agent,
+    objective: string,
+    classification: OperationsCase['classification'],
+    signal?: AbortSignal,
+  ): Promise<OperationsCase> {
+    this.authorize(agent)
+    const boundary = this.requireOpenTurn(agent)
+    const explicit = agent.session.snapshotEvents().slice(boundary + 1).some(event =>
+      event.type === 'user/message' && event.data.source.kind === 'user'
+      && event.data.content.filter(block => block.type === 'text').map(block => block.text).join('\n').includes(objective.trim()))
+    if (!explicit) {
+      const outcome = await this.ctx.approval.request({
+        agent,
+        toolName: 'd_ai_operations_create',
+        reason: 'Activate Operations & Intelligence case: ' + objective,
+        ...(signal === undefined ? {} : { signal }),
+      })
+      if (outcome !== 'allowed-once') fail('owner approval is required for this operations case')
+    }
+    if (objective.trim().length === 0) fail('operations objective must contain text', 'D_AI_INVALID_INPUT')
+    return this.transact(agent, async () => this.appendOperations(agent, 'CREATE', {
+      id: randomUUID(),
+      system: 'operations-intelligence',
+      objective,
+      ownerAgentId: agent.id,
+      classification,
+      status: 'ACTIVE',
+      revision: 1,
+      createdAt: new Date().toISOString(),
+      entities: [],
+      relationships: [],
+      timeline: [],
+      gaps: [],
+      options: [],
+      delegations: [],
+    }))
+  }
+
+  async addOperationsEntity(
+    agent: Agent,
+    id: string,
+    input: { type: OperationsEntity['type']; label: string; summary: string },
+  ): Promise<OperationsCase> {
+    if (input.label.trim().length === 0) fail('operations entity label is required', 'D_AI_INVALID_INPUT')
+    return this.transact(agent, async () => {
+      const value = this.operationsCase(agent, id)
+      const entity: OperationsEntity = {
+        id: randomUUID(),
+        type: input.type,
+        label: input.label,
+        summary: input.summary,
+        actorId: agent.id,
+        createdAt: new Date().toISOString(),
+      }
+      return this.appendOperations(agent, 'ADD_ENTITY', {
+        ...value,
+        revision: value.revision + 1,
+        entities: [...value.entities, entity],
+      })
+    })
+  }
+
+  async addOperationsRelationship(
+    agent: Agent,
+    id: string,
+    input: { fromEntityId: string; toEntityId: string; type: string; confidence: number; evidenceRefs?: readonly string[] },
+  ): Promise<OperationsCase> {
+    if (!Number.isFinite(input.confidence) || input.confidence < 0 || input.confidence > 1) fail('relationship confidence must be between 0 and 1', 'D_AI_INVALID_INPUT')
+    return this.transact(agent, async () => {
+      const value = this.operationsCase(agent, id)
+      if (!value.entities.some(item => item.id === input.fromEntityId) || !value.entities.some(item => item.id === input.toEntityId)) {
+        fail('operations relationship requires existing entities', 'D_AI_INVALID_INPUT')
+      }
+      const relationship: OperationsRelationship = {
+        id: randomUUID(),
+        fromEntityId: input.fromEntityId,
+        toEntityId: input.toEntityId,
+        type: input.type,
+        confidence: input.confidence,
+        evidenceRefs: [...(input.evidenceRefs ?? [])],
+        actorId: agent.id,
+        createdAt: new Date().toISOString(),
+      }
+      return this.appendOperations(agent, 'ADD_RELATIONSHIP', {
+        ...value,
+        revision: value.revision + 1,
+        relationships: [...value.relationships, relationship],
+      })
+    })
+  }
+
+  async addOperationsTimelineEvent(
+    agent: Agent,
+    id: string,
+    input: { occurredAt: string; label: string; details: string; evidenceRefs?: readonly string[] },
+  ): Promise<OperationsCase> {
+    if (!Number.isFinite(Date.parse(input.occurredAt)) || input.label.trim().length === 0) fail('valid timeline time and label are required', 'D_AI_INVALID_INPUT')
+    return this.transact(agent, async () => {
+      const value = this.operationsCase(agent, id)
+      const event: OperationsTimelineEvent = {
+        id: randomUUID(),
+        occurredAt: input.occurredAt,
+        label: input.label,
+        details: input.details,
+        evidenceRefs: [...(input.evidenceRefs ?? [])],
+        actorId: agent.id,
+        createdAt: new Date().toISOString(),
+      }
+      return this.appendOperations(agent, 'ADD_TIMELINE', {
+        ...value,
+        revision: value.revision + 1,
+        timeline: [...value.timeline, event],
+      })
+    })
+  }
+
+  async addIntelligenceGap(
+    agent: Agent,
+    id: string,
+    input: { question: string; priority: IntelligenceGap['priority'] },
+  ): Promise<OperationsCase> {
+    if (input.question.trim().length === 0) fail('intelligence gap question is required', 'D_AI_INVALID_INPUT')
+    return this.transact(agent, async () => {
+      const value = this.operationsCase(agent, id)
+      const gap: IntelligenceGap = {
+        id: randomUUID(),
+        question: input.question,
+        priority: input.priority,
+        state: 'OPEN',
+        actorId: agent.id,
+        createdAt: new Date().toISOString(),
+      }
+      return this.appendOperations(agent, 'ADD_GAP', {
+        ...value,
+        status: 'WAITING_FOR_DATA',
+        revision: value.revision + 1,
+        gaps: [...value.gaps, gap],
+      })
+    })
+  }
+
+  async addOperationalOption(
+    agent: Agent,
+    id: string,
+    input: { title: string; description: string; expectedBenefit: string; risks: string },
+  ): Promise<OperationsCase> {
+    if ([input.title, input.description, input.expectedBenefit, input.risks].some(value => value.trim().length === 0)) {
+      fail('operational option fields are required', 'D_AI_INVALID_INPUT')
+    }
+    return this.transact(agent, async () => {
+      const value = this.operationsCase(agent, id)
+      const option: OperationalOption = {
+        id: randomUUID(),
+        title: input.title,
+        description: input.description,
+        expectedBenefit: input.expectedBenefit,
+        risks: input.risks,
+        requiresHumanApproval: true,
+        state: 'PROPOSED',
+        actorId: agent.id,
+        createdAt: new Date().toISOString(),
+      }
+      return this.appendOperations(agent, 'ADD_OPTION', {
+        ...value,
+        revision: value.revision + 1,
+        options: [...value.options, option],
+      })
+    })
+  }
+
+  async delegateOperations(agent: Agent, id: string, signal: AbortSignal): Promise<OperationsCase> {
+    const value = this.operationsCase(agent, id)
+    const key = agent.id + ':operations'
+    if (this.delegating.has(key)) fail('an operations delegation is already running for this owner', 'D_AI_BUSY')
+    this.delegating.add(key)
+    try {
+      const result = await runOperationsDelegates(this.ctx, agent, value.objective, signal, this.operationsDelegation)
+      signal.throwIfAborted()
+      return await this.transact(agent, async () => {
+        const current = this.operationsCase(agent, id)
+        return this.appendOperations(agent, 'DELEGATE', {
+          ...current,
+          revision: current.revision + 1,
+          delegations: [...current.delegations, result],
+        })
+      })
+    } finally {
+      this.delegating.delete(key)
+    }
+  }
+
   /**
    * Fetch and retain an immutable, bounded decoded source through the native web provider.
    * @param agent - exact mission owner root Agent.
