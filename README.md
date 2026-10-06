@@ -26,7 +26,7 @@ Legend:
 | Shared Task DAG | **IMPLEMENTED / CI PENDING** | Task states, dependencies, retry accounting, durable task-ledger replay, and scheduler admission that respects dependencies/blocking states. |
 | Mission Director | **FOUNDATION** | Mission planning primitives, runnable-work selection, resource admission and Value-of-Information ranking. Full long-running scheduler/executor loop is still being built. |
 | Capability control plane | **IMPLEMENTED / CI PENDING** | Scoped ALLOW/DENY grants, fail-closed authorization, human-approved durable grant changes, append-only audit hash chain, durable control-plane projection. |
-| Evidence / Knowledge graph | **FOUNDATION** | Cross-system evidence nodes/edges, support/contradiction representation and claim-tension queries. Persistence/runtime integration is still incomplete. |
+| Evidence / Knowledge graph | **IMPLEMENTED / CI PENDING** | Shared append-only evidence nodes/edges now persist through Session replay with provenance and confidence; support/contradiction graph primitives exist. Automatic domain-to-graph ingestion and graph UI are still incomplete. |
 | Cross-system handoff | **IMPLEMENTED / CI PENDING** | Persisted grant-backed authorization and durable audit records exist for declared system-to-system handoffs. Automatic target-task execution/routing is still incomplete. |
 | Model Router | **FOUNDATION** | Hard capability/context/locality requirements plus weighted model ranking. Live provider telemetry/routing integration is not complete. |
 | Resource budgets + VoI | **IMPLEMENTED / CI PENDING** | Durable scoped budget profiles now store token, money, wall-clock, human-attention and data-access limits plus measured usage; VoI ranking primitives exist. Full automatic metering/enforcement across every tool call is still incomplete. |
@@ -85,6 +85,7 @@ packages/experimental/d-ai/
 │   ├── audit-log.ts
 │   ├── cross-system.ts
 │   ├── evidence-graph.ts
+│   ├── evidence-store-state.ts
 │   ├── resource-value.ts
 │   ├── budget-state.ts
 │   ├── runtime-scheduler.ts
