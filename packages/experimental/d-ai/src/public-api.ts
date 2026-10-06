@@ -31,7 +31,7 @@ export type {
   GrantDecision,
 } from './capability-grants.ts'
 
-export { checkBudget, scoreInformationOption, rankInformationOptions } from './resource-value.ts'
+export { addResourceUsage, checkBudget, scoreInformationOption, rankInformationOptions } from './resource-value.ts'
 export type {
   ResourceBudget,
   ResourceUsage,
@@ -189,7 +189,7 @@ export type {
   ControlPlaneState,
 } from './control-plane-state.ts'
 
-export { selectDurableRunnableTasks } from './runtime-scheduler.ts'
+export { budgetProfilesForTask, selectDurableRunnableTasks } from './runtime-scheduler.ts'
 export type {
   SchedulerSelection,
   SchedulerBlockedTask,
