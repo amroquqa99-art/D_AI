@@ -37,7 +37,7 @@ jobs:
       - name: Build Harness native system addon
         run: pnpm run build:native-system
       - name: D_AI TypeScript package check
-        run: pnpm exec tsc --noEmit -p packages/experimental/d-ai/tsconfig.json
+        run: pnpm exec tsc -b packages/experimental/d-ai/tsconfig.json --pretty false
       - name: D_AI registry tests
         run: pnpm exec vitest run packages/experimental/d-ai/tests/systems.spec.ts
       - name: D_AI package tests
