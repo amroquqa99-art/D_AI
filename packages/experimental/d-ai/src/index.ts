@@ -8,34 +8,34 @@ import type {} from '@deepseek-ai/dsh-user-approval'
 import { defineDomain, domainTable } from '@deepseek-ai/dsh-storage-domain'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-web'
-import { factSchema, missionProjection, SYSTEMS } from './state.ts'
+import { factSchema, SYSTEMS } from './state.ts'
 import { LOCAL_INTELLIGENCE_CORE } from './systems.ts'
 import type { Mission, MissionFact, EvidenceClaim, MissionState } from './state.ts'
 import { runInvestigationDelegates } from './orchestration.ts'
 import type { InvestigationDelegationConfig } from './orchestration.ts'
-import { scientificFactSchema, scientificProjection } from './scientific-state.ts'
+import { scientificFactSchema } from './scientific-state.ts'
 import type { ScientificExperiment, ScientificFact, ScientificHypothesis, ScientificProject, ScientificState } from './scientific-state.ts'
 import { runScientificDelegates } from './scientific-orchestration.ts'
 import type { ScientificDelegationConfig } from './scientific-orchestration.ts'
-import { investorFactSchema, investorProjection } from './investor-state.ts'
+import { investorFactSchema } from './investor-state.ts'
 import type { InvestmentThesis, InvestorCase, InvestorFact, InvestorSource, InvestorState } from './investor-state.ts'
 import { runInvestorDelegates } from './investor-orchestration.ts'
 import type { InvestorDelegationConfig } from './investor-orchestration.ts'
-import { cyberFactSchema, cyberProjection } from './cyber-state.ts'
+import { cyberFactSchema } from './cyber-state.ts'
 import type { CyberAuthorizationScope, CyberEngagement, CyberFact, CyberFinding, CyberState } from './cyber-state.ts'
 import { runCyberDelegates } from './cyber-orchestration.ts'
 import type { CyberDelegationConfig } from './cyber-orchestration.ts'
-import { operationsFactSchema, operationsProjection } from './operations-state.ts'
+import { operationsFactSchema } from './operations-state.ts'
 import type { IntelligenceGap, OperationalOption, OperationsCase, OperationsEntity, OperationsFact, OperationsRelationship, OperationsState, OperationsTimelineEvent } from './operations-state.ts'
 import { runOperationsDelegates } from './operations-orchestration.ts'
 import type { OperationsDelegationConfig } from './operations-orchestration.ts'
-import { innovationFactSchema, innovationProjection } from './innovation-state.ts'
+import { innovationFactSchema } from './innovation-state.ts'
 import type { InnovationCandidate, InnovationExperiment, InnovationFact, InnovationProject, InnovationState } from './innovation-state.ts'
 import { runInnovationDelegates } from './innovation-orchestration.ts'
 import type { InnovationDelegationConfig } from './innovation-orchestration.ts'
-import { taskLedgerFactSchema, taskLedgerProjection } from './task-ledger-state.ts'
+import { taskLedgerFactSchema } from './task-ledger-state.ts'
 import type { DurableTaskLedger, TaskLedgerFact, TaskLedgerState } from './task-ledger-state.ts'
-import { controlPlaneFactSchema, controlPlaneProjection } from './control-plane-state.ts'
+import { controlPlaneFactSchema } from './control-plane-state.ts'
 import type { ControlPlane, ControlPlaneFact, ControlPlaneState } from './control-plane-state.ts'
 import { appendAuditRecord as appendAuditRecordInternal, createAuditChain as createAuditChainInternal } from './audit-log.ts'
 import { validateGrant as validateGrantInternal } from './capability-grants.ts'
@@ -43,27 +43,27 @@ import type { CapabilityGrant } from './capability-grants.ts'
 import { transitionTask as transitionTaskInternal } from './task-dag.ts'
 import { authorizeCrossSystemHandoff as authorizeCrossSystemHandoffInternal } from './cross-system.ts'
 import { selectDurableRunnableTasks } from './runtime-scheduler.ts'
-import { budgetFactSchema, budgetProjection } from './budget-state.ts'
+import { budgetFactSchema } from './budget-state.ts'
 import type { BudgetFact, BudgetLedger, BudgetProfile, BudgetState } from './budget-state.ts'
 import type { ResourceBudget, ResourceUsage } from './resource-value.ts'
-import { evidenceStoreFactSchema, evidenceStoreProjection } from './evidence-store-state.ts'
+import { evidenceStoreFactSchema } from './evidence-store-state.ts'
 import type { EvidenceStore, EvidenceStoreFact, EvidenceStoreState } from './evidence-store-state.ts'
 import type { EvidenceEdge, EvidenceNode } from './evidence-graph.ts'
-import { executionFactSchema, executionProjection } from './execution-state.ts'
+import { executionFactSchema } from './execution-state.ts'
 import type { ExecutionFact, ExecutionLedger, ExecutionState, TaskCheckpoint, TaskLease } from './execution-state.ts'
-import { modelRegistryFactSchema, modelRegistryProjection } from './model-registry-state.ts'
+import { modelRegistryFactSchema } from './model-registry-state.ts'
 import type { ModelRegistry, ModelRegistryFact, ModelRegistryState, ModelRoutingPolicy } from './model-registry-state.ts'
 import { chooseModel as chooseModelInternal } from './model-router.ts'
 import type { ModelCapability, ModelProfile } from './model-router.ts'
-import { trainingFactSchema, trainingProjection } from './training-state.ts'
+import { trainingFactSchema } from './training-state.ts'
 import type { GovernedDataset, GovernedTrainingCandidate, TrainingFact, TrainingLedger, TrainingState } from './training-state.ts'
 import { buildDatasetLineage as buildDatasetLineageInternal, evaluateTrainingEligibility as evaluateTrainingEligibilityInternal } from './training-governance.ts'
 import type { DataSensitivity, TrainingDataCandidate } from './training-governance.ts'
-import { modelLifecycleFactSchema, modelLifecycleProjection } from './model-lifecycle-state.ts'
+import { modelLifecycleFactSchema } from './model-lifecycle-state.ts'
 import type { GovernedModelEvaluation, GovernedPromotion, ModelLifecycleFact, ModelLifecycleLedger, ModelLifecycleState } from './model-lifecycle-state.ts'
 import { createModelReleasePointer as createModelReleasePointerInternal, evaluateModelPromotion as evaluateModelPromotionInternal } from './model-evaluation.ts'
 import type { ModelEvaluationResult, PromotionPolicy } from './model-evaluation.ts'
-import { directorFactSchema, directorProjection } from './director-state.ts'
+import { directorFactSchema } from './director-state.ts'
 import type { DirectorFact, DirectorLedger, DirectorPlan, DirectorState } from './director-state.ts'
 import type { MissionPhase } from './mission-director.ts'
 import { runDirectorPlanner } from './director-orchestration.ts'
@@ -73,6 +73,7 @@ import type { TaskExecutionResult } from './director-executor.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 import { buildRuntimeConfiguration, configSchema } from './config.ts'
 import type { Config } from './config.ts'
+import { mountDaiProjections } from './runtime-projections.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
 export { getSystemManifest, listSystemManifests, LOCAL_INTELLIGENCE_CORE } from './systems.ts'
@@ -189,21 +190,7 @@ export class DAI extends Service {
     this.operationsDelegation = runtime.delegations.operations
     this.innovationDelegation = runtime.delegations.innovation
     this.index = ctx.storageDomain.open(indexSpec)
-    ctx.effect(() => ctx.sessionProjections.register(missionProjection), 'dai.projection()')
-    ctx.effect(() => ctx.sessionProjections.register(scientificProjection), 'dai.scientificProjection()')
-    ctx.effect(() => ctx.sessionProjections.register(investorProjection), 'dai.investorProjection()')
-    ctx.effect(() => ctx.sessionProjections.register(cyberProjection), 'dai.cyberProjection()')
-    ctx.effect(() => ctx.sessionProjections.register(operationsProjection), 'dai.operationsProjection()')
-    ctx.effect(() => ctx.sessionProjections.register(innovationProjection), 'dai.innovationProjection()')
-    ctx.effect(() => ctx.sessionProjections.register(taskLedgerProjection), 'dai.taskLedgerProjection()')
-    ctx.effect(() => ctx.sessionProjections.register(controlPlaneProjection), 'dai.controlPlaneProjection()')
-    ctx.effect(() => ctx.sessionProjections.register(budgetProjection), 'dai.budgetProjection()')
-    ctx.effect(() => ctx.sessionProjections.register(evidenceStoreProjection), 'dai.evidenceStoreProjection()')
-    ctx.effect(() => ctx.sessionProjections.register(executionProjection), 'dai.executionProjection()')
-    ctx.effect(() => ctx.sessionProjections.register(modelRegistryProjection), 'dai.modelRegistryProjection()')
-    ctx.effect(() => ctx.sessionProjections.register(trainingProjection), 'dai.trainingProjection()')
-    ctx.effect(() => ctx.sessionProjections.register(modelLifecycleProjection), 'dai.modelLifecycleProjection()')
-    ctx.effect(() => ctx.sessionProjections.register(directorProjection), 'dai.directorProjection()')
+    mountDaiProjections(ctx)
     ctx.effect(() => async () => { await Promise.all([...this.tails.values()]); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
   }
