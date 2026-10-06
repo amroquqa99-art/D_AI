@@ -68,6 +68,7 @@ export interface ScientificState {
 
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
+    /** Complete post-change Scientific Research project fact used to rebuild hypotheses, experiment handoffs/results and independent review state. */
     'd_ai/scientific-fact': ScientificFact
   }
 }
