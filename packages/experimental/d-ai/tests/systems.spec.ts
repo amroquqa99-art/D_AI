@@ -14,10 +14,10 @@ describe('D_AI v2 system registry', () => {
     expect(new Set(SYSTEMS.map(system => system.id)).size).toBe(6)
   })
 
-  it('keeps execution truth separate from contract registration', () => {
+  it('reports runtime truth without over-promoting partial domain slices', () => {
     expect(getSystemManifest('investigation')).toMatchObject({ execution: 'native', status: 'INTEGRATED' })
     for (const id of ['scientific-research', 'investor', 'cybersecurity', 'operations-intelligence', 'innovation-discovery'] as const) {
-      expect(getSystemManifest(id)).toMatchObject({ execution: 'contract-only', status: 'FOUNDATION' })
+      expect(getSystemManifest(id)).toMatchObject({ execution: 'native', status: 'PARTIAL' })
     }
   })
 
