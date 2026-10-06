@@ -27,6 +27,10 @@ export { checkBudget, scoreInformationOption, rankInformationOptions } from './r
 export type { ResourceBudget, ResourceUsage, BudgetCheck, InformationOption, InformationValue } from './resource-value.ts'
 export { createMissionPlan, selectNextWork } from './mission-director.ts'
 export type { MissionPlan, MissionPlanInput, MissionPhase, NextWorkSelection } from './mission-director.ts'
+export { createEvidenceGraph, addEvidenceNode, addEvidenceEdge, neighbors, claimTension } from './evidence-graph.ts'
+export type { EvidenceGraph, EvidenceNode, EvidenceEdge, EvidenceNodeKind, EvidenceEdgeKind, ClaimTension } from './evidence-graph.ts'
+export { routeModels, chooseModel } from './model-router.ts'
+export type { ModelProfile, ModelLocation, ModelCapability, RoutingRequest, RoutedModel } from './model-router.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
