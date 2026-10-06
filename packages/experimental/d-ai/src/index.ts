@@ -888,9 +888,12 @@ export class DAI extends Service {
     if (plan.status !== 'ACTIVE') fail('Mission Director execution requires an active plan', 'D_AI_INVALID_TRANSITION')
 
     await this.recoverExpiredTaskLeases(agent)
+    const holderId = requiredTaskId === undefined
+      ? agent.id
+      : 'director-worker:' + randomUUID()
     const claimed = requiredTaskId === undefined
       ? await this.claimNextRunnableTask(agent, ttlMs, plan.id)
-      : await this.claimDirectorTask(agent, plan.id, requiredTaskId, ttlMs)
+      : await this.claimDirectorTask(agent, plan.id, requiredTaskId, ttlMs, holderId)
     const startedAt = performance.now()
 
     let execution: TaskExecutionResult | undefined
@@ -937,6 +940,7 @@ export class DAI extends Service {
             try {
               await this.transitionLeasedTask(
                 agent,
+                holderId,
                 claimed.task.id,
                 claimed.lease.id,
                 claimed.lease.fence,
@@ -958,8 +962,9 @@ export class DAI extends Service {
       execution = await withLeaseHeartbeat(
         signal,
         { ttlMs },
-        () => this.renewTaskLease(
+        () => this.renewTaskLeaseForHolder(
           agent,
+          holderId,
           claimed.task.id,
           claimed.lease.id,
           claimed.lease.fence,
@@ -987,8 +992,9 @@ export class DAI extends Service {
           )
           executionSignal.throwIfAborted()
 
-          await this.checkpointTask(
+          await this.checkpointTaskForHolder(
             agent,
+            holderId,
             claimed.task.id,
             claimed.lease.id,
             claimed.lease.fence,
@@ -997,6 +1003,7 @@ export class DAI extends Service {
           )
           await this.transitionLeasedTask(
             agent,
+            holderId,
             claimed.task.id,
             claimed.lease.id,
             claimed.lease.fence,
@@ -1012,6 +1019,7 @@ export class DAI extends Service {
         try {
           await this.transitionLeasedTask(
             agent,
+            holderId,
             claimed.task.id,
             claimed.lease.id,
             claimed.lease.fence,
@@ -1039,8 +1047,9 @@ export class DAI extends Service {
       )
       if (claimedLease?.lease.releasedAt === undefined) {
         try {
-          await this.releaseTaskLease(
+          await this.releaseTaskLeaseForHolder(
             agent,
+            holderId,
             claimed.task.id,
             claimed.lease.id,
             claimed.lease.fence,
