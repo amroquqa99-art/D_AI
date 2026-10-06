@@ -3,20 +3,22 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { CapabilityGrant } from './capability-grants.ts'
 import type { ModelEvaluationResult, PromotionPolicy } from './model-evaluation.ts'
-import type { ModelRoutingPolicy } from './model-registry-state.ts'
-import type { ModelCapability, ModelProfile } from './model-router.ts'
+import type { ModelLifecycleLedger, ModelLifecycleState } from './model-lifecycle-state.ts'
+import type { ModelRegistry, ModelRegistryState, ModelRoutingPolicy } from './model-registry-state.ts'
+import type { ModelCapability, ModelProfile, RoutedModel } from './model-router.ts'
 import { SYSTEMS } from './state.ts'
 import type { DataSensitivity, TrainingDataCandidate } from './training-governance.ts'
+import type { TrainingLedger, TrainingState } from './training-state.ts'
 import { encodeToolResult, jsonToolOutput, rejectInvalidInput } from './tool-support.ts'
 import type { ToolOwnerResolver } from './tool-support.ts'
 
 export interface ModelsTrainingToolRuntime {
-  readModelLifecycle(agent: Agent): unknown
+  readModelLifecycle(agent: Agent): ModelLifecycleState
   recordModelEvaluation(
     agent: Agent,
     input: { readonly result: ModelEvaluationResult; readonly artifactRef: string },
     signal?: AbortSignal,
-  ): Promise<unknown>
+  ): Promise<ModelLifecycleLedger>
   evaluateGovernedModelPromotion(
     agent: Agent,
     input: {
@@ -25,13 +27,13 @@ export interface ModelsTrainingToolRuntime {
       readonly policy: PromotionPolicy
     },
     signal?: AbortSignal,
-  ): Promise<unknown>
-  readTraining(agent: Agent): unknown
+  ): Promise<ModelLifecycleLedger>
+  readTraining(agent: Agent): TrainingState
   registerTrainingCandidate(
     agent: Agent,
     input: Omit<TrainingDataCandidate, 'id' | 'humanApproved'> & { readonly artifactRef: string },
     signal?: AbortSignal,
-  ): Promise<unknown>
+  ): Promise<TrainingLedger>
   buildTrainingDataset(
     agent: Agent,
     input: {
@@ -41,19 +43,19 @@ export interface ModelsTrainingToolRuntime {
       readonly holdoutCandidateIds: readonly string[]
     },
     signal?: AbortSignal,
-  ): Promise<unknown>
-  readModelRegistry(agent: Agent): unknown
-  upsertModelProfile(agent: Agent, profile: ModelProfile, signal?: AbortSignal): Promise<unknown>
+  ): Promise<TrainingLedger>
+  readModelRegistry(agent: Agent): ModelRegistryState
+  upsertModelProfile(agent: Agent, profile: ModelProfile, signal?: AbortSignal): Promise<ModelRegistry>
   setModelRoutingPolicy(
     agent: Agent,
     input: Omit<ModelRoutingPolicy, 'id' | 'updatedAt' | 'updatedBy'>,
     signal?: AbortSignal,
-  ): Promise<unknown>
+  ): Promise<ModelRegistry>
   routeRegisteredModel(
     agent: Agent,
     systemId: CapabilityGrant['systemId'],
     role: string,
-  ): unknown
+  ): RoutedModel
 }
 
 export function registerModelsTrainingTools(
