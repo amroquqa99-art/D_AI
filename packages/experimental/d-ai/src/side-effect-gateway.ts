@@ -114,7 +114,19 @@ export async function runFencedSideEffect(
     })
   } catch (error) {
     try {
-      await runtime.markSideEffectOutcomeUnknown(agent, input.idempotencyKey)
+      const recovered = await runtime.markSideEffectOutcomeUnknown(
+        agent,
+        input.idempotencyKey,
+      )
+      // A commit can become visible even when its caller observes an error
+      // (for example, a persistence acknowledgement failure after durable
+      // append). Never downgrade an already committed record.
+      if (recovered.state === 'COMMITTED') {
+        return Object.freeze({
+          record: recovered,
+          replaySuppressed: false,
+        })
+      }
     } catch (journalError) {
       throw new AggregateError(
         [error, journalError],
