@@ -5,6 +5,7 @@ import {
   createDirectorSchedulerWake,
   hasPendingDirectorSchedulerWake,
   isCurrentDirectorScheduleWake,
+  orderDirectorSchedulesForFairness,
   shouldWakeDirectorSchedule,
 } from '../src/director-scheduler.ts'
 import type { DirectorPlanRuntimeView } from '../src/director-runtime.ts'
@@ -96,6 +97,60 @@ describe('D_AI unattended Director scheduler admission', () => {
       planId: 'plan-1',
       dueAt: '2026-10-07T00:00:01.000Z',
     })
+  })
+
+  it('orders never-run and least-recently-attempted schedules before newer work', () => {
+    const neverRun = schedule({
+      id: 'never-run',
+      planId: 'plan-never',
+      nextWakeAt: '2026-10-07T00:00:03.000Z',
+    })
+    const old = schedule({
+      id: 'old',
+      planId: 'plan-old',
+      nextWakeAt: '2026-10-07T00:00:01.000Z',
+      lastCycle: {
+        attemptedAt: '2026-10-06T23:50:00.000Z',
+        outcome: 'EXECUTED',
+        executedTasks: 1,
+        phase: 'EXECUTING',
+      },
+    })
+    const recent = schedule({
+      id: 'recent',
+      planId: 'plan-recent',
+      nextWakeAt: '2026-10-07T00:00:00.500Z',
+      lastCycle: {
+        attemptedAt: '2026-10-06T23:59:00.000Z',
+        outcome: 'EXECUTED',
+        executedTasks: 1,
+        phase: 'EXECUTING',
+      },
+    })
+
+    expect(orderDirectorSchedulesForFairness([recent, old, neverRun]).map(item => item.id))
+      .toEqual(['never-run', 'old', 'recent'])
+  })
+
+  it('uses oldest due time then stable identity when fairness timestamps tie', () => {
+    const attemptedAt = '2026-10-06T23:50:00.000Z'
+    const same = (id: string, due: string) => schedule({
+      id,
+      planId: 'plan-' + id,
+      nextWakeAt: due,
+      lastCycle: {
+        attemptedAt,
+        outcome: 'IDLE',
+        executedTasks: 0,
+        phase: 'EXECUTING',
+      },
+    })
+
+    expect(orderDirectorSchedulesForFairness([
+      same('z', '2026-10-07T00:00:02.000Z'),
+      same('b', '2026-10-07T00:00:01.000Z'),
+      same('a', '2026-10-07T00:00:01.000Z'),
+    ]).map(item => item.id)).toEqual(['a', 'b', 'z'])
   })
 
   it('wakes a due active schedule when runnable work exists', () => {
