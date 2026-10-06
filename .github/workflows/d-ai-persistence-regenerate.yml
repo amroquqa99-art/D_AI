@@ -1,10 +1,11 @@
 name: D_AI regenerate persistence catalog
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
+      - dai/v2-core-foundation
     paths:
+      - 'packages/experimental/d-ai/src/*-state.ts'
       - '.github/workflows/d-ai-persistence-regenerate.yml'
 
 concurrency:
@@ -41,6 +42,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No generated changes"
           else
-            git commit -m "chore: regenerate persistence catalog for scientific events"
+            git commit -m "chore: regenerate D_AI persistence catalog"
             git push origin HEAD:dai/v2-core-foundation
           fi
