@@ -1,11 +1,15 @@
 name: D_AI one-time lockfile repair
 
 on:
-  push:
+  pull_request:
     branches:
-      - dai/v2-core-foundation
+      - main
     paths:
       - '.github/workflows/d-ai-lockfile-repair.yml'
+
+concurrency:
+  group: d-ai-lockfile-repair
+  cancel-in-progress: true
 
 permissions:
   contents: write
