@@ -42,6 +42,7 @@ import { appendAuditRecord as appendAuditRecordInternal, createAuditChain as cre
 import { validateGrant as validateGrantInternal } from './capability-grants.ts'
 import type { CapabilityGrant } from './capability-grants.ts'
 import { transitionTask as transitionTaskInternal } from './task-dag.ts'
+import { authorizeCrossSystemHandoff as authorizeCrossSystemHandoffInternal } from './cross-system.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
@@ -558,6 +559,61 @@ export class DAI extends Service {
         grants: [...current.grants, grant],
         auditRecords: [...nextAudit.records],
         auditHeadHash: nextAudit.headHash,
+      })
+    })
+  }
+
+  /**
+   * Authorize and durably audit one cross-system handoff using persisted grants.
+   * This records authorization only; the target-system action remains a
+   * separate validated tool/task execution.
+   */
+  async authorizeDurableCrossSystemHandoff(
+    agent: Agent,
+    input: {
+      fromSystem: CapabilityGrant['systemId']
+      toSystem: CapabilityGrant['systemId']
+      capability: string
+      missionId: string
+      projectId?: string
+      taskId?: string
+      reason: string
+    },
+  ): Promise<ControlPlane> {
+    if (input.capability.trim().length === 0 || input.missionId.trim().length === 0 || input.reason.trim().length === 0) {
+      fail('cross-system capability, mission and reason are required', 'D_AI_INVALID_INPUT')
+    }
+    return this.transact(agent, async () => {
+      const current = this.controlPlane(agent)
+      const now = new Date().toISOString()
+      let handoff
+      try {
+        handoff = authorizeCrossSystemHandoffInternal(
+          current.grants as readonly CapabilityGrant[],
+          { records: current.auditRecords, headHash: current.auditHeadHash },
+          {
+            id: randomUUID(),
+            actorId: agent.id,
+            fromSystem: input.fromSystem,
+            toSystem: input.toSystem,
+            capability: input.capability,
+            missionId: input.missionId,
+            ...(input.projectId === undefined ? {} : { projectId: input.projectId }),
+            ...(input.taskId === undefined ? {} : { taskId: input.taskId }),
+            at: now,
+            reason: input.reason,
+          },
+        )
+      } catch (error) {
+        fail(error instanceof Error ? error.message : String(error), 'D_AI_POLICY_DENIED')
+      }
+
+      return this.appendControlPlane(agent, 'APPEND_AUDIT', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        grants: [...current.grants],
+        auditRecords: [...handoff.audit.records],
+        auditHeadHash: handoff.audit.headHash,
       })
     })
   }
@@ -1487,6 +1543,31 @@ export class DAI extends Service {
           reason: args.reason,
           ...(args.expires_at === undefined ? {} : { expiresAt: args.expires_at }),
         }, exec.signal))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_cross_system_handoff', description: 'Authorize and durably audit a cross-system handoff using existing persisted capability grants. This tool does not execute the target action itself.',
+      parameters: {
+        from_system: { type: 'string', required: true },
+        to_system: { type: 'string', required: true },
+        capability: { type: 'string', required: true },
+        mission_id: { type: 'string', required: true },
+        project_id: { type: 'string' },
+        task_id: { type: 'string' },
+        reason: { type: 'string', required: true },
+      }, output,
+      execute: (args, exec) => {
+        const agent = owner(exec.agent)
+        if (!SYSTEMS.some(system => system.id === args.from_system) || !SYSTEMS.some(system => system.id === args.to_system)) {
+          fail('unknown D_AI system id', 'D_AI_INVALID_INPUT')
+        }
+        return encoded(this.authorizeDurableCrossSystemHandoff(agent, {
+          fromSystem: args.from_system as CapabilityGrant['systemId'],
+          toSystem: args.to_system as CapabilityGrant['systemId'],
+          capability: args.capability,
+          missionId: args.mission_id,
+          ...(args.project_id === undefined ? {} : { projectId: args.project_id }),
+          ...(args.task_id === undefined ? {} : { taskId: args.task_id }),
+          reason: args.reason,
+        }))
       } }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_scientific_create', description: 'Create an explicitly user-requested Scientific Research project. Do not activate a new independent research project without owner approval.',
       parameters: { question: { type: 'string', required: true } }, output,
