@@ -67,7 +67,7 @@ import { createModelReleasePointer as createModelReleasePointerInternal, evaluat
 import type { ModelEvaluationResult, PromotionPolicy } from './model-evaluation.ts'
 import { directorFactSchema } from './director-state.ts'
 import type { DirectorFact, DirectorLedger, DirectorPlan, DirectorState } from './director-state.ts'
-import { directorScheduleFactSchema } from './director-schedule-state.ts'
+import { directorScheduleFactSchema, directorScheduleStagnationReason } from './director-schedule-state.ts'
 import type { DirectorSchedule, DirectorScheduleCycle, DirectorScheduleFact, DirectorScheduleLedger, DirectorScheduleState } from './director-schedule-state.ts'
 import { DirectorScheduler, isCurrentDirectorScheduleWake } from './director-scheduler.ts'
 import type { ScheduledDirectorCycleResult } from './director-scheduler.ts'
@@ -442,6 +442,12 @@ export class DAI extends Service {
             schedule.lastCycle?.outcome === 'TASK_FAILED').length,
           schedulerFailedLastCycles: schedules.schedules.filter(schedule =>
             schedule.lastCycle?.outcome === 'FAILED').length,
+          stagnatedSchedules: schedules.schedules.filter(schedule =>
+            directorScheduleStagnationReason(schedule) !== undefined).length,
+          failureLimitStagnated: schedules.schedules.filter(schedule =>
+            directorScheduleStagnationReason(schedule) === 'FAILURE_LIMIT').length,
+          idleLimitStagnated: schedules.schedules.filter(schedule =>
+            directorScheduleStagnationReason(schedule) === 'IDLE_LIMIT').length,
         }
       })(),
       tasks: {
@@ -1220,6 +1226,9 @@ export class DAI extends Service {
       readonly intervalMs?: number
       readonly maxTasksPerCycle?: number
       readonly maxParallelTasks?: number
+      readonly maxConsecutiveFailures?: number
+      readonly maxConsecutiveIdleCycles?: number
+      readonly resetStagnation?: boolean
       readonly leaseTtlMs?: number
       readonly startImmediately?: boolean
     },
@@ -1236,11 +1245,19 @@ export class DAI extends Service {
     const intervalMs = input.intervalMs ?? previous?.intervalMs ?? 60000
     const maxTasksPerCycle = input.maxTasksPerCycle ?? previous?.maxTasksPerCycle ?? 4
     const maxParallelTasks = input.maxParallelTasks ?? previous?.maxParallelTasks ?? 1
+    const maxConsecutiveFailures = input.maxConsecutiveFailures
+      ?? previous?.maxConsecutiveFailures
+      ?? 0
+    const maxConsecutiveIdleCycles = input.maxConsecutiveIdleCycles
+      ?? previous?.maxConsecutiveIdleCycles
+      ?? 0
     const leaseTtlMs = input.leaseTtlMs ?? previous?.leaseTtlMs ?? 600000
 
     if (!Number.isSafeInteger(intervalMs) || intervalMs < 10
       || !Number.isSafeInteger(maxTasksPerCycle) || maxTasksPerCycle < 1 || maxTasksPerCycle > 8
       || !Number.isSafeInteger(maxParallelTasks) || maxParallelTasks < 1 || maxParallelTasks > maxTasksPerCycle
+      || !Number.isSafeInteger(maxConsecutiveFailures) || maxConsecutiveFailures < 0
+      || !Number.isSafeInteger(maxConsecutiveIdleCycles) || maxConsecutiveIdleCycles < 0
       || !Number.isSafeInteger(leaseTtlMs) || leaseTtlMs <= intervalMs) {
       fail('invalid unattended Director schedule bounds', 'D_AI_INVALID_INPUT')
     }
@@ -1275,6 +1292,10 @@ export class DAI extends Service {
             intervalMs,
             maxTasksPerCycle,
             maxParallelTasks,
+            maxConsecutiveFailures,
+            maxConsecutiveIdleCycles,
+            consecutiveFailures: 0,
+            consecutiveIdleCycles: 0,
             leaseTtlMs,
             nextWakeAt,
             createdAt: now,
@@ -1286,6 +1307,10 @@ export class DAI extends Service {
             intervalMs,
             maxTasksPerCycle,
             maxParallelTasks,
+            maxConsecutiveFailures,
+            maxConsecutiveIdleCycles,
+            consecutiveFailures: input.resetStagnation === true ? 0 : existing.consecutiveFailures,
+            consecutiveIdleCycles: input.resetStagnation === true ? 0 : existing.consecutiveIdleCycles,
             leaseTtlMs,
             nextWakeAt,
             updatedAt: now,
@@ -1321,6 +1346,7 @@ export class DAI extends Service {
     // Reconfiguration or disablement invalidates the old token rather than
     // letting stale background work execute under new settings.
     if (plan.status !== 'ACTIVE'
+      || directorScheduleStagnationReason(schedule) !== undefined
       || !isCurrentDirectorScheduleWake(schedule, expectedDueAt, Date.parse(attemptedAt))) {
       return immutableSnapshot({
         scheduleId,
@@ -1378,7 +1404,18 @@ export class DAI extends Service {
         ownerAgentId: agent.id,
         revision: latest.revision + 1,
         schedules: latest.schedules.map(item => item.id === scheduleId
-          ? { ...item, nextWakeAt, updatedAt, lastCycle: receipt }
+          ? {
+              ...item,
+              nextWakeAt,
+              updatedAt,
+              lastCycle: receipt,
+              consecutiveFailures: receipt.outcome === 'FAILED'
+                ? item.consecutiveFailures + 1
+                : 0,
+              consecutiveIdleCycles: receipt.outcome === 'IDLE'
+                ? item.consecutiveIdleCycles + 1
+                : 0,
+            }
           : item),
       })
     })
