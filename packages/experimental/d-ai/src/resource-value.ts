@@ -16,6 +16,23 @@ export interface ResourceUsage {
   readonly dataAccessCostUsd: number
 }
 
+/** Add one measured resource delta without mutating either input. */
+export function addResourceUsage(
+  current: ResourceUsage,
+  delta: ResourceUsage,
+): ResourceUsage {
+  for (const [name, value] of Object.entries(current)) nonNegative('current ' + name, value)
+  for (const [name, value] of Object.entries(delta)) nonNegative('delta ' + name, value)
+
+  return Object.freeze({
+    tokens: current.tokens + delta.tokens,
+    moneyUsd: current.moneyUsd + delta.moneyUsd,
+    wallClockMs: current.wallClockMs + delta.wallClockMs,
+    humanAttentionMinutes: current.humanAttentionMinutes + delta.humanAttentionMinutes,
+    dataAccessCostUsd: current.dataAccessCostUsd + delta.dataAccessCostUsd,
+  })
+}
+
 export interface BudgetCheck {
   readonly allowed: boolean
   readonly reasons: readonly string[]
