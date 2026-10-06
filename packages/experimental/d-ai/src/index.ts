@@ -73,17 +73,7 @@ import type { MissionTask, TaskState } from './task-dag.ts'
 import { buildRuntimeConfiguration, configSchema } from './config.ts'
 import type { Config } from './config.ts'
 import { mountDaiProjections } from './runtime-projections.ts'
-import { registerScientificTools } from './scientific-tools.ts'
-import { registerInvestorTools } from './investor-tools.ts'
-import { registerCyberTools } from './cyber-tools.ts'
-import { registerOperationsTools } from './operations-tools.ts'
-import { registerInnovationTools } from './innovation-tools.ts'
-import { registerInvestigationTools } from './investigation-tools.ts'
-import { registerPlatformTools } from './platform-tools.ts'
-import { registerTasksDirectorTools } from './tasks-director-tools.ts'
-import { registerModelsTrainingTools } from './models-training-tools.ts'
-import { registerExecutionTools } from './execution-tools.ts'
-import { registerEvidenceControlTools } from './evidence-control-tools.ts'
+import { registerDaiTools } from './runtime-tools.ts'
 
 export * from './public-api.ts'
 
@@ -2742,18 +2732,16 @@ export class DAI extends Service {
       this.authorize(agent)
       return agent
     }
-    registerPlatformTools(this.ctx, this, owner)
-    registerTasksDirectorTools(this.ctx, this, owner, this.delegation.timeoutMs)
-    registerModelsTrainingTools(this.ctx, this, owner)
-    registerExecutionTools(this.ctx, this, owner)
-    registerEvidenceControlTools(this.ctx, this, owner)
-    registerScientificTools(this.ctx, this, owner, this.scientificDelegation.timeoutMs)
-    registerInvestorTools(this.ctx, this, owner, this.investorDelegation.timeoutMs)
-    registerCyberTools(this.ctx, this, owner, this.cyberDelegation.timeoutMs)
-    registerOperationsTools(this.ctx, this, owner, this.operationsDelegation.timeoutMs)
-    registerInnovationTools(this.ctx, this, owner, this.innovationDelegation.timeoutMs)
-    registerInvestigationTools(this.ctx, this, owner, this.delegation.timeoutMs)
 
+    registerDaiTools(this.ctx, this, owner, {
+      director: this.delegation.timeoutMs,
+      investigation: this.delegation.timeoutMs,
+      scientific: this.scientificDelegation.timeoutMs,
+      investor: this.investorDelegation.timeoutMs,
+      cyber: this.cyberDelegation.timeoutMs,
+      operations: this.operationsDelegation.timeoutMs,
+      innovation: this.innovationDelegation.timeoutMs,
+    })
   }
 }
 
