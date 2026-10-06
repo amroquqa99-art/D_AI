@@ -315,6 +315,33 @@ export {
   projectDirectorFact,
   directorPlanSchema,
 } from './director-state.ts'
+export {
+  directorScheduleFactSchema,
+  directorScheduleProjection,
+  projectDirectorScheduleFact,
+  directorScheduleSchema,
+  directorScheduleCycleSchema,
+} from './director-schedule-state.ts'
+export type {
+  DirectorSchedule,
+  DirectorScheduleCycle,
+  DirectorScheduleFact,
+  DirectorScheduleLedger,
+  DirectorScheduleState,
+} from './director-schedule-state.ts'
+export {
+  DirectorScheduler,
+  createDirectorSchedulerWake,
+  hasPendingDirectorSchedulerWake,
+  isDirectorSchedulerWake,
+  shouldWakeDirectorSchedule,
+} from './director-scheduler.ts'
+export type {
+  DirectorSchedulerConfig,
+  DirectorSchedulerRuntime,
+  ScheduledDirectorCycleResult,
+} from './director-scheduler.ts'
+
 export type {
   DirectorFact,
   DirectorLedger,
@@ -334,4 +361,4 @@ export type {
   TaskExecutionResult,
 } from './director-executor.ts'
 
-export type { Config, DAILimits, RuntimeConfiguration } from './config.ts'
+export type { Config, DAILimits, DirectorSchedulerConfiguration, RuntimeConfiguration } from './config.ts'
