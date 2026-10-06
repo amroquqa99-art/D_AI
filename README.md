@@ -24,7 +24,7 @@ Legend:
 | Operations & Intelligence | **IMPLEMENTED / CI PENDING** | Durable cases, entities, relationships, timelines, intelligence gaps, human-gated proposed options, fusion + adversarial analysis Agents. |
 | Innovation & Discovery | **IMPLEMENTED / CI PENDING** | Testable candidates, mechanisms, falsification tests, experiment handoff/results, independent explorer + critic Agents. Generated ideas cannot self-declare as discoveries. |
 | Shared Task DAG | **IMPLEMENTED / CI PENDING** | Task states, dependencies, retry accounting, durable task-ledger replay, and scheduler admission that respects dependencies/blocking states. |
-| Mission Director | **FOUNDATION** | Mission planning primitives, runnable-work selection, resource admission and Value-of-Information ranking. Full autonomous orchestration loop is still being built. |
+| Mission Director | **IMPLEMENTED / CI PENDING** | Durable cross-system plans now persist with stop conditions, authoritative Task-Ledger linkage, derived lifecycle phase and budget-aware next-work selection. Automatic planner-agent decomposition and unattended worker orchestration are still incomplete. |
 | Durable execution | **IMPLEMENTED / CI PENDING** | Runnable tasks can be claimed with durable leases, checkpointed, lease-renewed, completed/failed through explicit task transitions, released, replayed after restart, and recovered when a lease expires without an active replacement. Automatic worker-process spawning/heartbeat scheduling is still incomplete. |
 | Capability control plane | **IMPLEMENTED / CI PENDING** | Scoped ALLOW/DENY grants, fail-closed authorization, human-approved durable grant changes, append-only audit hash chain, durable control-plane projection. |
 | Evidence / Knowledge graph | **IMPLEMENTED / CI PENDING** | Shared append-only evidence nodes/edges now persist through Session replay with provenance and confidence; support/contradiction graph primitives exist. Automatic domain-to-graph ingestion and graph UI are still incomplete. |
@@ -82,6 +82,7 @@ packages/experimental/d-ai/
 │   ├── task-dag.ts
 │   ├── task-ledger-state.ts
 │   ├── mission-director.ts
+│   ├── director-state.ts
 │   ├── capability-grants.ts
 │   ├── control-plane-state.ts
 │   ├── audit-log.ts
