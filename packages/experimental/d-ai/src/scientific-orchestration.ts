@@ -15,6 +15,8 @@ export interface ScientificDelegationConfig {
   readonly maxResultBytes: number
   readonly literatureModel?: string
   readonly methodologyModel?: string
+  readonly literatureProvider?: string
+  readonly methodologyProvider?: string
 }
 
 export interface ScientificWorkerOutput {
@@ -46,7 +48,7 @@ export async function runScientificDelegates(
     throw new Error('Scientific provider does not support required worker configuration')
   }
 
-  const runWorker = async (role: 'literature' | 'methodology', model?: string): Promise<ScientificWorkerOutput> => {
+  const runWorker = async (role: 'literature' | 'methodology', model?: string, llmProvider?: string): Promise<ScientificWorkerOutput> => {
     const controller = new AbortController()
     const childSignal = AbortSignal.any([signal, controller.signal])
     const label = 'scientific-' + role + '-' + randomUUID()
@@ -69,7 +71,7 @@ export async function runScientificDelegates(
         signal: childSignal,
         maxDepth: config.maxDepth,
         toolFilter: { allow: [...config.allowedTools] },
-        agentOptions: { maxTokens: config.maxOutputTokens, ...model === undefined ? {} : { model } },
+        agentOptions: { maxTokens: config.maxOutputTokens, ...llmProvider === undefined ? {} : { provider: llmProvider }, ...model === undefined ? {} : { model } },
         persona: role === 'literature'
           ? 'Map the current scientific knowledge for the approved question. Prioritize primary literature and original data, distinguish established results from unresolved gaps, note contradictions and source quality, and never present an untested inference as a finding.'
           : 'Independently critique the approved scientific question and possible study designs. Identify confounders, falsification tests, statistical risks, ethics/resource constraints, and the minimum real-world observations or experiments needed to make progress. Do not assume the literature worker conclusion.',
@@ -91,8 +93,8 @@ export async function runScientificDelegates(
     }
   }
 
-  const literature = await runWorker('literature', config.literatureModel)
+  const literature = await runWorker('literature', config.literatureModel, config.literatureProvider)
   signal.throwIfAborted()
-  const methodology = await runWorker('methodology', config.methodologyModel)
+  const methodology = await runWorker('methodology', config.methodologyModel, config.methodologyProvider)
   return { literature, methodology }
 }
