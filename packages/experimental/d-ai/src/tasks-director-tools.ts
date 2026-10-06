@@ -2,18 +2,20 @@ import { randomUUID } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { DirectorPlan } from './director-state.ts'
+import type { DirectorLedger, DirectorPlan, DirectorState } from './director-state.ts'
+import type { DirectorPlanningResult } from './director-orchestration.ts'
+import type { TaskExecutionResult } from './director-executor.ts'
 import { SYSTEMS } from './state.ts'
-import type { DurableTaskLedger } from './task-ledger-state.ts'
+import type { DurableTaskLedger, TaskLedgerState } from './task-ledger-state.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 import { encodeToolResult, jsonToolOutput, rejectInvalidInput } from './tool-support.ts'
 import type { ToolOwnerResolver } from './tool-support.ts'
 
 export interface TasksDirectorToolRuntime {
-  readTaskLedger(agent: Agent): unknown
-  addDurableTasks(agent: Agent, tasks: readonly MissionTask[]): Promise<unknown>
-  transitionDurableTask(agent: Agent, taskId: string, next: TaskState): Promise<unknown>
-  readDirector(agent: Agent): unknown
+  readTaskLedger(agent: Agent): TaskLedgerState
+  addDurableTasks(agent: Agent, tasks: readonly MissionTask[]): Promise<DurableTaskLedger>
+  transitionDurableTask(agent: Agent, taskId: string, next: TaskState): Promise<DurableTaskLedger>
+  readDirector(agent: Agent): DirectorState
   createDirectorPlan(
     agent: Agent,
     input: {
@@ -22,7 +24,7 @@ export interface TasksDirectorToolRuntime {
       readonly stopConditions?: readonly string[]
     },
     signal?: AbortSignal,
-  ): Promise<unknown>
+  ): Promise<DirectorPlan>
   addDirectorTask(
     agent: Agent,
     planId: string,
@@ -34,20 +36,20 @@ export interface TasksDirectorToolRuntime {
       readonly maxAttempts?: number
     },
   ): Promise<DurableTaskLedger>
-  generateDirectorTasks(agent: Agent, planId: string, signal: AbortSignal): Promise<unknown>
+  generateDirectorTasks(agent: Agent, planId: string, signal: AbortSignal): Promise<Readonly<{ planning: DirectorPlanningResult; ledger: DurableTaskLedger }>>
   executeNextDirectorTask(
     agent: Agent,
     planId: string,
     signal: AbortSignal,
     ttlMs?: number,
-  ): Promise<unknown>
-  directorPlanView(agent: Agent, planId: string, maxTasks?: number): unknown
+  ): Promise<Readonly<{ task: MissionTask; execution: TaskExecutionResult }>>
+  directorPlanView(agent: Agent, planId: string, maxTasks?: number): Readonly<Record<string, unknown>>
   setDirectorPlanStatus(
     agent: Agent,
     planId: string,
     status: DirectorPlan['status'],
     signal?: AbortSignal,
-  ): Promise<unknown>
+  ): Promise<DirectorLedger>
 }
 
 export function registerTasksDirectorTools(
