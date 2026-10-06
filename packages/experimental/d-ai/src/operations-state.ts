@@ -101,6 +101,7 @@ export interface OperationsState {
 
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
+    /** Complete post-change Operations & Intelligence case fact retaining entities, relationships, timeline, information gaps, human-gated options and analysis state. */
     'd_ai/operations-fact': OperationsFact
   }
 }
