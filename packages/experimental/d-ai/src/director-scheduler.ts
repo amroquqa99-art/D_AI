@@ -4,20 +4,36 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { ContextFormed, UserMessage } from '@deepseek-ai/dsh-llm'
+import { z } from 'zod'
 import type { DirectorPlanRuntimeView } from './director-runtime.ts'
 import { directorScheduleStagnationReason } from './director-schedule-state.ts'
 import type { DirectorSchedule, DirectorScheduleState } from './director-schedule-state.ts'
 import type { ExecutionState } from './execution-state.ts'
 
+// Reuse Harness's existing schedule source contract. Routing data belongs in
+// message content, so adding a scheduler does not change the accepted Session
+// source union or misclassify semantic routing as attribution-only metadata.
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
-    'd-ai-scheduler': {
-      readonly kind: 'd-ai-scheduler'
-      readonly scheduleId: string
-      readonly planId: string
-      readonly dueAt: string
-    } & ContextFormed
+    'schedule': { kind: 'schedule' } & ContextFormed
   }
+}
+
+const wakeSchema = z.object({
+  protocol: z.literal('d_ai.director-wake.v1'),
+  scheduleId: z.string().min(1).max(240),
+  planId: z.string().min(1).max(240),
+  dueAt: z.string().datetime(),
+}).strict()
+
+function directorSchedulerWake(message: UserMessage): z.infer<typeof wakeSchema> | undefined {
+  if (message.source.kind !== 'schedule' || message.content.length !== 1) return undefined
+  const content = message.content[0]
+  if (content?.type !== 'text') return undefined
+  try {
+    const parsed = wakeSchema.safeParse(JSON.parse(content.text))
+    return parsed.success ? parsed.data : undefined
+  } catch { return undefined }
 }
 
 export interface DirectorSchedulerConfig {
@@ -28,7 +44,7 @@ export interface DirectorSchedulerConfig {
 export interface ScheduledDirectorCycleResult {
   readonly scheduleId: string
   readonly planId: string
-  readonly outcome: 'EXECUTED' | 'TASK_FAILED' | 'IDLE' | 'FAILED'
+  readonly outcome: 'EXECUTED' | 'IDLE' | 'FAILED'
 }
 
 export interface DirectorSchedulerRuntime {
@@ -68,22 +84,20 @@ export function directorSchedulerRemainingSlots(
 }
 
 export function isDirectorSchedulerWake(message: UserMessage): boolean {
-  return message.source.kind === 'd-ai-scheduler'
+  return directorSchedulerWake(message) !== undefined
 }
 
 export function createDirectorSchedulerWake(
   schedule: DirectorSchedule,
 ): UserMessage {
   return createUserMessage({
-    content: [],
-    source: {
-      kind: 'd-ai-scheduler',
-      form: 'notice',
-      summary: 'D_AI unattended Director schedule wake',
+    content: [{ type: 'text', text: JSON.stringify({
+      protocol: 'd_ai.director-wake.v1',
       scheduleId: schedule.id,
       planId: schedule.planId,
       dueAt: schedule.nextWakeAt,
-    },
+    }) }],
+    source: { kind: 'schedule', form: 'notice', summary: 'D_AI Director schedule wake' },
   })
 }
 
@@ -92,7 +106,7 @@ export function hasPendingDirectorSchedulerWake(
   scheduleId: string,
 ): boolean {
   return [...agent.inbox.nextTurn, ...agent.inbox.nextStep].some(message =>
-    message.source.kind === 'd-ai-scheduler' && message.source.scheduleId === scheduleId)
+    directorSchedulerWake(message)?.scheduleId === scheduleId)
 }
 
 /**
@@ -175,6 +189,7 @@ export function shouldWakeDirectorSchedule(
 export class DirectorScheduler {
   private readonly controller = new AbortController()
   private readonly active = new Set<string>()
+  private readonly cycles = new Set<Promise<ScheduledDirectorCycleResult>>()
   private readonly removePreStep: () => void
   private readonly loop: Promise<void>
 
@@ -197,20 +212,23 @@ export class DirectorScheduler {
       if (wakes.length !== 1 || messages.length !== 1) return next()
 
       const wake = wakes[0]!
-      const source = wake.source
-      if (source.kind !== 'd-ai-scheduler') return next()
+      const source = directorSchedulerWake(wake)
+      if (source === undefined) return next()
       const key = scheduleKey(agent.id, source.scheduleId)
 
       if (this.active.has(key)) return { kind: 'reject' }
 
       this.active.add(key)
-      try {
-        await this.runtime.runScheduledDirectorCycle(
-          agent,
-          source.scheduleId,
-          source.dueAt,
-          signal,
+      const cycle = Promise.resolve().then(() => {
+        const cycleSignal = AbortSignal.any([signal, this.controller.signal])
+        cycleSignal.throwIfAborted()
+        return this.runtime.runScheduledDirectorCycle(
+          agent, source.scheduleId, source.dueAt, cycleSignal,
         )
+      })
+      this.cycles.add(cycle)
+      try {
+        await cycle
       } catch (error) {
         this.ctx.logger.warn(
           'D_AI unattended Director cycle failed for plan '
@@ -219,6 +237,7 @@ export class DirectorScheduler {
           + (error instanceof Error ? error.message : String(error)),
         )
       } finally {
+        this.cycles.delete(cycle)
         this.active.delete(key)
       }
 
@@ -253,6 +272,7 @@ export class DirectorScheduler {
    */
   scan(nowMs: number): void {
     if (!Number.isFinite(nowMs)) throw new TypeError('Director scheduler scan time must be finite')
+    if (this.controller.signal.aborted) return
 
     const roots = [...this.ctx.agents.roots()]
     const queuedWakeCount = roots.reduce((count, agent) =>
@@ -336,6 +356,6 @@ export class DirectorScheduler {
   async dispose(): Promise<void> {
     this.removePreStep()
     this.controller.abort(new Error('D_AI Director scheduler disposed'))
-    await this.loop
+    await Promise.allSettled([this.loop, ...this.cycles])
   }
 }

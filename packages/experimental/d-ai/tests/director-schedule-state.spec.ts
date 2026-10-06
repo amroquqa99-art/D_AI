@@ -34,6 +34,20 @@ function schedule(overrides: Partial<DirectorScheduleFact['ledger']['schedules']
 }
 
 describe('D_AI Director schedule projection', () => {
+  it('replays a legacy v1 schedule without requiring later parallelism or stagnation settings', () => {
+    const { maxParallelTasks, ...legacy } = schedule()
+    expect(maxParallelTasks).toBe(1)
+    const state = projectDirectorScheduleFact(baseState(), event({
+      version: 1, operation: 'UPSERT', actorId: 'owner',
+      ledger: { ownerAgentId: 'owner', revision: 1, schedules: [legacy] },
+    }))
+    expect(state.failure).toBeUndefined()
+    expect(state.ledgers[0]?.schedules[0]).toMatchObject({
+      maxParallelTasks: 1, maxConsecutiveFailures: 0, maxConsecutiveIdleCycles: 0,
+      consecutiveFailures: 0, consecutiveIdleCycles: 0,
+    })
+  })
+
   it('creates one durable unattended schedule and records a cycle receipt', () => {
     const created = projectDirectorScheduleFact(baseState(), event({
       version: 1,
@@ -147,11 +161,13 @@ describe('D_AI Director schedule projection', () => {
         ownerAgentId: 'owner',
         revision: 2,
         schedules: [schedule({
+          consecutiveFailures: 1,
           nextWakeAt: '2026-10-07T00:00:03.000Z',
           updatedAt: '2026-10-07T00:00:02.000Z',
           lastCycle: {
             attemptedAt: '2026-10-07T00:00:02.000Z',
-            outcome: 'TASK_FAILED',
+            outcome: 'FAILED',
+            error: 'D_AI_TASK_FAILED',
             executedTasks: 1,
             phase: 'BLOCKED',
           },
@@ -160,9 +176,9 @@ describe('D_AI Director schedule projection', () => {
     }))
 
     expect(state.failure).toBeUndefined()
-    expect(state.ledgers[0]?.schedules[0]?.lastCycle?.outcome).toBe('TASK_FAILED')
-    expect(state.ledgers[0]?.schedules[0]?.lastCycle?.error).toBeUndefined()
-    expect(state.ledgers[0]?.schedules[0]?.consecutiveFailures).toBe(0)
+    expect(state.ledgers[0]?.schedules[0]?.lastCycle?.outcome).toBe('FAILED')
+    expect(state.ledgers[0]?.schedules[0]?.lastCycle?.error).toBe('D_AI_TASK_FAILED')
+    expect(state.ledgers[0]?.schedules[0]?.consecutiveFailures).toBe(1)
     expect(state.ledgers[0]?.schedules[0]?.consecutiveIdleCycles).toBe(0)
   })
 

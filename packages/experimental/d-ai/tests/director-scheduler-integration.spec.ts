@@ -132,8 +132,8 @@ describe('D_AI unattended Mission Director', () => {
       expect(Date.parse(expectedSchedule.ledgers[0]!.schedules[0]!.nextWakeAt))
         .toBeGreaterThan(Date.parse(expectedSchedule.ledgers[0]!.schedules[0]!.lastCycle!.attemptedAt))
 
-      const schedulerMessages = agent.session.snapshotEvents().filter(event =>
-        event.type === 'user/message' && event.data.source.kind === 'd-ai-scheduler')
+      const schedulerMessages = agent.session.snapshotEvents().flatMap(event =>
+        event.type === 'agent/inbox/spliced' ? event.data.inserted : []).filter(message => message.source.kind === 'schedule')
       expect(schedulerMessages).toHaveLength(1)
       await ctx.sessions.flush(agent.session)
     } finally {
@@ -193,4 +193,60 @@ describe('D_AI unattended Mission Director', () => {
       await ctx.fiber.dispose()
     }
   }))
+
+  it('aborts an active cycle and waits for its cleanup before disposal completes', async () => temporary(async root => {
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx } = await boot(root, script)
+    ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
+    const agent = await ctx.agentLoop.create(SessionId('scheduler-disposal-owner'), { provider: 'mock', model: 'fixture' })
+    const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+    script.push(
+      toolCallResponse('plan', 'd_ai_director_plan_create', { objective: 'Exercise scheduler shutdown', primary_system: 'investigation' }),
+      () => toolCallResponse('task', 'd_ai_director_task_add', { plan_id: plan().id, system_id: 'investigation', title: 'Owned scheduled work' }),
+      () => toolCallResponse('schedule', 'd_ai_director_schedule_set', { plan_id: plan().id, enabled: true, interval_ms: 1000, start_immediately: true }),
+      textResponse('Schedule approved'),
+    )
+    let entered!: () => void
+    const started = new Promise<void>(resolve => { entered = resolve })
+    let finish!: () => void
+    const cleanup = new Promise<void>(resolve => { finish = resolve })
+    let cycleSignal: AbortSignal | undefined
+    let scheduler: DirectorScheduler | undefined
+    let disposal: Promise<void> | undefined
+    let disposed = false
+    try {
+      agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Configure shutdown test' }], source: { kind: 'user' } }))
+      await agent.whenIdle()
+      scheduler = new DirectorScheduler(ctx, {
+        readDirectorSchedule: current => ctx.dai.readDirectorSchedule(current),
+        directorPlanView: (current, id, limit) => ctx.dai.directorPlanView(current, id, limit),
+        readExecution: current => ctx.dai.readExecution(current),
+        runScheduledDirectorCycle: async (current, scheduleId, _dueAt, signal) => {
+          expect(current).toBe(agent)
+          cycleSignal = signal
+          entered()
+          await cleanup
+          signal.throwIfAborted()
+          return { scheduleId, planId: plan().id, outcome: 'IDLE' }
+        },
+      }, { pollMs: 60000, maxConcurrentCycles: 1 })
+      scheduler.scan(Date.now())
+      await started
+      disposal = scheduler.dispose().then(() => { disposed = true })
+      expect(cycleSignal?.aborted).toBe(true)
+      expect(disposed).toBe(false)
+      finish()
+      await disposal
+      await agent.whenIdle()
+      expect(disposed).toBe(true)
+      scheduler.scan(Date.now())
+      expect(agent.inbox.nextTurn).toEqual([])
+      expect(ctx.dai.readDirectorSchedule(agent).ledgers[0]?.revision).toBe(1)
+    } finally {
+      finish()
+      await disposal
+      await scheduler?.dispose()
+      await ctx.fiber.dispose()
+    }
+  }), 20000)
 })

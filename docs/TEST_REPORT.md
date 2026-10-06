@@ -9,10 +9,11 @@ This document separates **historical verified evidence** from the **current bran
 - Branch: `dai/v2-core-foundation`
 - Pull request: #15 (draft)
 - Latest D_AI check inspected before this documentation update:
-  - workflow run `37536230880`
-  - job `112517746651`
+  - workflow run `37535776100`
+  - job `112516177529`
   - conclusion: FAILURE
   - executed steps: **none** (`steps: null`)
+  - runner rejection reason: unavailable through the connected API
 
 ### Interpretation
 
@@ -24,6 +25,30 @@ Therefore:
 - it is **not** evidence that current branch code passes;
 - complete native runtime/build acceptance remains **CI PENDING**, while focused local evidence is recorded below;
 - maturity/status must not be promoted on the basis of source presence alone.
+
+## Native local checkpoint — 2026-10-07
+
+The initial inspected source head was `7a98345b5f2505a17169a1b9fbbec605354e86a1`; the verified outgoing snapshot also incorporates concurrent changes through `7cdfbbce861fed1a184de47e185aaca876b9e6dc`. Before repairs, its scoped native package run passed 157 tests and failed six: two stale assertions, two incorrect scheduler event assertions, an architecture ordering assertion and a parallel-provider fixture that inspected escaped prompt text. Restored native recovery regressions separately reproduced unsafe human-wait resumption, pre-cancelled task claiming, swallowed storage failure and swallowed `undefined` rejection. An added shutdown regression failed before cancellation was wired into active scheduler cycles.
+
+Concurrent changes added per-worker holder identities and guardrail/reset projection tests. Three-way reconciliation retained those changes; local compiler checks also identified and repaired a missing comma and an inferred SessionId-only holder argument in the concurrent patch.
+
+After reconciliation, repairs and the added acceptance cases, **all 173 tests in 43 package files pass** with native AgentLoop, Loader, JSONL Session storage, file locking and the compiled system addon. Model and web boundaries remain scripted fixtures. Scheduler shutdown aborts active cycles and awaits cleanup; subsequent scans enqueue no work. Independent exact-task workers overlap under a promise barrier and both leases/checkpoints settle. A native Session restart retains human requirements and recovers expired running work into a new fence. Logical admission over 1,000 tasks respects the eight-task batch limit, dependencies and human-wait state; this is not 1,000 live worker execution.
+
+Scoped TypeScript checking includes every D_AI source and test file and reports **zero D_AI diagnostics**. The partially restored upstream workspace still reports 124 diagnostics, so this is not a successful full project-reference build. The checker uses the original strict host configuration and noEmit, with unused-identifier checks disabled; aggregate lint remains pending.
+
+The regenerated catalog covers all 17 D_AI event roots. A successor acknowledgement records five optional schedule fields while preserving the v1 cycle-outcome union. Legacy schedules normalize missing parallelism to one and guardrails/counters to zero. All other root digests remain unchanged. History verification reports 79 roots and ten records; previous snapshots are retained.
+
+Executed commands from the materialized source directory:
+
+```sh
+../verification/node_modules/.bin/vitest run --config ../verification/vitest.native.config.mts packages/experimental/d-ai/tests
+node ../verification/typecheck-dai.mjs
+node --import tsx/esm scripts/gen-persistence-catalog.ts --check
+node --import tsx/esm scripts/persistence-changes.ts --check --json
+git diff --check
+```
+
+The isolated runner uses the repository's real vendored implementations and package source aliases. Native system compilation was completed in the earlier local preparation, and native integration now executes against that binary. This checkpoint did not reinstall the full workspace from its lockfile or rebuild every package. Cold-session activation, cross-owner starvation, multi-process crash injection, live providers, production connectors and browser UI remain unverified. PR #15 remains draft and unmerged; its inspected mergeability was false. This verified snapshot is published separately to avoid overwriting continued changes on its branch; the review compares against the same feature branch.
 
 ## Focused local verification — 2026-10-06
 
@@ -54,7 +79,7 @@ git diff --check
 
 The renewal/cleanup races use promise barriers and observed abort signals rather than fixed sleeps. The old helper incorrectly returned success when renewal failed or the caller cancelled during cleanup, invoked work cancelled before deferred startup, lost an `undefined` rejection, and rejected valid short leases because of its default renewal interval. The fix preserves those failures and still waits for both worker and renewal quiescence.
 
-These receipts verify the pre-scheduler tested helpers and deterministic projection logic. They do not verify the newly added unattended scheduler, current native Session persistence, real-provider execution, arbitrary tool recovery, or a production release. Since that receipt, scheduler state, tool schemas, public exports and runtime wiring changed; dedicated projection, wake-admission, hand-built integration and REAL Loader-composition tests were authored but have not executed under the blocked current gate.
+The earlier receipts below verify the pre-scheduler tested helpers and deterministic projection logic. They do not verify the newly added unattended scheduler, native Session persistence at that earlier checkpoint, real-provider execution, arbitrary tool recovery, or a production release. Since that receipt, scheduler state, tool schemas, public exports and runtime wiring changed; dedicated projection, wake-admission, hand-built integration and REAL Loader-composition tests were authored and now pass locally at the newer native checkpoint above; CI remains blocked.
 
 ## Last verified baseline — 2026-10-04
 

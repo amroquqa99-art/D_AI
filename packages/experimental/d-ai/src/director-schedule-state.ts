@@ -7,7 +7,7 @@ const identity = z.string().min(1).max(240)
 
 export const directorScheduleCycleSchema = z.object({
   attemptedAt: z.string().datetime(),
-  outcome: z.enum(['EXECUTED', 'TASK_FAILED', 'IDLE', 'FAILED']),
+  outcome: z.enum(['EXECUTED', 'IDLE', 'FAILED']),
   executedTasks: z.number().int().nonnegative(),
   phase: z.enum([
     'PLANNING',
@@ -72,7 +72,9 @@ export const directorScheduleFactSchema = z.object({
   ledger: directorScheduleLedgerSchema,
 }).strict()
 
-export type DirectorScheduleFact = z.infer<typeof directorScheduleFactSchema>
+// Persisted v1 inputs omit later optional settings; replay normalizes their
+// defaults before exposing the required runtime schedule fields.
+export type DirectorScheduleFact = z.input<typeof directorScheduleFactSchema>
 export interface DirectorScheduleState {
   readonly ledgers: readonly DirectorScheduleLedger[]
   readonly failure?: string | undefined

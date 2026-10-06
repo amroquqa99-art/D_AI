@@ -11,7 +11,7 @@ describe('D_AI runtime configuration', () => {
       maxSources: 32,
     })
     expect(runtime.scheduler).toEqual({
-      enabled: true,
+      enabled: false,
       pollMs: 1000,
       maxConcurrentCycles: 1,
     })

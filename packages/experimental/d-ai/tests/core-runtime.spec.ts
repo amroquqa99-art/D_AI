@@ -107,7 +107,7 @@ describe('D_AI durable shared core', () => {
 
       expect(expectedLedger.ledgers[0]?.revision).toBe(3)
       expect(expectedLedger.ledgers[0]?.tasks[0]?.state).toBe('RUNNING')
-      expect(expectedLedger.ledgers[0]?.tasks[0]?.attempt).toBe(1)
+      expect(expectedLedger.ledgers[0]?.tasks[0]?.attempt).toBe(0)
 
       expect(expectedControl.controls[0]?.revision).toBe(2)
       expect(expectedControl.controls[0]?.grants[0]).toMatchObject({

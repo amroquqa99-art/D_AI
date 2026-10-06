@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for 2026-10-07-d-ai-schedule-options.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/persistence-changes/2026-10-07-d-ai-schedule-options.md
+/:
+  en: 3d5a424ae7d7e46b
+  zh: c22a8e4a62d8cc1a
+/2026-10-07-d-ai-schedule-options:
+  en: d2707ae8745ae4eb
+  zh: 67e91a82e3b008ee
+/2026-10-07-d-ai-schedule-options/summary:
+  en: 5726484acefdebdb
+  zh: 3ff9a9d90d2531a6
+/2026-10-07-d-ai-schedule-options/table-of-contents:
+  en: 6cf314a069ceb451
+  zh: 9adff678e9ecab3b
+/2026-10-07-d-ai-schedule-options/declaration:
+  en: 6907136f28e48c90
+  zh: 02f8298485f3d8e7
+/2026-10-07-d-ai-schedule-options/compatibility:
+  en: 9da6a26f782071c1
+  zh: 925ca6a3188c1079
+/2026-10-07-d-ai-schedule-options/verification:
+  en: 0dc88da6b8d28fc4
+  zh: 51b4c8ff511d0d87
+/2026-10-07-d-ai-schedule-options/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

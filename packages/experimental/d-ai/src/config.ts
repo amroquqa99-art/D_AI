@@ -89,7 +89,7 @@ export const configSchema: z<Config> = z.object({
   innovationCriticModel: z.string(),
   allowedTools: z.array(z.string()).default(['web_search', 'web_fetch']),
   maxResultBytes: z.number().step(1).min(1).default(65536),
-  directorSchedulerEnabled: z.boolean().default(true),
+  directorSchedulerEnabled: z.boolean().default(false),
   directorSchedulerPollMs: z.number().step(1).min(10).default(1000),
   directorSchedulerMaxConcurrentCycles: z.number().step(1).min(1).max(32).default(1),
 })
@@ -167,7 +167,7 @@ export function buildRuntimeConfiguration(config: Config = {}): RuntimeConfigura
   }
 
   const scheduler: DirectorSchedulerConfiguration = {
-    enabled: config.directorSchedulerEnabled ?? true,
+    enabled: config.directorSchedulerEnabled ?? false,
     pollMs: positiveSafeInteger('directorSchedulerPollMs', config.directorSchedulerPollMs ?? 1000),
     maxConcurrentCycles: positiveSafeInteger(
       'directorSchedulerMaxConcurrentCycles',
