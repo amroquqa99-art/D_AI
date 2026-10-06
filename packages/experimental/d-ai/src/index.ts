@@ -39,7 +39,7 @@ import { appendAuditRecord as appendAuditRecordInternal, createAuditChain as cre
 import { validateGrant as validateGrantInternal } from './capability-grants.ts'
 import type { CapabilityGrant } from './capability-grants.ts'
 import { transitionTask as transitionTaskInternal } from './task-dag.ts'
-import { authorizeCrossSystemHandoff as authorizeCrossSystemHandoffInternal } from './cross-system.ts'
+import { CROSS_SYSTEM_TASK_EXECUTION_CAPABILITY, authorizeCrossSystemHandoff as authorizeCrossSystemHandoffInternal, deriveTaskHandoffSources } from './cross-system.ts'
 import { selectDurableRunnableTasks } from './runtime-scheduler.ts'
 import { budgetFactSchema } from './budget-state.ts'
 import type { BudgetFact, BudgetLedger, BudgetProfile, BudgetState } from './budget-state.ts'
@@ -75,7 +75,7 @@ import type { Config } from './config.ts'
 import { mountDaiProjections } from './runtime-projections.ts'
 import { registerDaiTools } from './runtime-tools.ts'
 import { DaiRuntimeKernel } from './runtime-kernel.ts'
-import { failDai } from './runtime-errors.ts'
+import { failDai, hasDaiErrorCode } from './runtime-errors.ts'
 import { DaiProjectionReader, immutableSnapshot } from './runtime-state.ts'
 import { withLeaseHeartbeat } from './lease-heartbeat.ts'
 
@@ -757,6 +757,15 @@ export class DAI extends Service {
     const system = SYSTEMS.find(item => item.id === claimed.task.systemId)
     if (system === undefined) fail('claimed task references unknown D_AI system', 'D_AI_CORRUPT_STATE')
 
+    const taskLedger = this.taskLedger(agent)
+    const dependencyTasks = claimed.task.dependsOn.map((dependencyId) => {
+      const dependency = taskLedger.tasks.find(task => task.id === dependencyId)
+      if (dependency === undefined) {
+        fail('claimed task references a missing durable dependency', 'D_AI_CORRUPT_STATE')
+      }
+      return dependency
+    })
+
     const executionLedger = this.executionLedger(agent)
     const dependencyCheckpoints = claimed.task.dependsOn.flatMap((dependencyId) => {
       const matching = executionLedger.checkpoints
@@ -764,6 +773,32 @@ export class DAI extends Service {
         .sort((a, b) => b.sequence - a.sequence)
       return matching[0] === undefined ? [] : [matching[0]]
     })
+
+    const handoffSources = deriveTaskHandoffSources(plan.primarySystem, claimed.task, dependencyTasks)
+    if (handoffSources.length > 0) {
+      try {
+        for (const fromSystem of handoffSources) {
+          await this.authorizeDurableCrossSystemHandoff(agent, {
+            fromSystem,
+            toSystem: claimed.task.systemId,
+            capability: CROSS_SYSTEM_TASK_EXECUTION_CAPABILITY,
+            missionId: plan.id,
+            taskId: claimed.task.id,
+            reason: 'Mission Director task execution requires cross-system context handoff',
+          })
+        }
+      } catch (error) {
+        const latest = this.taskLedger(agent).tasks.find(task => task.id === claimed.task.id)
+        if (latest?.state === 'RUNNING' && hasDaiErrorCode(error, 'D_AI_POLICY_DENIED')) {
+          try {
+            await this.transitionDurableTask(agent, claimed.task.id, 'BLOCKED_POLICY')
+          } catch {
+            // Preserve the authorization failure; lease recovery remains available.
+          }
+        }
+        throw error
+      }
+    }
 
     const route = this.optionalRoutedModel(agent, claimed.task.systemId, 'task-executor')
     const allowedTools = system.riskClass === 'authorized-cyber' || system.riskClass === 'sensitive-operations'
