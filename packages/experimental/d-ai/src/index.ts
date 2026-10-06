@@ -80,6 +80,7 @@ import { DaiRuntimeKernel } from './runtime-kernel.ts'
 import { failDai, hasDaiErrorCode } from './runtime-errors.ts'
 import { DaiProjectionReader, immutableSnapshot } from './runtime-state.ts'
 import { withLeaseHeartbeat } from './lease-heartbeat.ts'
+import { locateActiveLeaseFence, locateLeaseFence, nextLeaseFence } from './execution-fencing.ts'
 
 export * from './public-api.ts'
 
@@ -1411,6 +1412,7 @@ export class DAI extends Service {
         taskId: running.id,
         missionId: running.missionId,
         holderId: agent.id,
+        fence: nextLeaseFence(executions.leases, running.id),
         acquiredAt: nowIso,
         expiresAt: new Date(now.getTime() + ttlMs).toISOString(),
       }
@@ -1425,50 +1427,61 @@ export class DAI extends Service {
     })
   }
 
-  /** Extend the current owner's active task lease. */
-  async renewTaskLease(agent: Agent, taskId: string, ttlMs = 300000): Promise<TaskLease> {
+  /** Extend one exact active task-lease generation. */
+  async renewTaskLease(
+    agent: Agent,
+    taskId: string,
+    leaseId: string,
+    fence: number,
+    ttlMs = 300000,
+  ): Promise<TaskLease> {
     if (!Number.isSafeInteger(ttlMs) || ttlMs < 1000 || ttlMs > 3600000) {
       fail('task lease ttl must be an integer from 1000 to 3600000 ms', 'D_AI_INVALID_INPUT')
+    }
+    if (!Number.isSafeInteger(fence) || fence < 1 || leaseId.trim().length === 0) {
+      fail('valid lease id and fence are required', 'D_AI_INVALID_INPUT')
     }
     return this.transact(agent, async () => {
       const current = this.executionLedger(agent)
       const now = Date.now()
-      const index = [...current.leases].reverse().findIndex(lease => lease.taskId === taskId && lease.releasedAt === undefined)
-      if (index < 0) fail('task has no active lease', 'D_AI_INVALID_INPUT')
-      const actualIndex = current.leases.length - 1 - index
-      const lease = current.leases[actualIndex]!
-      if (lease.holderId !== agent.id || Date.parse(lease.expiresAt) <= now) fail('task lease is expired or owned by another executor', 'D_AI_POLICY_DENIED')
-      const nextExpiry = new Date(Math.max(Date.parse(lease.expiresAt) + 1, now + ttlMs)).toISOString()
-      const renewed: TaskLease = { ...lease, expiresAt: nextExpiry }
+      const located = locateActiveLeaseFence(current.leases, { taskId, leaseId, fence }, agent.id, now)
+      if (located === undefined) {
+        fail('task lease fence is stale, expired, released or owned by another executor', 'D_AI_POLICY_DENIED')
+      }
+      const nextExpiry = new Date(Math.max(Date.parse(located.lease.expiresAt) + 1, now + ttlMs)).toISOString()
+      const renewed: TaskLease = { ...located.lease, expiresAt: nextExpiry }
       await this.appendExecutionLedger(agent, 'RENEW_LEASE', {
         ownerAgentId: agent.id,
         revision: current.revision + 1,
-        leases: current.leases.map((item, itemIndex) => itemIndex === actualIndex ? renewed : item),
+        leases: current.leases.map((item, itemIndex) => itemIndex === located.index ? renewed : item),
         checkpoints: [...current.checkpoints],
       })
       return immutableSnapshot(renewed)
     })
   }
 
-  /** Append a durable checkpoint for a leased long-running task. */
+  /** Append a durable checkpoint bound to one exact active lease generation. */
   async checkpointTask(
     agent: Agent,
     taskId: string,
+    leaseId: string,
+    fence: number,
     summary: string,
     artifactRefs: readonly string[] = [],
   ): Promise<TaskCheckpoint> {
     if (summary.trim().length === 0 || artifactRefs.some(ref => ref.trim().length === 0)) {
       fail('checkpoint summary and artifact references must be non-empty', 'D_AI_INVALID_INPUT')
     }
+    if (!Number.isSafeInteger(fence) || fence < 1 || leaseId.trim().length === 0) {
+      fail('valid lease id and fence are required', 'D_AI_INVALID_INPUT')
+    }
     return this.transact(agent, async () => {
       const current = this.executionLedger(agent)
       const now = Date.now()
-      const lease = [...current.leases].reverse().find(item =>
-        item.taskId === taskId
-        && item.holderId === agent.id
-        && item.releasedAt === undefined
-        && Date.parse(item.expiresAt) > now)
-      if (lease === undefined) fail('checkpoint requires an active task lease owned by this executor', 'D_AI_POLICY_DENIED')
+      const located = locateActiveLeaseFence(current.leases, { taskId, leaseId, fence }, agent.id, now)
+      if (located === undefined) {
+        fail('checkpoint requires the current active task lease fence', 'D_AI_POLICY_DENIED')
+      }
       const task = this.taskLedger(agent).tasks.find(item => item.id === taskId)
       if (task === undefined || !['RUNNING', 'WAITING_FOR_HUMAN', 'WAITING_FOR_TOOL'].includes(task.state)) {
         fail('checkpoint requires a running or waiting task', 'D_AI_INVALID_TRANSITION')
@@ -1479,6 +1492,8 @@ export class DAI extends Service {
       const checkpoint: TaskCheckpoint = {
         id: randomUUID(),
         taskId,
+        leaseId,
+        fence,
         sequence,
         at: new Date(now).toISOString(),
         summary,
@@ -1494,20 +1509,31 @@ export class DAI extends Service {
     })
   }
 
-  /** Release the latest un-released task lease owned by the current executor. */
-  async releaseTaskLease(agent: Agent, taskId: string): Promise<TaskLease> {
+  /** Release one exact lease generation; never release a newer executor's lease. */
+  async releaseTaskLease(
+    agent: Agent,
+    taskId: string,
+    leaseId: string,
+    fence: number,
+  ): Promise<TaskLease> {
+    if (!Number.isSafeInteger(fence) || fence < 1 || leaseId.trim().length === 0) {
+      fail('valid lease id and fence are required', 'D_AI_INVALID_INPUT')
+    }
     return this.transact(agent, async () => {
       const current = this.executionLedger(agent)
-      const reverseIndex = [...current.leases].reverse().findIndex(lease =>
-        lease.taskId === taskId && lease.holderId === agent.id && lease.releasedAt === undefined)
-      if (reverseIndex < 0) fail('task has no releasable lease owned by this executor', 'D_AI_INVALID_INPUT')
-      const index = current.leases.length - 1 - reverseIndex
-      const lease = current.leases[index]!
-      const released: TaskLease = { ...lease, releasedAt: new Date().toISOString() }
+      const located = locateLeaseFence(current.leases, { taskId, leaseId, fence })
+      if (
+        located === undefined
+        || located.lease.holderId !== agent.id
+        || located.lease.releasedAt !== undefined
+      ) {
+        fail('task has no releasable matching lease fence owned by this executor', 'D_AI_POLICY_DENIED')
+      }
+      const released: TaskLease = { ...located.lease, releasedAt: new Date().toISOString() }
       await this.appendExecutionLedger(agent, 'RELEASE_LEASE', {
         ownerAgentId: agent.id,
         revision: current.revision + 1,
-        leases: current.leases.map((item, itemIndex) => itemIndex === index ? released : item),
+        leases: current.leases.map((item, itemIndex) => itemIndex === located.index ? released : item),
         checkpoints: [...current.checkpoints],
       })
       return immutableSnapshot(released)
