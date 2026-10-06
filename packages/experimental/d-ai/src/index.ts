@@ -334,6 +334,44 @@ export class DAI extends Service {
     return value
   }
 
+  /** Read durable shared task ledgers for the exact live owner Agent. */
+  readTaskLedger(agent: Agent): TaskLedgerState {
+    this.authorize(agent)
+    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiTaskLedger')
+    if (state === undefined) fail('Task ledger projection is not mounted', 'D_AI_PROJECTION_MISSING')
+    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
+    return immutable(state)
+  }
+
+  private taskLedger(agent: Agent): DurableTaskLedger {
+    const existing = this.readTaskLedger(agent).ledgers.find(item => item.ownerAgentId === agent.id)
+    return existing ?? {
+      ownerAgentId: agent.id,
+      revision: 0,
+      tasks: [],
+    }
+  }
+
+  /** Read durable capability grants and audit records for the exact live owner Agent. */
+  readControlPlane(agent: Agent): ControlPlaneState {
+    this.authorize(agent)
+    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiControlPlane')
+    if (state === undefined) fail('Control-plane projection is not mounted', 'D_AI_PROJECTION_MISSING')
+    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
+    return immutable(state)
+  }
+
+  private controlPlane(agent: Agent): ControlPlane {
+    const existing = this.readControlPlane(agent).controls.find(item => item.ownerAgentId === agent.id)
+    return existing ?? {
+      ownerAgentId: agent.id,
+      revision: 0,
+      grants: [],
+      auditRecords: [],
+      auditHeadHash: createAuditChainInternal().headHash,
+    }
+  }
+
   private async transact<T>(agent: Agent, operation: () => Promise<T>): Promise<T> {
     this.authorize(agent)
     const prior = this.tails.get(agent.id) ?? Promise.resolve()
@@ -410,6 +448,26 @@ export class DAI extends Service {
     agent.session.append('d_ai/innovation-fact', fact)
     await this.ctx.sessions.flush(agent.session)
     return immutable(fact.project)
+  }
+
+  private async appendTaskLedger(agent: Agent, operation: TaskLedgerFact['operation'], ledger: DurableTaskLedger): Promise<DurableTaskLedger> {
+    this.authorize(agent)
+    const fact = immutable(taskLedgerFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
+    if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('task ledger storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+    this.requireOpenTurn(agent)
+    agent.session.append('d_ai/task-ledger-fact', fact)
+    await this.ctx.sessions.flush(agent.session)
+    return immutable(fact.ledger)
+  }
+
+  private async appendControlPlane(agent: Agent, operation: ControlPlaneFact['operation'], control: ControlPlane): Promise<ControlPlane> {
+    this.authorize(agent)
+    const fact = immutable(controlPlaneFactSchema.parse({ version: 1, operation, actorId: agent.id, control }))
+    if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('control-plane storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+    this.requireOpenTurn(agent)
+    agent.session.append('d_ai/control-plane-fact', fact)
+    await this.ctx.sessions.flush(agent.session)
+    return immutable(fact.control)
   }
 
   /**
