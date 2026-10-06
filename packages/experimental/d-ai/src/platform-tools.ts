@@ -2,12 +2,13 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { LOCAL_INTELLIGENCE_CORE } from './systems.ts'
+import type { SystemManifest } from './systems.ts'
 import { encodeToolResult, jsonToolOutput } from './tool-support.ts'
 import type { ToolOwnerResolver } from './tool-support.ts'
 
 export interface PlatformToolRuntime {
-  platformSnapshot(agent: Agent): unknown
-  systems(): unknown
+  platformSnapshot(agent: Agent): Readonly<Record<string, unknown>>
+  systems(): readonly SystemManifest[]
 }
 
 export function registerPlatformTools(
