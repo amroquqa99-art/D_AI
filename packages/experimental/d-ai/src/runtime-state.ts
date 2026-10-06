@@ -14,6 +14,7 @@ export type DaiProjectionKey =
   | 'daiInnovationDiscovery'
   | 'daiTaskLedger'
   | 'daiDirector'
+  | 'daiDirectorSchedule'
   | 'daiModelLifecycle'
   | 'daiTraining'
   | 'daiModelRegistry'
@@ -32,6 +33,7 @@ const projectionLabels: Readonly<Record<DaiProjectionKey, string>> = Object.free
   daiInnovationDiscovery: 'Innovation & Discovery',
   daiTaskLedger: 'Task ledger',
   daiDirector: 'Mission Director',
+  daiDirectorSchedule: 'Mission Director schedule',
   daiModelLifecycle: 'Model lifecycle',
   daiTraining: 'Training governance',
   daiModelRegistry: 'Model registry',
