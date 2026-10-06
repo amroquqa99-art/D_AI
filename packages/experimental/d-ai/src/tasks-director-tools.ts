@@ -68,6 +68,7 @@ export interface TasksDirectorToolRuntime {
       readonly enabled: boolean
       readonly intervalMs?: number
       readonly maxTasksPerCycle?: number
+      readonly maxParallelTasks?: number
       readonly leaseTtlMs?: number
       readonly startImmediately?: boolean
     },
@@ -322,6 +323,7 @@ export function registerTasksDirectorTools(
       enabled: { type: 'boolean', required: true },
       interval_ms: { type: 'number' },
       max_tasks_per_cycle: { type: 'number' },
+      max_parallel_tasks: { type: 'number' },
       lease_ttl_ms: { type: 'number' },
       start_immediately: { type: 'boolean' },
     },
@@ -337,6 +339,12 @@ export function registerTasksDirectorTools(
           || args.max_tasks_per_cycle > 8)) {
         rejectInvalidInput('max_tasks_per_cycle must be an integer from 1 to 8')
       }
+      if (args.max_parallel_tasks !== undefined
+        && (!Number.isSafeInteger(args.max_parallel_tasks)
+          || args.max_parallel_tasks < 1
+          || args.max_parallel_tasks > (args.max_tasks_per_cycle ?? 8))) {
+        rejectInvalidInput('max_parallel_tasks must be an integer from 1 to max_tasks_per_cycle')
+      }
       if (args.lease_ttl_ms !== undefined
         && (!Number.isSafeInteger(args.lease_ttl_ms) || args.lease_ttl_ms < 1)) {
         rejectInvalidInput('lease_ttl_ms must be a positive integer')
@@ -349,6 +357,7 @@ export function registerTasksDirectorTools(
           enabled: args.enabled,
           ...(args.interval_ms === undefined ? {} : { intervalMs: args.interval_ms }),
           ...(args.max_tasks_per_cycle === undefined ? {} : { maxTasksPerCycle: args.max_tasks_per_cycle }),
+          ...(args.max_parallel_tasks === undefined ? {} : { maxParallelTasks: args.max_parallel_tasks }),
           ...(args.lease_ttl_ms === undefined ? {} : { leaseTtlMs: args.lease_ttl_ms }),
           ...(args.start_immediately === undefined ? {} : { startImmediately: args.start_immediately }),
         },
