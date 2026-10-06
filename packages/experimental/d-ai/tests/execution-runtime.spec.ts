@@ -48,6 +48,7 @@ describe('D_AI long-running task execution', () => {
     const { ctx } = await boot(root, script)
     const agent = await ctx.agentLoop.create(SessionId('execution-owner'), { provider: 'mock', model: 'fixture' })
     const task = () => ctx.dai.readTaskLedger(agent).ledgers[0]!.tasks[0]!
+    const lease = () => ctx.dai.readExecution(agent).ledgers[0]!.leases.at(-1)!
 
     script.push(
       toolCallResponse('task-add', 'd_ai_task_add', {
@@ -60,11 +61,15 @@ describe('D_AI long-running task execution', () => {
       toolCallResponse('claim', 'd_ai_task_claim_next', { ttl_ms: 600000 }),
       () => toolCallResponse('checkpoint', 'd_ai_task_checkpoint', {
         task_id: task().id,
+        lease_id: lease().id,
+        fence: lease().fence,
         summary: 'Literature map completed; waiting to continue with synthesis.',
         artifact_refs: 'artifact://fixture/literature-map.json',
       }),
       () => toolCallResponse('renew', 'd_ai_task_renew_lease', {
         task_id: task().id,
+        lease_id: lease().id,
+        fence: lease().fence,
         ttl_ms: 1200000,
       }),
       () => toolCallResponse('complete', 'd_ai_task_transition', {
@@ -73,6 +78,8 @@ describe('D_AI long-running task execution', () => {
       }),
       () => toolCallResponse('release', 'd_ai_task_release_lease', {
         task_id: task().id,
+        lease_id: lease().id,
+        fence: lease().fence,
       }),
       textResponse('Long-running task persisted'),
     )
@@ -97,6 +104,8 @@ describe('D_AI long-running task execution', () => {
       expect(expectedExecution.ledgers[0]?.checkpoints).toHaveLength(1)
       expect(expectedExecution.ledgers[0]?.checkpoints[0]).toMatchObject({
         taskId: expectedTasks.ledgers[0]?.tasks[0]?.id,
+        leaseId: expectedExecution.ledgers[0]?.leases[0]?.id,
+        fence: expectedExecution.ledgers[0]?.leases[0]?.fence,
         sequence: 1,
         summary: 'Literature map completed; waiting to continue with synthesis.',
         artifactRefs: ['artifact://fixture/literature-map.json'],
@@ -117,6 +126,71 @@ describe('D_AI long-running task execution', () => {
       await handle.dispose()
     } finally {
       await second.ctx.fiber.dispose()
+    }
+  }), 15000)
+
+  it('rejects stale lease generations after a task is reclaimed', async () => temporary(async root => {
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx } = await boot(root, script)
+    const agent = await ctx.agentLoop.create(SessionId('execution-fence-owner'), { provider: 'mock', model: 'fixture' })
+    const task = () => ctx.dai.readTaskLedger(agent).ledgers[0]!.tasks[0]!
+    const latestLease = () => ctx.dai.readExecution(agent).ledgers[0]!.leases.at(-1)!
+
+    let firstLeaseId = ''
+    let firstFence = 0
+
+    script.push(
+      toolCallResponse('task-add', 'd_ai_task_add', {
+        mission_id: 'mission-fence',
+        system_id: 'investigation',
+        title: 'Fence stale executor generations',
+        max_attempts: 3,
+      }),
+      toolCallResponse('claim-first', 'd_ai_task_claim_next', { ttl_ms: 600000 }),
+      () => {
+        firstLeaseId = latestLease().id
+        firstFence = latestLease().fence
+        return toolCallResponse('release-first', 'd_ai_task_release_lease', {
+          task_id: task().id,
+          lease_id: firstLeaseId,
+          fence: firstFence,
+        })
+      },
+      () => toolCallResponse('fail-first', 'd_ai_task_transition', {
+        task_id: task().id,
+        next_state: 'FAILED',
+      }),
+      () => toolCallResponse('retry-first', 'd_ai_task_transition', {
+        task_id: task().id,
+        next_state: 'PENDING',
+      }),
+      toolCallResponse('claim-second', 'd_ai_task_claim_next', { ttl_ms: 600000 }),
+      () => toolCallResponse('stale-checkpoint', 'd_ai_task_checkpoint', {
+        task_id: task().id,
+        lease_id: firstLeaseId,
+        fence: firstFence,
+        summary: 'This stale executor must not be allowed to write.',
+      }),
+      textResponse('Stale executor rejected'),
+    )
+
+    try {
+      agent.followup(createUserMessage({
+        content: [{ type: 'text', text: 'Exercise lease fencing for the approved task.' }],
+        source: { kind: 'user' },
+      }))
+      await agent.whenIdle()
+
+      const execution = ctx.dai.readExecution(agent).ledgers[0]!
+      expect(execution.leases).toHaveLength(2)
+      expect(execution.leases[0]?.fence).toBe(1)
+      expect(execution.leases[0]?.releasedAt).toBeDefined()
+      expect(execution.leases[1]?.fence).toBe(2)
+      expect(execution.leases[1]?.releasedAt).toBeUndefined()
+      expect(execution.checkpoints).toEqual([])
+      expect(ctx.dai.readTaskLedger(agent).ledgers[0]?.tasks[0]?.state).toBe('RUNNING')
+    } finally {
+      await ctx.fiber.dispose()
     }
   }), 15000)
 
