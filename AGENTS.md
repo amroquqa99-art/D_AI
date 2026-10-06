@@ -1,6 +1,14 @@
 # D_AI engineering
 
-Read [the approved product specification](docs/PRODUCT_SPEC.md), [feature acceptance](docs/FEATURE_MATRIX.md) and [test evidence](docs/TEST_REPORT.md) before extending D_AI. Build native Harness components, preserve source attribution, isolate parallel edits and separate live-provider evidence from fixtures. Owner-managed permissions are configurable; enforce grants in execution and record access. Upstream updates are manual and never activate automatically.
+Before changing D_AI code, read:
+
+1. [ENGINEERING_WORKING_AGREEMENT.md](docs/ENGINEERING_WORKING_AGREEMENT.md) — mandatory change/review/testing protocol.
+2. [PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md) — approved product behavior.
+3. [FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md) — truthful implementation status.
+4. [TEST_REPORT.md](docs/TEST_REPORT.md) — latest executable evidence.
+5. Relevant ADRs and subsystem tests before editing shared contracts.
+
+For D_AI work, the engineering agreement is binding unless a higher-priority product/security/persistence contract says otherwise. Favor small reversible commits, characterize behavior before risky refactors, separate generation from verification, and never promote fixture-only evidence to live verification.
 
 # AGENTS.md
 
