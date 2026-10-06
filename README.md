@@ -34,6 +34,10 @@ Legend:
 | Local Intelligence Core | **FOUNDATION ONLY** | Architecture, governance, dataset/promotion gates and model-release pointers exist. **There is no claim that a D_AI local model has already been trained.** |
 | Admin / Control Center UI | **NOT BUILT** | Runtime control APIs are being built first; full GUI for users, grants, systems, models, budgets and audit is still pending. |
 
+## Current CI blocker
+
+As of 2026-10-06, the latest GitHub Actions runs for this branch are failing **before a runner is allocated**: the job payload reports `runner_id: 0` and `steps: []`. This is an Actions execution/infrastructure blocker rather than an observed D_AI test assertion failure. New runtime work therefore remains marked **CI PENDING** until the gate can actually execute.
+
 ## What is being worked on right now
 
 The active engineering path is:
