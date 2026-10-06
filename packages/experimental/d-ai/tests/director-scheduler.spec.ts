@@ -4,6 +4,7 @@ import type { UserMessage } from '@deepseek-ai/dsh-llm'
 import {
   createDirectorSchedulerWake,
   hasPendingDirectorSchedulerWake,
+  isCurrentDirectorScheduleWake,
   shouldWakeDirectorSchedule,
 } from '../src/director-scheduler.ts'
 import type { DirectorPlanRuntimeView } from '../src/director-runtime.ts'
@@ -101,6 +102,28 @@ describe('D_AI unattended Director scheduler admission', () => {
       planView(),
       execution(),
       Date.parse('2026-10-07T00:00:02.000Z'),
+    )).toBe(true)
+  })
+
+  it('rejects stale and early wake tokens after schedule reconfiguration', () => {
+    const current = schedule({ nextWakeAt: '2026-10-07T00:00:05.000Z' })
+
+    expect(isCurrentDirectorScheduleWake(
+      current,
+      '2026-10-07T00:00:01.000Z',
+      Date.parse('2026-10-07T00:00:06.000Z'),
+    )).toBe(false)
+
+    expect(isCurrentDirectorScheduleWake(
+      current,
+      current.nextWakeAt,
+      Date.parse('2026-10-07T00:00:04.999Z'),
+    )).toBe(false)
+
+    expect(isCurrentDirectorScheduleWake(
+      current,
+      current.nextWakeAt,
+      Date.parse('2026-10-07T00:00:05.000Z'),
     )).toBe(true)
   })
 
