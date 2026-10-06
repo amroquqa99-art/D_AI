@@ -76,6 +76,24 @@ describe('D_AI Director schedule projection', () => {
     })
   })
 
+  it('rejects schedule parallelism larger than its cycle bound', () => {
+    const invalid = projectDirectorScheduleFact(baseState(), event({
+      version: 1,
+      operation: 'UPSERT',
+      actorId: 'owner',
+      ledger: {
+        ownerAgentId: 'owner',
+        revision: 1,
+        schedules: [schedule({
+          maxTasksPerCycle: 2,
+          maxParallelTasks: 3,
+        })],
+      },
+    }))
+
+    expect(invalid.failure).toContain('parallelism cannot exceed maxTasksPerCycle')
+  })
+
   it('rejects duplicate schedules for one plan and invalid TTL bounds', () => {
     const duplicate = projectDirectorScheduleFact(baseState(), event({
       version: 1,
