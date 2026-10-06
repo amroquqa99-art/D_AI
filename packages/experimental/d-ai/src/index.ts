@@ -26,6 +26,10 @@ import { cyberFactSchema, cyberProjection } from './cyber-state.ts'
 import type { CyberAuthorizationScope, CyberEngagement, CyberFact, CyberFinding, CyberState } from './cyber-state.ts'
 import { runCyberDelegates } from './cyber-orchestration.ts'
 import type { CyberDelegationConfig } from './cyber-orchestration.ts'
+import { operationsFactSchema, operationsProjection } from './operations-state.ts'
+import type { IntelligenceGap, OperationalOption, OperationsCase, OperationsEntity, OperationsFact, OperationsRelationship, OperationsState, OperationsTimelineEvent } from './operations-state.ts'
+import { runOperationsDelegates } from './operations-orchestration.ts'
+import type { OperationsDelegationConfig } from './operations-orchestration.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
 export { getSystemManifest, listSystemManifests, LOCAL_INTELLIGENCE_CORE } from './systems.ts'
@@ -62,6 +66,10 @@ export { cyberFactSchema, cyberProjection, projectCyberFact } from './cyber-stat
 export type { CyberAuthorizationScope, CyberEngagement, CyberFact, CyberFinding, CyberState } from './cyber-state.ts'
 export { runCyberDelegates } from './cyber-orchestration.ts'
 export type { CyberDelegationConfig, CyberDelegates, CyberWorkerOutput } from './cyber-orchestration.ts'
+export { operationsFactSchema, operationsProjection, projectOperationsFact } from './operations-state.ts'
+export type { IntelligenceGap, OperationalOption, OperationsCase, OperationsEntity, OperationsFact, OperationsRelationship, OperationsState, OperationsTimelineEvent } from './operations-state.ts'
+export { runOperationsDelegates } from './operations-orchestration.ts'
+export type { OperationsDelegationConfig, OperationsDelegates, OperationsWorkerOutput } from './operations-orchestration.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
@@ -82,6 +90,8 @@ export interface Config {
   riskModel?: string
   cyberAssessmentModel?: string
   cyberRemediationModel?: string
+  operationsFusionModel?: string
+  operationsAdversarialModel?: string
   allowedTools?: string[]
   maxResultBytes?: number
 }
@@ -115,6 +125,7 @@ export class DAI extends Service {
     maxMissionBytes: z.number().step(1).min(1).default(2000000), maxSources: z.number().step(1).min(1).default(32),
     researchModel: z.string(), verificationModel: z.string(), literatureModel: z.string(), methodologyModel: z.string(),
     fundamentalModel: z.string(), riskModel: z.string(), cyberAssessmentModel: z.string(), cyberRemediationModel: z.string(),
+    operationsFusionModel: z.string(), operationsAdversarialModel: z.string(),
     allowedTools: z.array(z.string()).default(['web_search', 'web_fetch']), maxResultBytes: z.number().step(1).min(1).default(65536),
   })
   private readonly limits: { maxSourceBytes: number; maxMissionBytes: number; maxSources: number }
@@ -122,6 +133,7 @@ export class DAI extends Service {
   private readonly scientificDelegation: ScientificDelegationConfig
   private readonly investorDelegation: InvestorDelegationConfig
   private readonly cyberDelegation: CyberDelegationConfig
+  private readonly operationsDelegation: OperationsDelegationConfig
   private readonly tails = new Map<string, Promise<void>>()
   private readonly delegating = new Set<string>()
   private readonly index: ReturnType<Context['storageDomain']['open']>
@@ -161,6 +173,14 @@ export class DAI extends Service {
       ...(config.cyberAssessmentModel === undefined ? {} : { assessmentModel: config.cyberAssessmentModel }),
       ...(config.cyberRemediationModel === undefined ? {} : { remediationModel: config.cyberRemediationModel }),
     }
+    this.operationsDelegation = {
+      provider: config.subagentProvider ?? 'spawn', maxDepth: config.maxDepth ?? 3,
+      allowedTools: config.allowedTools ?? ['web_search', 'web_fetch'], maxResultBytes: config.maxResultBytes ?? 65536,
+      maxOutputTokens: config.maxOutputTokens ?? 4096, maxRequestsPerChild: config.maxRequestsPerChild ?? 8,
+      timeoutMs: config.timeoutMs ?? 120000,
+      ...(config.operationsFusionModel === undefined ? {} : { fusionModel: config.operationsFusionModel }),
+      ...(config.operationsAdversarialModel === undefined ? {} : { adversarialModel: config.operationsAdversarialModel }),
+    }
     for (const [key, value] of Object.entries({ ...this.limits, maxDepth: this.delegation.maxDepth,
       maxOutputTokens: this.delegation.maxOutputTokens, maxRequestsPerChild: this.delegation.maxRequestsPerChild, timeoutMs: this.delegation.timeoutMs })) {
       if (!Number.isSafeInteger(value) || value < 1) throw new TypeError(`${key} must be a positive safe integer`)
@@ -170,6 +190,7 @@ export class DAI extends Service {
     ctx.effect(() => ctx.sessionProjections.register(scientificProjection), 'dai.scientificProjection()')
     ctx.effect(() => ctx.sessionProjections.register(investorProjection), 'dai.investorProjection()')
     ctx.effect(() => ctx.sessionProjections.register(cyberProjection), 'dai.cyberProjection()')
+    ctx.effect(() => ctx.sessionProjections.register(operationsProjection), 'dai.operationsProjection()')
     ctx.effect(() => async () => { await Promise.all([...this.tails.values()]); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
   }
