@@ -14,7 +14,13 @@ Raw `d_ai/fact` events contain complete mission state and rebuild the `dai` Sess
 
 `pnpm exec vitest run packages/experimental/d-ai/tests` exercises native Loader composition, AgentLoop tools, actual native child loops, configured model separation, worker bounds, source/ownership policy, append-only replay, and JSONL restart. The model adapter and public web provider are explicitly scripted fixtures. This proves internal integration, not live model or internet research.
 
-Focused local unit/projection validation currently passes 86 tests across 21 files. The lease-heartbeat suite verifies cancellation before worker startup, renewal failure during cleanup, parent cancellation during cleanup and quiescent teardown. A result is returned only after worker and renewal settle; cancellation does not roll back already committed task facts or external effects. The full native package gate remains pending.
+The last recorded focused pre-scheduler local unit/projection validation passed 86 tests across 21 files. The lease-heartbeat suite verifies cancellation before worker startup, renewal failure during cleanup, parent cancellation during cleanup and quiescent teardown. A result is returned only after worker and renewal settle; cancellation does not roll back already committed task facts or external effects. The full native package gate remains pending. The unattended scheduler adds dedicated projection, wake-admission, hand-built integration and REAL Loader-composition tests, but those new tests are authored rather than claimed passing while GitHub Actions fails before any job step starts.
+
+### Unattended Mission Director
+
+The scheduler is deliberately split into two authority levels. A process-local coordinator may only inspect durable schedule state and enqueue a typed empty wake message for an idle root Agent. It cannot append D_AI facts. The wake is consumed by an `agent/pre-step` hook inside a native turn; only there may the service execute the bounded Director cycle and append a durable cycle receipt. Schedule enable/update/disable operations are owner-approval gated, and the scheduler will not enqueue ahead of already queued human/agent work.
+
+This preserves the package invariant that durable D_AI mutation happens inside an owned native turn rather than from an untracked timer callback.
 
 ## Model Experience
 
@@ -34,6 +40,6 @@ Tool registration changes the assembled tool prefix once at activation. Subseque
 
 ## Known Limitations and Deferred Work
 
-The Local Intelligence Core is a separate governed platform component, not a seventh domain, and has no trained or activated D_AI model. Durable task ledgers, fenced leases/checkpoints, budgets, grants, model routing and bounded Director cycles exist. A persistent unattended scheduler, full native acceptance, provider health/secrets/telemetry, original binary artifact storage, a complete system-manager hierarchy and the Control Center UI remain unfinished. Real wall-clock usage is measured; automatic token/money/data/human-attention metering and VRAM reservations remain incomplete.
+The Local Intelligence Core is a separate governed platform component, not a seventh domain, and has no trained or activated D_AI model. Durable task ledgers, fenced leases/checkpoints, budgets, grants, model routing, bounded Director cycles and a durable unattended Director scheduler now exist. The scheduler persists cadence/cycle receipts, wakes only idle root Agents, executes inside a native Agent turn, preserves lease/fencing recovery, and requires human approval for schedule changes. Full native acceptance, provider health/secrets/telemetry, original binary artifact storage, a complete system-manager hierarchy and the Control Center UI remain unfinished. Real wall-clock usage is measured; automatic token/money/data/human-attention metering and VRAM reservations remain incomplete.
 
 The index is not reconciled automatically after a Session-success/index-failure. A failed Session flush rejects the mutation but native pending in-memory Session events remain visible until retry or restart; no cross-store transaction or rollback is promised. Events emitted inside an interrupted turn retain native Harness recovery semantics. Process-crash fault injection and live-provider acceptance remain unverified.
