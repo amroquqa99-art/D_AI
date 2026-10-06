@@ -1201,6 +1201,7 @@ export class DAI extends Service {
       readonly enabled: boolean
       readonly intervalMs?: number
       readonly maxTasksPerCycle?: number
+      readonly maxParallelTasks?: number
       readonly leaseTtlMs?: number
       readonly startImmediately?: boolean
     },
@@ -1216,10 +1217,12 @@ export class DAI extends Service {
     const previous = current.schedules.find(item => item.planId === planId)
     const intervalMs = input.intervalMs ?? previous?.intervalMs ?? 60000
     const maxTasksPerCycle = input.maxTasksPerCycle ?? previous?.maxTasksPerCycle ?? 4
+    const maxParallelTasks = input.maxParallelTasks ?? previous?.maxParallelTasks ?? 1
     const leaseTtlMs = input.leaseTtlMs ?? previous?.leaseTtlMs ?? 600000
 
     if (!Number.isSafeInteger(intervalMs) || intervalMs < 10
       || !Number.isSafeInteger(maxTasksPerCycle) || maxTasksPerCycle < 1 || maxTasksPerCycle > 8
+      || !Number.isSafeInteger(maxParallelTasks) || maxParallelTasks < 1 || maxParallelTasks > maxTasksPerCycle
       || !Number.isSafeInteger(leaseTtlMs) || leaseTtlMs <= intervalMs) {
       fail('invalid unattended Director schedule bounds', 'D_AI_INVALID_INPUT')
     }
@@ -1253,6 +1256,7 @@ export class DAI extends Service {
             enabled: input.enabled,
             intervalMs,
             maxTasksPerCycle,
+            maxParallelTasks,
             leaseTtlMs,
             nextWakeAt,
             createdAt: now,
@@ -1263,6 +1267,7 @@ export class DAI extends Service {
             enabled: input.enabled,
             intervalMs,
             maxTasksPerCycle,
+            maxParallelTasks,
             leaseTtlMs,
             nextWakeAt,
             updatedAt: now,
@@ -1315,6 +1320,7 @@ export class DAI extends Service {
         signal,
         schedule.maxTasksPerCycle,
         schedule.leaseTtlMs,
+        schedule.maxParallelTasks,
       )
     } catch (error) {
       failure = error
