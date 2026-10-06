@@ -23,13 +23,13 @@ Legend:
 | Cybersecurity | **IMPLEMENTED / CI PENDING** | Explicit authorization scope, defensive findings, remediation, safe retest recording, independent assessment + remediation-review Agents. |
 | Operations & Intelligence | **IMPLEMENTED / CI PENDING** | Durable cases, entities, relationships, timelines, intelligence gaps, human-gated proposed options, fusion + adversarial analysis Agents. |
 | Innovation & Discovery | **IMPLEMENTED / CI PENDING** | Testable candidates, mechanisms, falsification tests, experiment handoff/results, independent explorer + critic Agents. Generated ideas cannot self-declare as discoveries. |
-| Shared Task DAG | **IMPLEMENTED / CI PENDING** | Task states, dependencies, retry accounting, runnable-task selection, and a durable task-ledger Session projection. |
+| Shared Task DAG | **IMPLEMENTED / CI PENDING** | Task states, dependencies, retry accounting, durable task-ledger replay, and scheduler admission that respects dependencies/blocking states. |
 | Mission Director | **FOUNDATION** | Mission planning primitives, runnable-work selection, resource admission and Value-of-Information ranking. Full long-running scheduler/executor loop is still being built. |
 | Capability control plane | **IMPLEMENTED / CI PENDING** | Scoped ALLOW/DENY grants, fail-closed authorization, human-approved durable grant changes, append-only audit hash chain, durable control-plane projection. |
 | Evidence / Knowledge graph | **FOUNDATION** | Cross-system evidence nodes/edges, support/contradiction representation and claim-tension queries. Persistence/runtime integration is still incomplete. |
-| Cross-system handoff | **FOUNDATION** | Declared collaboration edges, capability-grant checks and audit primitives. Full runtime routing between all systems is still incomplete. |
+| Cross-system handoff | **IMPLEMENTED / CI PENDING** | Persisted grant-backed authorization and durable audit records exist for declared system-to-system handoffs. Automatic target-task execution/routing is still incomplete. |
 | Model Router | **FOUNDATION** | Hard capability/context/locality requirements plus weighted model ranking. Live provider telemetry/routing integration is not complete. |
-| Resource budgets + VoI | **FOUNDATION** | Token, money, time, human-attention and data-access budgets plus Value-of-Information ranking primitives. Full enforcement across every tool call is not complete. |
+| Resource budgets + VoI | **IMPLEMENTED / CI PENDING** | Durable scoped budget profiles now store token, money, wall-clock, human-attention and data-access limits plus measured usage; VoI ranking primitives exist. Full automatic metering/enforcement across every tool call is still incomplete. |
 | Training governance | **FOUNDATION** | Explicit eligibility, dataset lineage, sensitive-data exclusion rules, evaluation/promotion and rollback primitives. |
 | Local Intelligence Core | **FOUNDATION ONLY** | Architecture, governance, dataset/promotion gates and model-release pointers exist. **There is no claim that a D_AI local model has already been trained.** |
 | Admin / Control Center UI | **NOT BUILT** | Runtime control APIs are being built first; full GUI for users, grants, systems, models, budgets and audit is still pending. |
@@ -38,7 +38,7 @@ Legend:
 
 The active engineering path is:
 
-1. Finish the durable shared core: Task Ledger + Control Plane + audit persistence.
+1. Finish the durable shared core integration: scheduler execution leases/checkpoints, automatic resource metering, and control-plane enforcement at every sensitive tool boundary.
 2. Regenerate the Harness persistence catalog for all new D_AI Session events.
 3. Pass the strict D_AI gate:
    - native system addon build
@@ -82,6 +82,8 @@ packages/experimental/d-ai/
 │   ├── cross-system.ts
 │   ├── evidence-graph.ts
 │   ├── resource-value.ts
+│   ├── budget-state.ts
+│   ├── runtime-scheduler.ts
 │   ├── model-router.ts
 │   ├── training-governance.ts
 │   └── model-evaluation.ts
