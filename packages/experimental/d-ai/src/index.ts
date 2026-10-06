@@ -801,7 +801,13 @@ export class DAI extends Service {
           const latest = this.taskLedger(agent).tasks.find(task => task.id === claimed.task.id)
           if (latest?.state === 'RUNNING' && hasDaiErrorCode(error, 'D_AI_POLICY_DENIED')) {
             try {
-              await this.transitionDurableTask(agent, claimed.task.id, 'BLOCKED_POLICY')
+              await this.transitionLeasedTask(
+                agent,
+                claimed.task.id,
+                claimed.lease.id,
+                claimed.lease.fence,
+                'BLOCKED_POLICY',
+              )
             } catch (transitionError) {
               cleanupFailures.push(transitionError)
             }
@@ -818,7 +824,13 @@ export class DAI extends Service {
       execution = await withLeaseHeartbeat(
         signal,
         { ttlMs },
-        () => this.renewTaskLease(agent, claimed.task.id, ttlMs),
+        () => this.renewTaskLease(
+          agent,
+          claimed.task.id,
+          claimed.lease.id,
+          claimed.lease.fence,
+          ttlMs,
+        ),
         async (executionSignal) => {
           const result = await runDirectorTaskExecutor(
             this.ctx,
@@ -844,10 +856,18 @@ export class DAI extends Service {
           await this.checkpointTask(
             agent,
             claimed.task.id,
+            claimed.lease.id,
+            claimed.lease.fence,
             result.nextNeed === undefined ? result.summary : result.summary + '\nNext need: ' + result.nextNeed,
             result.artifactRefs,
           )
-          await this.transitionDurableTask(agent, claimed.task.id, result.outcome)
+          await this.transitionLeasedTask(
+            agent,
+            claimed.task.id,
+            claimed.lease.id,
+            claimed.lease.fence,
+            result.outcome,
+          )
           return result
         },
       )
@@ -856,21 +876,45 @@ export class DAI extends Service {
       const latest = this.taskLedger(agent).tasks.find(task => task.id === claimed.task.id)
       if (latest?.state === 'RUNNING') {
         try {
-          await this.transitionDurableTask(agent, claimed.task.id, 'FAILED')
+          await this.transitionLeasedTask(
+            agent,
+            claimed.task.id,
+            claimed.lease.id,
+            claimed.lease.fence,
+            'FAILED',
+          )
         } catch (transitionError) {
-          cleanupFailures.push(transitionError)
+          // A stale/expired fence means recovery owns the task now. Do not let
+          // the old executor mutate the newer generation or turn that expected
+          // fencing rejection into a secondary cleanup failure.
+          if (!hasDaiErrorCode(transitionError, 'D_AI_POLICY_DENIED')) {
+            cleanupFailures.push(transitionError)
+          }
         }
       }
     } finally {
       const elapsedMs = Math.max(0, performance.now() - startedAt)
 
-      const active = [...this.executionLedger(agent).leases].reverse().find(lease =>
-        lease.taskId === claimed.task.id && lease.releasedAt === undefined)
-      if (active !== undefined) {
+      const claimedLease = locateLeaseFence(
+        this.executionLedger(agent).leases,
+        {
+          taskId: claimed.task.id,
+          leaseId: claimed.lease.id,
+          fence: claimed.lease.fence,
+        },
+      )
+      if (claimedLease?.lease.releasedAt === undefined) {
         try {
-          await this.releaseTaskLease(agent, claimed.task.id)
+          await this.releaseTaskLease(
+            agent,
+            claimed.task.id,
+            claimed.lease.id,
+            claimed.lease.fence,
+          )
         } catch (releaseError) {
-          cleanupFailures.push(releaseError)
+          if (!hasDaiErrorCode(releaseError, 'D_AI_POLICY_DENIED')) {
+            cleanupFailures.push(releaseError)
+          }
         }
       }
 
@@ -1835,6 +1879,48 @@ export class DAI extends Service {
       } catch (error) {
         fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_TRANSITION')
       }
+      return this.appendTaskLedger(agent, 'TRANSITION', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        tasks: current.tasks.map(item => item.id === taskId ? transitioned : item),
+      })
+    })
+  }
+
+  /**
+   * Apply an executor-owned task transition only while the exact claimed lease
+   * generation is still active. This is the task-state half of lease fencing.
+   */
+  private async transitionLeasedTask(
+    agent: Agent,
+    taskId: string,
+    leaseId: string,
+    fence: number,
+    next: TaskState,
+  ): Promise<DurableTaskLedger> {
+    return this.transact(agent, async () => {
+      const executions = this.executionLedger(agent)
+      const located = locateActiveLeaseFence(
+        executions.leases,
+        { taskId, leaseId, fence },
+        agent.id,
+        Date.now(),
+      )
+      if (located === undefined) {
+        fail('task transition requires the current active lease fence', 'D_AI_POLICY_DENIED')
+      }
+
+      const current = this.taskLedger(agent)
+      const task = current.tasks.find(item => item.id === taskId)
+      if (task === undefined) fail('unknown durable task', 'D_AI_INVALID_INPUT')
+
+      let transitioned: MissionTask
+      try {
+        transitioned = transitionTaskInternal(task as MissionTask, next)
+      } catch (error) {
+        fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_TRANSITION')
+      }
+
       return this.appendTaskLedger(agent, 'TRANSITION', {
         ownerAgentId: agent.id,
         revision: current.revision + 1,
