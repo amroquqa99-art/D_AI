@@ -56,6 +56,10 @@ import { modelRegistryFactSchema, modelRegistryProjection } from './model-regist
 import type { ModelRegistry, ModelRegistryFact, ModelRegistryState, ModelRoutingPolicy } from './model-registry-state.ts'
 import { chooseModel as chooseModelInternal } from './model-router.ts'
 import type { ModelCapability, ModelProfile } from './model-router.ts'
+import { trainingFactSchema, trainingProjection } from './training-state.ts'
+import type { GovernedDataset, GovernedTrainingCandidate, TrainingFact, TrainingLedger, TrainingState } from './training-state.ts'
+import { buildDatasetLineage as buildDatasetLineageInternal, evaluateTrainingEligibility as evaluateTrainingEligibilityInternal } from './training-governance.ts'
+import type { DataSensitivity, TrainingDataCandidate } from './training-governance.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
@@ -115,6 +119,8 @@ export { executionFactSchema, executionProjection, projectExecutionFact, taskLea
 export type { ExecutionFact, ExecutionLedger, ExecutionState, TaskCheckpoint, TaskLease } from './execution-state.ts'
 export { modelRegistryFactSchema, modelRegistryProjection, projectModelRegistryFact, durableModelProfileSchema, modelRoutingPolicySchema } from './model-registry-state.ts'
 export type { ModelRegistry, ModelRegistryFact, ModelRegistryState, ModelRoutingPolicy } from './model-registry-state.ts'
+export { trainingFactSchema, trainingProjection, projectTrainingFact, trainingCandidateSchema, governedTrainingCandidateSchema, governedDatasetSchema } from './training-state.ts'
+export type { GovernedDataset, GovernedTrainingCandidate, TrainingFact, TrainingLedger, TrainingState } from './training-state.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
@@ -254,6 +260,7 @@ export class DAI extends Service {
     ctx.effect(() => ctx.sessionProjections.register(evidenceStoreProjection), 'dai.evidenceStoreProjection()')
     ctx.effect(() => ctx.sessionProjections.register(executionProjection), 'dai.executionProjection()')
     ctx.effect(() => ctx.sessionProjections.register(modelRegistryProjection), 'dai.modelRegistryProjection()')
+    ctx.effect(() => ctx.sessionProjections.register(trainingProjection), 'dai.trainingProjection()')
     ctx.effect(() => async () => { await Promise.all([...this.tails.values()]); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
   }
@@ -377,6 +384,25 @@ export class DAI extends Service {
       ownerAgentId: agent.id,
       revision: 0,
       tasks: [],
+    }
+  }
+
+  /** Read governed Local Intelligence Core training metadata and dataset lineage. */
+  readTraining(agent: Agent): TrainingState {
+    this.authorize(agent)
+    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiTraining')
+    if (state === undefined) fail('Training-governance projection is not mounted', 'D_AI_PROJECTION_MISSING')
+    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
+    return immutable(state)
+  }
+
+  private trainingLedger(agent: Agent): TrainingLedger {
+    const existing = this.readTraining(agent).ledgers.find(item => item.ownerAgentId === agent.id)
+    return existing ?? {
+      ownerAgentId: agent.id,
+      revision: 0,
+      candidates: [],
+      datasets: [],
     }
   }
 
@@ -689,6 +715,17 @@ export class DAI extends Service {
     await this.ctx.sessions.flush(agent.session)
     return immutable(fact.registry)
   }
+
+  private async appendTrainingLedger(agent: Agent, operation: TrainingFact['operation'], ledger: TrainingLedger): Promise<TrainingLedger> {
+    this.authorize(agent)
+    const fact = immutable(trainingFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
+    if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('training ledger storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+    this.requireOpenTurn(agent)
+    agent.session.append('d_ai/training-fact', fact)
+    await this.ctx.sessions.flush(agent.session)
+    return immutable(fact.ledger)
+  }
+
 
 
 
