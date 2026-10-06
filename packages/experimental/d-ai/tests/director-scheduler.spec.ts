@@ -22,6 +22,10 @@ function schedule(overrides: Partial<DirectorSchedule> = {}): DirectorSchedule {
     intervalMs: overrides.intervalMs ?? 1000,
     maxTasksPerCycle: overrides.maxTasksPerCycle ?? 4,
     maxParallelTasks: overrides.maxParallelTasks ?? 1,
+    maxConsecutiveFailures: overrides.maxConsecutiveFailures ?? 0,
+    maxConsecutiveIdleCycles: overrides.maxConsecutiveIdleCycles ?? 0,
+    consecutiveFailures: overrides.consecutiveFailures ?? 0,
+    consecutiveIdleCycles: overrides.consecutiveIdleCycles ?? 0,
     leaseTtlMs: overrides.leaseTtlMs ?? 60000,
     nextWakeAt: overrides.nextWakeAt ?? '2026-10-07T00:00:01.000Z',
     createdAt: overrides.createdAt ?? '2026-10-07T00:00:00.000Z',
@@ -191,6 +195,38 @@ describe('D_AI unattended Director scheduler admission', () => {
       current,
       current.nextWakeAt,
       Date.parse('2026-10-07T00:00:05.000Z'),
+    )).toBe(true)
+  })
+
+  it('stops wake admission after an explicit stagnation threshold is reached', () => {
+    expect(shouldWakeDirectorSchedule(
+      schedule({
+        maxConsecutiveFailures: 2,
+        consecutiveFailures: 2,
+      }),
+      planView(),
+      execution(),
+      Date.parse('2026-10-07T00:00:02.000Z'),
+    )).toBe(false)
+
+    expect(shouldWakeDirectorSchedule(
+      schedule({
+        maxConsecutiveIdleCycles: 3,
+        consecutiveIdleCycles: 3,
+      }),
+      planView(),
+      execution(),
+      Date.parse('2026-10-07T00:00:02.000Z'),
+    )).toBe(false)
+
+    expect(shouldWakeDirectorSchedule(
+      schedule({
+        maxConsecutiveFailures: 0,
+        consecutiveFailures: 99,
+      }),
+      planView(),
+      execution(),
+      Date.parse('2026-10-07T00:00:02.000Z'),
     )).toBe(true)
   })
 
