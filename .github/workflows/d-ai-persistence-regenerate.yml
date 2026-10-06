@@ -31,7 +31,7 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
       - name: Regenerate persistence catalog
-        run: pnpm run gen:persistence-catalog
+        run: pnpm run gen-persistence-catalog
       - name: Verify generated catalog
         run: pnpm run verify-persistence-catalog
       - name: Commit generated catalog
