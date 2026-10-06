@@ -1,21 +1,23 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { ExecutionState, TaskCheckpoint, TaskLease } from './execution-state.ts'
+import type { MissionTask } from './task-dag.ts'
 import { encodeToolResult, jsonToolOutput } from './tool-support.ts'
 import type { ToolOwnerResolver } from './tool-support.ts'
 
 export interface ExecutionToolRuntime {
-  recoverExpiredTaskLeases(agent: Agent): Promise<unknown>
-  readExecution(agent: Agent): unknown
-  claimNextRunnableTask(agent: Agent, ttlMs: number): Promise<unknown>
-  renewTaskLease(agent: Agent, taskId: string, ttlMs: number): Promise<unknown>
+  recoverExpiredTaskLeases(agent: Agent): Promise<Readonly<{ recoveredTaskIds: readonly string[]; retryExhaustedTaskIds: readonly string[] }>>
+  readExecution(agent: Agent): ExecutionState
+  claimNextRunnableTask(agent: Agent, ttlMs: number): Promise<{ readonly task: MissionTask; readonly lease: TaskLease }>
+  renewTaskLease(agent: Agent, taskId: string, ttlMs: number): Promise<TaskLease>
   checkpointTask(
     agent: Agent,
     taskId: string,
     summary: string,
     artifactRefs: readonly string[],
-  ): Promise<unknown>
-  releaseTaskLease(agent: Agent, taskId: string): Promise<unknown>
+  ): Promise<TaskCheckpoint>
+  releaseTaskLease(agent: Agent, taskId: string): Promise<TaskLease>
 }
 
 export function registerExecutionTools(
