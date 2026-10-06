@@ -29,7 +29,7 @@ Legend:
 | Capability control plane | **IMPLEMENTED / CI PENDING** | Scoped ALLOW/DENY grants, fail-closed authorization, human-approved durable grant changes, append-only audit hash chain, durable control-plane projection. |
 | Evidence / Knowledge graph | **IMPLEMENTED / CI PENDING** | Shared append-only evidence nodes/edges now persist through Session replay with provenance and confidence; support/contradiction graph primitives exist. Automatic domain-to-graph ingestion and graph UI are still incomplete. |
 | Cross-system handoff | **IMPLEMENTED / CI PENDING** | Persisted grant-backed authorization and durable audit records exist for declared system-to-system handoffs. Automatic target-task execution/routing is still incomplete. |
-| Model Router | **FOUNDATION** | Hard capability/context/locality requirements plus weighted model ranking. Live provider telemetry/routing integration is not complete. |
+| Model Router | **IMPLEMENTED / CI PENDING** | Durable non-secret Model Profiles and per-system/role Routing Policies now persist and route by hard capability/context/locality constraints plus weighted ranking. Provider-secret storage, live telemetry and automatic worker-model injection are still incomplete. |
 | Resource budgets + VoI | **IMPLEMENTED / CI PENDING** | Durable scoped budget profiles now store token, money, wall-clock, human-attention and data-access limits plus measured usage; VoI ranking primitives exist. Full automatic metering/enforcement across every tool call is still incomplete. |
 | Training governance | **FOUNDATION** | Explicit eligibility, dataset lineage, sensitive-data exclusion rules, evaluation/promotion and rollback primitives. |
 | Local Intelligence Core | **FOUNDATION ONLY** | Architecture, governance, dataset/promotion gates and model-release pointers exist. **There is no claim that a D_AI local model has already been trained.** |
@@ -93,6 +93,7 @@ packages/experimental/d-ai/
 │   ├── runtime-scheduler.ts
 │   ├── execution-state.ts
 │   ├── model-router.ts
+│   ├── model-registry-state.ts
 │   ├── training-governance.ts
 │   └── model-evaluation.ts
 └── tests/
@@ -157,7 +158,7 @@ The repository is already beyond a design-only prototype, but major engineering 
 - cross-system runtime dispatch using the shared grants/control plane
 - persistent shared Evidence/Knowledge Graph backend
 - full per-tool resource-budget enforcement
-- real model-provider manager and live routing telemetry
+- provider-secret/configuration layer, live model telemetry and automatic injection of routed models into every worker role
 - real Local Intelligence Core training pipeline
 - complete Control Center/Admin UI
 - user/role/organization administration for institutional deployments
