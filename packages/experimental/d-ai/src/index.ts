@@ -141,7 +141,10 @@ export class DAI extends Service {
     ctx.effect(() => async () => { await this.kernel.drain(); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
     if (runtime.scheduler.enabled) {
-      const scheduler = new DirectorScheduler(ctx, this, { pollMs: runtime.scheduler.pollMs })
+      const scheduler = new DirectorScheduler(ctx, this, {
+        pollMs: runtime.scheduler.pollMs,
+        maxConcurrentCycles: runtime.scheduler.maxConcurrentCycles,
+      })
       ctx.effect(() => async () => scheduler.dispose(), 'dai.directorScheduler()')
     }
   }
