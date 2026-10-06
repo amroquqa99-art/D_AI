@@ -67,12 +67,19 @@ describe('D_AI durable shared core', () => {
         next_state: 'RUNNING',
       }),
       toolCallResponse('grant', 'd_ai_control_grant', {
-        system_id: 'investigation',
-        capability: 'evidence.capture',
+        system_id: 'investor',
+        capability: 'financial.company-analysis',
         scope: 'MISSION',
         scope_id: 'mission-1',
         decision: 'ALLOW',
-        reason: 'Approved mission evidence collection',
+        reason: 'Approved financial analysis handoff for this investigation mission',
+      }),
+      toolCallResponse('handoff', 'd_ai_cross_system_handoff', {
+        from_system: 'investigation',
+        to_system: 'investor',
+        capability: 'financial.company-analysis',
+        mission_id: 'mission-1',
+        reason: 'Analyze company financial evidence inside the investigation',
       }),
       textResponse('Shared core updated'),
     )
@@ -93,17 +100,23 @@ describe('D_AI durable shared core', () => {
       expect(expectedLedger.ledgers[0]?.tasks[0]?.state).toBe('RUNNING')
       expect(expectedLedger.ledgers[0]?.tasks[0]?.attempt).toBe(1)
 
-      expect(expectedControl.controls[0]?.revision).toBe(1)
+      expect(expectedControl.controls[0]?.revision).toBe(2)
       expect(expectedControl.controls[0]?.grants[0]).toMatchObject({
-        systemId: 'investigation',
-        capability: 'evidence.capture',
+        systemId: 'investor',
+        capability: 'financial.company-analysis',
         scope: 'MISSION',
         scopeId: 'mission-1',
         decision: 'ALLOW',
       })
-      expect(expectedControl.controls[0]?.auditRecords).toHaveLength(1)
+      expect(expectedControl.controls[0]?.auditRecords).toHaveLength(2)
       expect(expectedControl.controls[0]?.auditRecords[0]?.action).toBe('CAPABILITY_GRANT')
       expect(expectedControl.controls[0]?.auditRecords[0]?.subjectId).toBe(expectedControl.controls[0]?.grants[0]?.id)
+      expect(expectedControl.controls[0]?.auditRecords[1]).toMatchObject({
+        action: 'CROSS_SYSTEM_HANDOFF',
+        systemId: 'investigation',
+        missionId: 'mission-1',
+        subjectId: 'investor',
+      })
       await ctx.sessions.flush(agent.session)
     } finally {
       await ctx.fiber.dispose()
