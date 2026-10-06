@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { projectDirectorScheduleFact, type DirectorScheduleFact, type DirectorScheduleState } from '../src/director-schedule-state.ts'
 
-function event(fact: DirectorScheduleFact) {
+function event(fact: DirectorScheduleFact): never {
   return {
-    type: 'd_ai/director-schedule-fact' as const,
-    seq: 0 as never,
-    time: 0,
+    type: 'd_ai/director-schedule-fact',
     data: fact,
-  }
+  } as never
 }
 
 function baseState(): DirectorScheduleState {
