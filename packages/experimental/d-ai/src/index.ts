@@ -60,6 +60,10 @@ import { trainingFactSchema, trainingProjection } from './training-state.ts'
 import type { GovernedDataset, GovernedTrainingCandidate, TrainingFact, TrainingLedger, TrainingState } from './training-state.ts'
 import { buildDatasetLineage as buildDatasetLineageInternal, evaluateTrainingEligibility as evaluateTrainingEligibilityInternal } from './training-governance.ts'
 import type { DataSensitivity, TrainingDataCandidate } from './training-governance.ts'
+import { modelLifecycleFactSchema, modelLifecycleProjection } from './model-lifecycle-state.ts'
+import type { GovernedModelEvaluation, GovernedPromotion, ModelLifecycleFact, ModelLifecycleLedger, ModelLifecycleState } from './model-lifecycle-state.ts'
+import { createModelReleasePointer as createModelReleasePointerInternal, evaluateModelPromotion as evaluateModelPromotionInternal } from './model-evaluation.ts'
+import type { ModelEvaluationMetrics, ModelEvaluationResult, PromotionPolicy } from './model-evaluation.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
@@ -121,6 +125,8 @@ export { modelRegistryFactSchema, modelRegistryProjection, projectModelRegistryF
 export type { ModelRegistry, ModelRegistryFact, ModelRegistryState, ModelRoutingPolicy } from './model-registry-state.ts'
 export { trainingFactSchema, trainingProjection, projectTrainingFact, trainingCandidateSchema, governedTrainingCandidateSchema, governedDatasetSchema } from './training-state.ts'
 export type { GovernedDataset, GovernedTrainingCandidate, TrainingFact, TrainingLedger, TrainingState } from './training-state.ts'
+export { modelLifecycleFactSchema, modelLifecycleProjection, projectModelLifecycleFact, governedModelEvaluationSchema, governedPromotionSchema } from './model-lifecycle-state.ts'
+export type { GovernedModelEvaluation, GovernedPromotion, ModelLifecycleFact, ModelLifecycleLedger, ModelLifecycleState } from './model-lifecycle-state.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
@@ -261,6 +267,7 @@ export class DAI extends Service {
     ctx.effect(() => ctx.sessionProjections.register(executionProjection), 'dai.executionProjection()')
     ctx.effect(() => ctx.sessionProjections.register(modelRegistryProjection), 'dai.modelRegistryProjection()')
     ctx.effect(() => ctx.sessionProjections.register(trainingProjection), 'dai.trainingProjection()')
+    ctx.effect(() => ctx.sessionProjections.register(modelLifecycleProjection), 'dai.modelLifecycleProjection()')
     ctx.effect(() => async () => { await Promise.all([...this.tails.values()]); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
   }
@@ -384,6 +391,25 @@ export class DAI extends Service {
       ownerAgentId: agent.id,
       revision: 0,
       tasks: [],
+    }
+  }
+
+  /** Read governed Local Intelligence Core evaluation/promotion lifecycle. */
+  readModelLifecycle(agent: Agent): ModelLifecycleState {
+    this.authorize(agent)
+    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiModelLifecycle')
+    if (state === undefined) fail('Model-lifecycle projection is not mounted', 'D_AI_PROJECTION_MISSING')
+    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
+    return immutable(state)
+  }
+
+  private modelLifecycleLedger(agent: Agent): ModelLifecycleLedger {
+    const existing = this.readModelLifecycle(agent).ledgers.find(item => item.ownerAgentId === agent.id)
+    return existing ?? {
+      ownerAgentId: agent.id,
+      revision: 0,
+      evaluations: [],
+      promotions: [],
     }
   }
 
@@ -735,6 +761,17 @@ export class DAI extends Service {
     await this.ctx.sessions.flush(agent.session)
     return immutable(fact.ledger)
   }
+
+  private async appendModelLifecycle(agent: Agent, operation: ModelLifecycleFact['operation'], ledger: ModelLifecycleLedger): Promise<ModelLifecycleLedger> {
+    this.authorize(agent)
+    const fact = immutable(modelLifecycleFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
+    if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('model lifecycle storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+    this.requireOpenTurn(agent)
+    agent.session.append('d_ai/model-lifecycle-fact', fact)
+    await this.ctx.sessions.flush(agent.session)
+    return immutable(fact.ledger)
+  }
+
 
 
 
