@@ -1829,12 +1829,16 @@ export class DAI extends Service {
     ttlMs: number,
     missionId?: string,
     requiredTaskId?: string,
+    holderId = agent.id,
   ): Promise<{ readonly task: MissionTask; readonly lease: TaskLease }> {
     if (!Number.isSafeInteger(ttlMs) || ttlMs < 1000 || ttlMs > 3600000) {
       fail('task lease ttl must be an integer from 1000 to 3600000 ms', 'D_AI_INVALID_INPUT')
     }
     if (requiredTaskId !== undefined && requiredTaskId.trim().length === 0) {
       fail('required task id must be non-empty', 'D_AI_INVALID_INPUT')
+    }
+    if (holderId.trim().length === 0 || holderId.length > 240) {
+      fail('execution holder id must be a non-empty bounded identity', 'D_AI_INVALID_INPUT')
     }
 
     return this.transact(agent, async () => {
@@ -1900,7 +1904,7 @@ export class DAI extends Service {
         id: randomUUID(),
         taskId: running.id,
         missionId: running.missionId,
-        holderId: agent.id,
+        holderId,
         fence: nextLeaseFence(executions.leases, running.id),
         acquiredAt: nowIso,
         expiresAt: new Date(now.getTime() + ttlMs).toISOString(),
@@ -1931,8 +1935,9 @@ export class DAI extends Service {
     missionId: string,
     taskId: string,
     ttlMs: number,
+    holderId: string,
   ): Promise<{ readonly task: MissionTask; readonly lease: TaskLease }> {
-    return this.claimRunnableTask(agent, ttlMs, missionId, taskId)
+    return this.claimRunnableTask(agent, ttlMs, missionId, taskId, holderId)
   }
 
   /** Extend one exact active task-lease generation. */
