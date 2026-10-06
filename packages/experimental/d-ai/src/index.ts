@@ -1030,6 +1030,150 @@ export class DAI extends Service {
     }
   }
 
+  /** Create a user-requested Innovation & Discovery project. */
+  async createInnovation(agent: Agent, problem: string, signal?: AbortSignal): Promise<InnovationProject> {
+    this.authorize(agent)
+    const boundary = this.requireOpenTurn(agent)
+    const explicit = agent.session.snapshotEvents().slice(boundary + 1).some(event =>
+      event.type === 'user/message' && event.data.source.kind === 'user'
+      && event.data.content.filter(block => block.type === 'text').map(block => block.text).join('\n').includes(problem.trim()))
+    if (!explicit) {
+      const outcome = await this.ctx.approval.request({
+        agent,
+        toolName: 'd_ai_innovation_create',
+        reason: 'Activate Innovation & Discovery project: ' + problem,
+        ...(signal === undefined ? {} : { signal }),
+      })
+      if (outcome !== 'allowed-once') fail('owner approval is required for this innovation project')
+    }
+    if (problem.trim().length === 0) fail('innovation problem must contain text', 'D_AI_INVALID_INPUT')
+    return this.transact(agent, async () => this.appendInnovation(agent, 'CREATE', {
+      id: randomUUID(),
+      system: 'innovation-discovery',
+      problem,
+      ownerAgentId: agent.id,
+      status: 'ACTIVE',
+      revision: 1,
+      createdAt: new Date().toISOString(),
+      candidates: [],
+      experiments: [],
+      delegations: [],
+    }))
+  }
+
+  /** Append a testable candidate; generated ideas are never auto-promoted to discoveries. */
+  async addInnovationCandidate(
+    agent: Agent,
+    id: string,
+    input: { title: string; description: string; mechanism: string; falsificationTest: string; noveltyStatus?: InnovationCandidate['noveltyStatus'] },
+  ): Promise<InnovationProject> {
+    if ([input.title, input.description, input.mechanism, input.falsificationTest].some(value => value.trim().length === 0)) {
+      fail('innovation candidate title, description, mechanism and falsification test are required', 'D_AI_INVALID_INPUT')
+    }
+    return this.transact(agent, async () => {
+      const project = this.innovationProject(agent, id)
+      const candidate: InnovationCandidate = {
+        id: randomUUID(),
+        title: input.title,
+        description: input.description,
+        mechanism: input.mechanism,
+        falsificationTest: input.falsificationTest,
+        noveltyStatus: input.noveltyStatus ?? 'UNKNOWN',
+        state: 'OPEN',
+        actorId: agent.id,
+        createdAt: new Date().toISOString(),
+      }
+      return this.appendInnovation(agent, 'ADD_CANDIDATE', {
+        ...project,
+        revision: project.revision + 1,
+        candidates: [...project.candidates, candidate],
+      })
+    })
+  }
+
+  /** Convert an innovation gap into an explicit experiment request. */
+  async requestInnovationExperiment(
+    agent: Agent,
+    id: string,
+    input: { title: string; objective: string; protocol: string; successCriteria: string; failureCriteria: string },
+  ): Promise<InnovationProject> {
+    if ([input.title, input.objective, input.protocol, input.successCriteria, input.failureCriteria].some(value => value.trim().length === 0)) {
+      fail('innovation experiment fields are required', 'D_AI_INVALID_INPUT')
+    }
+    return this.transact(agent, async () => {
+      const project = this.innovationProject(agent, id)
+      const experiment: InnovationExperiment = {
+        id: randomUUID(),
+        title: input.title,
+        objective: input.objective,
+        protocol: input.protocol,
+        successCriteria: input.successCriteria,
+        failureCriteria: input.failureCriteria,
+        status: 'WAITING_FOR_HUMAN',
+        actorId: agent.id,
+        createdAt: new Date().toISOString(),
+      }
+      return this.appendInnovation(agent, 'REQUEST_EXPERIMENT', {
+        ...project,
+        status: 'NEEDS_EXPERIMENT',
+        revision: project.revision + 1,
+        experiments: [...project.experiments, experiment],
+      })
+    })
+  }
+
+  /** Record a real experiment observation without interpreting it as automatic verification. */
+  async recordInnovationResult(
+    agent: Agent,
+    id: string,
+    experimentId: string,
+    observation: string,
+    artifactRef?: string,
+  ): Promise<InnovationProject> {
+    if (observation.trim().length === 0) fail('innovation experiment observation is required', 'D_AI_INVALID_INPUT')
+    return this.transact(agent, async () => {
+      const project = this.innovationProject(agent, id)
+      const experiment = project.experiments.find(item => item.id === experimentId)
+      if (experiment === undefined) fail('unknown innovation experiment', 'D_AI_INVALID_INPUT')
+      if (experiment.status === 'RESULT_RECORDED') fail('innovation experiment result is already recorded', 'D_AI_INVALID_INPUT')
+      const updated: InnovationExperiment = {
+        ...experiment,
+        status: 'RESULT_RECORDED',
+        observation,
+        ...(artifactRef === undefined ? {} : { artifactRef }),
+        completedAt: new Date().toISOString(),
+      }
+      return this.appendInnovation(agent, 'RECORD_RESULT', {
+        ...project,
+        status: 'ACTIVE',
+        revision: project.revision + 1,
+        experiments: project.experiments.map(item => item.id === experimentId ? updated : item),
+      })
+    })
+  }
+
+  /** Run independent explorer and critic workers over the approved hard problem. */
+  async delegateInnovation(agent: Agent, id: string, signal: AbortSignal): Promise<InnovationProject> {
+    const project = this.innovationProject(agent, id)
+    const key = agent.id + ':innovation'
+    if (this.delegating.has(key)) fail('an innovation delegation is already running for this owner', 'D_AI_BUSY')
+    this.delegating.add(key)
+    try {
+      const result = await runInnovationDelegates(this.ctx, agent, project.problem, signal, this.innovationDelegation)
+      signal.throwIfAborted()
+      return await this.transact(agent, async () => {
+        const current = this.innovationProject(agent, id)
+        return this.appendInnovation(agent, 'DELEGATE', {
+          ...current,
+          revision: current.revision + 1,
+          delegations: [...current.delegations, result],
+        })
+      })
+    } finally {
+      this.delegating.delete(key)
+    }
+  }
+
   /**
    * Fetch and retain an immutable, bounded decoded source through the native web provider.
    * @param agent - exact mission owner root Agent.
