@@ -131,8 +131,8 @@ describe('D_AI unattended Director REAL composition', () => {
       expect(ctx.dai.readDirectorSchedule(agent).ledgers[0]?.schedules[0]?.lastCycle)
         .toMatchObject({ outcome: 'EXECUTED', executedTasks: 1, phase: 'COMPLETE' })
 
-      const schedulerTurns = agent.session.snapshotEvents().filter(event =>
-        event.type === 'user/message' && event.data.source.kind === 'd-ai-scheduler')
+      const schedulerTurns = agent.session.snapshotEvents().flatMap(event =>
+        event.type === 'agent/inbox/spliced' ? event.data.inserted : []).filter(message => message.source.kind === 'schedule')
       expect(schedulerTurns).toHaveLength(1)
     } finally {
       await scheduler?.dispose()

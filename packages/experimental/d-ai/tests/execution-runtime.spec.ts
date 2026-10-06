@@ -14,7 +14,7 @@ import * as DomainStorage from '@deepseek-ai/dsh-storage-domain'
 import WebRuntime from '@deepseek-ai/dsh-web'
 import Subagents from '@deepseek-ai/dsh-subagent'
 import Approval from '@deepseek-ai/dsh-user-approval'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import DAI from '../src/index.ts'
 import type { ExecutionState } from '../src/execution-state.ts'
@@ -193,6 +193,65 @@ describe('D_AI long-running task execution', () => {
       await ctx.fiber.dispose()
     }
   }), 15000)
+
+  it('stops recovery at the durable retry limit without acquiring a third lease', async () => temporary(async root => {
+    const { ctx } = await boot(root, [
+      toolCallResponse('task', 'd_ai_task_add', { mission_id: 'retry-limit', system_id: 'investigation', title: 'Bound recovery retries', max_attempts: 1 }),
+      toolCallResponse('claim', 'd_ai_task_claim_next', { ttl_ms: 1000 }),
+      textResponse('Retry budget exhausted'),
+    ])
+    const agent = await ctx.agentLoop.create(SessionId('execution-retry-limit'), { provider: 'mock', model: 'fixture' })
+    let result: Awaited<ReturnType<DAI['recoverExpiredTaskLeases']>> | undefined
+    ctx.on('agent/pre-step', async ({ agent: current, step }, next) => {
+      if (current === agent && step === 3) {
+        const first = ctx.dai.readExecution(agent).ledgers[0]!.leases[0]!
+        await ctx.dai.recoverExpiredTaskLeases(agent, Date.parse(first.expiresAt) + 1)
+        const second = await ctx.dai.claimNextRunnableTask(agent, 1000)
+        result = await ctx.dai.recoverExpiredTaskLeases(agent, Date.parse(second.lease.expiresAt) + 1)
+      }
+      return next()
+    })
+    try {
+      agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Exercise the bounded recovery budget.' }], source: { kind: 'user' } }))
+      await agent.whenIdle()
+      const task = ctx.dai.readTaskLedger(agent).ledgers[0]!.tasks[0]!
+      expect(result).toEqual({ recoveredTaskIds: [], retryExhaustedTaskIds: [task.id] })
+      expect(task).toMatchObject({ state: 'FAILED', attempt: 1 })
+      expect(ctx.dai.readExecution(agent).ledgers[0]?.leases.map(lease => lease.fence)).toEqual([1, 2])
+      expect(ctx.dai.selectRunnableTasks(agent, 1).selected).toEqual([])
+    } finally { await ctx.fiber.dispose() }
+  }))
+
+  it('reports a persistence failure during recovery instead of classifying it as exhausted retries', async () => temporary(async root => {
+    const { ctx } = await boot(root, [
+      toolCallResponse('task', 'd_ai_task_add', { mission_id: 'recovery-storage', system_id: 'investigation', title: 'Propagate storage failure', max_attempts: 3 }),
+      toolCallResponse('claim', 'd_ai_task_claim_next', { ttl_ms: 1000 }),
+      textResponse('Recovery storage failure observed'),
+    ])
+    const agent = await ctx.agentLoop.create(SessionId('execution-recovery-storage'), { provider: 'mock', model: 'fixture' })
+    const failure = new Error('Injected recovery flush failure')
+    let observed: unknown
+    ctx.on('agent/pre-step', async ({ agent: current, step }, next) => {
+      if (current === agent && step === 3) {
+        const lease = ctx.dai.readExecution(agent).ledgers[0]!.leases[0]!
+        const flush = ctx.sessions.flush.bind(ctx.sessions)
+        const fault = vi.spyOn(ctx.sessions, 'flush').mockImplementation(async session => {
+          const latest = session.snapshotEvents().at(-1)
+          if (latest?.type === 'd_ai/task-ledger-fact' && latest.data.ledger.tasks[0]?.state === 'PENDING') throw failure
+          return flush(session)
+        })
+        try { await ctx.dai.recoverExpiredTaskLeases(agent, Date.parse(lease.expiresAt) + 1) }
+        catch (error) { observed = error }
+        finally { fault.mockRestore() }
+      }
+      return next()
+    })
+    try {
+      agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Exercise recovery persistence failure.' }], source: { kind: 'user' } }))
+      await agent.whenIdle()
+      expect(observed).toBe(failure)
+    } finally { await ctx.fiber.dispose() }
+  }))
 
   it('will not claim a second task while the only runnable task is already running', async () => temporary(async root => {
     const script: ConstructorParameters<typeof MockAdapter>[0] = []

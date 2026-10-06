@@ -18,10 +18,10 @@ export interface AuditEventInput {
   readonly at: string
   readonly actorId: string
   readonly action: AuditAction
-  readonly systemId?: SystemId
-  readonly missionId?: string
-  readonly taskId?: string
-  readonly subjectId?: string
+  readonly systemId?: SystemId | undefined
+  readonly missionId?: string | undefined
+  readonly taskId?: string | undefined
+  readonly subjectId?: string | undefined
   readonly details: Readonly<Record<string, string | number | boolean | null>>
 }
 

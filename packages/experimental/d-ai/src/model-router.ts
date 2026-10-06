@@ -22,11 +22,11 @@ export interface RoutingRequest {
   readonly minContextTokens: number
   readonly localOnly: boolean
   readonly weights?: {
-    readonly quality?: number
-    readonly reliability?: number
-    readonly latency?: number
-    readonly cost?: number
-    readonly privacy?: number
+    readonly quality?: number | undefined
+    readonly reliability?: number | undefined
+    readonly latency?: number | undefined
+    readonly cost?: number | undefined
+    readonly privacy?: number | undefined
   }
 }
 
@@ -49,7 +49,7 @@ function validate(model: ModelProfile): void {
   if (!Number.isSafeInteger(model.maxContextTokens) || model.maxContextTokens < 1) throw new Error('maxContextTokens must be positive')
 }
 
-function normalizedWeights(request: RoutingRequest): Required<NonNullable<RoutingRequest['weights']>> {
+function normalizedWeights(request: RoutingRequest): Record<keyof NonNullable<RoutingRequest['weights']>, number> {
   const raw = {
     quality: request.weights?.quality ?? 0.35,
     reliability: request.weights?.reliability ?? 0.25,

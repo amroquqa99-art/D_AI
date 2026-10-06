@@ -15,11 +15,12 @@ import WebRuntime from '@deepseek-ai/dsh-web'
 import Subagents from '@deepseek-ai/dsh-subagent'
 import * as Spawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import Approval, { type ApprovalOutcome } from '@deepseek-ai/dsh-user-approval'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import DAI from '../src/index.ts'
 import type { DirectorState } from '../src/director-state.ts'
 import type { TaskLedgerState } from '../src/task-ledger-state.ts'
+import { DirectorScheduler } from '../src/director-scheduler.ts'
 
 async function boot(root: string, script: ConstructorParameters<typeof MockAdapter>[0]) {
   const ctx = new Context()
@@ -131,7 +132,7 @@ describe('D_AI durable Mission Director', () => {
       expect(expectedTasks.ledgers[0]?.tasks[1]?.state).toBe('PENDING')
       expect(view).toMatchObject({ phase: 'EXECUTING' })
 
-      const next = (view['next'] as { selected: Array<{ id: string }> }).selected
+      const next = view.next.selected
       expect(next.map(item => item.id)).toEqual([expectedTasks.ledgers[0]!.tasks[1]!.id])
       await ctx.sessions.flush(agent.session)
     } finally {
@@ -633,6 +634,195 @@ describe('D_AI durable Mission Director', () => {
       await ctx.fiber.dispose()
     }
   }), 15000)
+
+  it('reclaims an expired running task through the cycle after a native Session restart', async () => temporary(async root => {
+    const objective = 'Resume the approved investigation after worker loss'
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const first = await boot(root, script)
+    const agent = await first.ctx.agentLoop.create(SessionId('director-recovery-owner'), { provider: 'mock', model: 'fixture' })
+    const plan = () => first.ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+    script.push(
+      toolCallResponse('plan', 'd_ai_director_plan_create', { objective, primary_system: 'investigation' }),
+      () => toolCallResponse('task', 'd_ai_director_task_add', { plan_id: plan().id, system_id: 'investigation', title: 'Recover stranded work', max_attempts: 1 }),
+      toolCallResponse('claim', 'd_ai_task_claim_next', { ttl_ms: 1000 }),
+      textResponse('Worker stopped before completion'),
+    )
+    let planId = ''
+    let expiredAt = 0
+    try {
+      agent.followup(createUserMessage({ content: [{ type: 'text', text: objective }], source: { kind: 'user' } }))
+      await agent.whenIdle()
+      expect(first.ctx.dai.readTaskLedger(agent).ledgers[0]?.tasks[0]?.state).toBe('RUNNING')
+      planId = plan().id
+      expiredAt = Date.parse(first.ctx.dai.readExecution(agent).ledgers[0]!.leases[0]!.expiresAt) + 1
+    } finally { await first.ctx.fiber.dispose() }
+
+    const second = await boot(root, [
+      toolCallResponse('resume-cycle', 'd_ai_director_execute_cycle', { plan_id: planId, max_tasks: 1 }),
+      textResponse(JSON.stringify({ outcome: 'COMPLETED', summary: 'Recovered work completed under a new fence.', artifactRefs: [] })),
+      textResponse('Resumed cycle finished'),
+    ])
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(expiredAt)
+    try {
+      const handle = await second.ctx.agents.resume({ resumeSessionId: agent.id, agentOptions: { provider: 'mock', model: 'fixture' } })
+      try {
+        handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Resume the approved cycle.' }], source: { kind: 'user' } }))
+        await handle.agent.whenIdle()
+        const task = second.ctx.dai.readTaskLedger(handle.agent).ledgers[0]!.tasks[0]!
+        const execution = second.ctx.dai.readExecution(handle.agent).ledgers[0]!
+        expect(task).toMatchObject({ state: 'COMPLETED', attempt: 1 })
+        expect(execution.leases.map(lease => lease.fence)).toEqual([1, 2])
+        expect(execution.leases.every(lease => lease.releasedAt !== undefined)).toBe(true)
+        expect(execution.checkpoints).toHaveLength(1)
+        expect(execution.checkpoints[0]?.fence).toBe(2)
+      } finally { await handle.dispose() }
+    } finally { vi.useRealTimers(); await second.ctx.fiber.dispose() }
+  }))
+
+  it('releases an expired human-wait lease without treating missing input as runnable work', async () => temporary(async root => {
+    const objective = 'Wait for a physical measurement before continuing'
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx } = await boot(root, script)
+    const agent = await ctx.agentLoop.create(SessionId('director-human-recovery'), { provider: 'mock', model: 'fixture' })
+    const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+    const task = () => ctx.dai.readTaskLedger(agent).ledgers[0]!.tasks[0]!
+    script.push(
+      toolCallResponse('plan', 'd_ai_director_plan_create', { objective, primary_system: 'investigation' }),
+      () => toolCallResponse('task', 'd_ai_director_task_add', { plan_id: plan().id, system_id: 'investigation', title: 'Await measured observation' }),
+      toolCallResponse('claim', 'd_ai_task_claim_next', { ttl_ms: 1000 }),
+      () => toolCallResponse('wait', 'd_ai_task_transition', { task_id: task().id, next_state: 'WAITING_FOR_HUMAN' }),
+      textResponse('Measurement is still required'),
+    )
+    let recovered: Awaited<ReturnType<DAI['recoverExpiredTaskLeases']>> | undefined
+    ctx.on('agent/pre-step', async ({ agent: current, step }, next) => {
+      if (current === agent && step === 5) {
+        const lease = ctx.dai.readExecution(agent).ledgers[0]!.leases[0]!
+        recovered = await ctx.dai.recoverExpiredTaskLeases(agent, Date.parse(lease.expiresAt) + 1)
+      }
+      return next()
+    })
+    try {
+      agent.followup(createUserMessage({ content: [{ type: 'text', text: objective }], source: { kind: 'user' } }))
+      await agent.whenIdle()
+      expect(recovered).toEqual({ recoveredTaskIds: [], retryExhaustedTaskIds: [] })
+      expect(task()).toMatchObject({ state: 'WAITING_FOR_HUMAN', attempt: 0 })
+      expect(ctx.dai.readExecution(agent).ledgers[0]?.leases[0]?.releasedAt).toBeDefined()
+      expect(ctx.dai.directorPlanView(agent, plan().id)).toMatchObject({ phase: 'WAITING_FOR_HUMAN', next: { selected: [] } })
+    } finally { await ctx.fiber.dispose() }
+  }))
+
+  it('does not claim or fail a task when its execution signal is already cancelled', async () => temporary(async root => {
+    const objective = 'Preserve pending work when execution is cancelled'
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx } = await boot(root, script)
+    const agent = await ctx.agentLoop.create(SessionId('director-cancel-before-claim'), { provider: 'mock', model: 'fixture' })
+    const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+    script.push(
+      toolCallResponse('plan', 'd_ai_director_plan_create', { objective, primary_system: 'investigation' }),
+      () => toolCallResponse('task', 'd_ai_director_task_add', { plan_id: plan().id, system_id: 'investigation', title: 'Leave this task pending' }),
+      textResponse('Execution cancelled before dispatch'),
+    )
+    const reason = new Error('Cancelled before lease acquisition')
+    let cancellationObserved = false
+    ctx.on('agent/pre-step', async ({ agent: current, step }, next) => {
+      if (current === agent && step === 3) {
+        await expect(ctx.dai.executeNextDirectorTask(agent, plan().id, AbortSignal.abort(reason))).rejects.toBe(reason)
+        cancellationObserved = true
+      }
+      return next()
+    })
+    try {
+      agent.followup(createUserMessage({ content: [{ type: 'text', text: objective }], source: { kind: 'user' } }))
+      await agent.whenIdle()
+      expect(cancellationObserved).toBe(true)
+      expect(ctx.dai.readTaskLedger(agent).ledgers[0]?.tasks[0]?.state).toBe('PENDING')
+      expect(ctx.dai.readExecution(agent).ledgers).toEqual([])
+    } finally { await ctx.fiber.dispose() }
+  }))
+
+  it('restores an approved schedule and wakes native work without changing Session source contracts', async () => temporary(async root => {
+    const objective = 'Run approved investigation work after schedule restart'
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const first = await boot(root, script)
+    first.ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
+    const agent = await first.ctx.agentLoop.create(SessionId('director-schedule-restart'), { provider: 'mock', model: 'fixture' })
+    const plan = () => first.ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+    let scheduleId = ''
+    let planId = ''
+    first.ctx.on('agent/pre-step', async ({ agent: current, step }, next) => {
+      if (current === agent && step === 3) {
+        const ledger = await first.ctx.dai.setDirectorSchedule(agent, plan().id, {
+          enabled: true, intervalMs: 60000, leaseTtlMs: 600000, maxTasksPerCycle: 1, startImmediately: true,
+        })
+        scheduleId = ledger.schedules[0]!.id
+        planId = plan().id
+      }
+      return next()
+    })
+    script.push(
+      toolCallResponse('plan', 'd_ai_director_plan_create', { objective, primary_system: 'investigation' }),
+      () => toolCallResponse('task', 'd_ai_director_task_add', { plan_id: plan().id, system_id: 'investigation', title: 'Execute the approved scheduled task' }),
+      textResponse('Schedule approved'),
+    )
+    try {
+      agent.followup(createUserMessage({ content: [{ type: 'text', text: objective }], source: { kind: 'user' } }))
+      await agent.whenIdle()
+      expect(scheduleId).not.toBe('')
+    } finally { await first.ctx.fiber.dispose() }
+
+    const second = await boot(root, [textResponse(JSON.stringify({ outcome: 'COMPLETED', summary: 'Scheduled work completed.', artifactRefs: [] }))])
+    const scheduler = new DirectorScheduler(second.ctx, second.ctx.dai, { pollMs: 60000 })
+    try {
+      const handle = await second.ctx.agents.resume({ resumeSessionId: agent.id, agentOptions: { provider: 'mock', model: 'fixture' } })
+      try {
+        expect(second.ctx.dai.readDirectorSchedule(handle.agent).ledgers[0]?.schedules[0]).toMatchObject({ id: scheduleId, planId, enabled: true })
+        scheduler.scan(Date.now())
+        scheduler.scan(Date.now())
+        await handle.agent.whenIdle()
+        expect(second.ctx.dai.readTaskLedger(handle.agent).ledgers[0]?.tasks[0]?.state).toBe('COMPLETED')
+        expect(second.ctx.dai.readDirectorSchedule(handle.agent).ledgers[0]?.schedules[0]?.lastCycle).toMatchObject({ outcome: 'EXECUTED', executedTasks: 1, phase: 'COMPLETE' })
+        const wakes = handle.agent.session.snapshotEvents().flatMap(event => event.type === 'agent/inbox/spliced' ? event.data.inserted : []).filter(message => message.source.kind === 'schedule')
+        expect(wakes).toHaveLength(1)
+        scheduler.scan(Date.now())
+        expect(handle.agent.inbox.nextTurn).toEqual([])
+      } finally { await handle.dispose() }
+    } finally { await scheduler.dispose(); await second.ctx.fiber.dispose() }
+  }))
+
+  it('records and propagates an undefined rejection from a scheduled cycle', async () => temporary(async root => {
+    const objective = 'Preserve any scheduled execution failure'
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx } = await boot(root, script)
+    ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
+    const agent = await ctx.agentLoop.create(SessionId('director-schedule-undefined'), { provider: 'mock', model: 'fixture' })
+    const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+    let rejected = false
+    ctx.on('agent/pre-step', async ({ agent: current, step }, next) => {
+      if (current === agent && step === 2) {
+        const ledger = await ctx.dai.setDirectorSchedule(agent, plan().id, { enabled: true, startImmediately: true })
+        const schedule = ledger.schedules[0]!
+        const staleDueAt = new Date(Date.parse(schedule.nextWakeAt) - 1).toISOString()
+        await expect(ctx.dai.runScheduledDirectorCycle(agent, schedule.id, staleDueAt, new AbortController().signal)).resolves.toMatchObject({ outcome: 'IDLE' })
+        expect(ctx.dai.readDirectorSchedule(agent).ledgers[0]?.revision).toBe(1)
+        const failure = vi.spyOn(ctx.dai, 'executeDirectorCycle').mockRejectedValueOnce(undefined)
+        try {
+          await ctx.dai.runScheduledDirectorCycle(agent, ledger.schedules[0]!.id, ledger.schedules[0]!.nextWakeAt, new AbortController().signal).then(
+            () => { throw new Error('scheduled failure was reported as success') },
+            reason => { expect(reason).toBeUndefined(); rejected = true },
+          )
+        } finally { failure.mockRestore() }
+      }
+      return next()
+    })
+    script.push(toolCallResponse('plan', 'd_ai_director_plan_create', { objective, primary_system: 'investigation' }), textResponse('Failure recorded'))
+    try {
+      agent.followup(createUserMessage({ content: [{ type: 'text', text: objective }], source: { kind: 'user' } }))
+      await agent.whenIdle()
+      expect(rejected).toBe(true)
+      expect(ctx.dai.readDirectorSchedule(agent).ledgers[0]?.schedules[0]?.lastCycle).toMatchObject({ outcome: 'FAILED', error: 'undefined' })
+    } finally { await ctx.fiber.dispose() }
+  }))
 
   it('does not let a model silently create an unrelated Director plan', async () => temporary(async root => {
     const { ctx } = await boot(root, [

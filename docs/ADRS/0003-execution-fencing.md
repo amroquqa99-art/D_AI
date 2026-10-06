@@ -107,4 +107,4 @@ Acceptance requires:
 4. persistence catalog regeneration;
 5. package TypeScript build and D_AI test suite.
 
-Until the current CI runner executes workflow steps successfully, these new tests remain source-level evidence and are not marked VERIFIED.
+Local verification on 2026-10-06 passed the complete 157-test package suite, including native stale-fence enforcement and Session restart recovery into a second fence. Catalog freshness and acknowledged persistence history checks also pass without changing existing root digests. The complete project-reference build and CI gate remain pending; local fixtures do not establish production or live-provider acceptance.

@@ -3,20 +3,36 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { UserMessage } from '@deepseek-ai/dsh-llm'
+import type { ContextFormed, UserMessage } from '@deepseek-ai/dsh-llm'
+import { z } from 'zod'
 import type { DirectorPlanRuntimeView } from './director-runtime.ts'
 import type { DirectorSchedule, DirectorScheduleState } from './director-schedule-state.ts'
 import type { ExecutionState } from './execution-state.ts'
 
-declare module '@deepseek-ai/dsh-llm/message' {
+// Reuse Harness's existing schedule source contract. Routing data belongs in
+// message content, so adding a scheduler does not change the accepted Session
+// source union or misclassify semantic routing as attribution-only metadata.
+declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
-    'd-ai-scheduler': {
-      readonly kind: 'd-ai-scheduler'
-      readonly scheduleId: string
-      readonly planId: string
-      readonly dueAt: string
-    }
+    'schedule': { kind: 'schedule' } & ContextFormed
   }
+}
+
+const wakeSchema = z.object({
+  protocol: z.literal('d_ai.director-wake.v1'),
+  scheduleId: z.string().min(1).max(240),
+  planId: z.string().min(1).max(240),
+  dueAt: z.string().datetime(),
+}).strict()
+
+function directorSchedulerWake(message: UserMessage): z.infer<typeof wakeSchema> | undefined {
+  if (message.source.kind !== 'schedule' || message.content.length !== 1) return undefined
+  const content = message.content[0]
+  if (content?.type !== 'text') return undefined
+  try {
+    const parsed = wakeSchema.safeParse(JSON.parse(content.text))
+    return parsed.success ? parsed.data : undefined
+  } catch { return undefined }
 }
 
 export interface DirectorSchedulerConfig {
@@ -46,20 +62,20 @@ function scheduleKey(agentId: string, scheduleId: string): string {
 }
 
 export function isDirectorSchedulerWake(message: UserMessage): boolean {
-  return message.source.kind === 'd-ai-scheduler'
+  return directorSchedulerWake(message) !== undefined
 }
 
 export function createDirectorSchedulerWake(
   schedule: DirectorSchedule,
 ): UserMessage {
   return createUserMessage({
-    content: [],
-    source: {
-      kind: 'd-ai-scheduler',
+    content: [{ type: 'text', text: JSON.stringify({
+      protocol: 'd_ai.director-wake.v1',
       scheduleId: schedule.id,
       planId: schedule.planId,
       dueAt: schedule.nextWakeAt,
-    },
+    }) }],
+    source: { kind: 'schedule', form: 'notice', summary: 'D_AI Director schedule wake' },
   })
 }
 
@@ -68,7 +84,7 @@ export function hasPendingDirectorSchedulerWake(
   scheduleId: string,
 ): boolean {
   return [...agent.inbox.nextTurn, ...agent.inbox.nextStep].some(message =>
-    message.source.kind === 'd-ai-scheduler' && message.source.scheduleId === scheduleId)
+    directorSchedulerWake(message)?.scheduleId === scheduleId)
 }
 
 function hasExpiredPlanLease(
@@ -143,20 +159,15 @@ export class DirectorScheduler {
       if (wakes.length !== 1 || messages.length !== 1) return next()
 
       const wake = wakes[0]!
-      const source = wake.source
-      if (source.kind !== 'd-ai-scheduler') return next()
+      const source = directorSchedulerWake(wake)
+      if (source === undefined) return next()
       const key = scheduleKey(agent.id, source.scheduleId)
 
       if (this.active.has(key)) return { kind: 'reject' }
 
       this.active.add(key)
       try {
-        await this.runtime.runScheduledDirectorCycle(
-          agent,
-          source.scheduleId,
-          source.dueAt,
-          signal,
-        )
+        await this.runtime.runScheduledDirectorCycle(agent, source.scheduleId, source.dueAt, signal)
       } catch (error) {
         this.ctx.logger.warn(
           'D_AI unattended Director cycle failed for plan '

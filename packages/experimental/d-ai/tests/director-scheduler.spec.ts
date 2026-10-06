@@ -82,17 +82,15 @@ function execution(
 }
 
 describe('D_AI unattended Director scheduler admission', () => {
-  it('creates a typed, model-empty scheduler wake message', () => {
+  it('encodes a typed scheduler wake using the existing Harness schedule source', () => {
     const wake = createDirectorSchedulerWake(schedule())
 
     expect(wake.role).toBe('user')
-    expect(wake.content).toEqual([])
-    expect(wake.source).toEqual({
-      kind: 'd-ai-scheduler',
-      scheduleId: 'schedule-1',
-      planId: 'plan-1',
-      dueAt: '2026-10-07T00:00:01.000Z',
-    })
+    expect(wake.source).toEqual({ kind: 'schedule', form: 'notice', summary: 'D_AI Director schedule wake' })
+    expect(wake.content).toHaveLength(1)
+    expect(wake.content[0]?.type).toBe('text')
+    if (wake.content[0]?.type !== 'text') throw new Error('missing typed wake content')
+    expect(JSON.parse(wake.content[0].text)).toEqual({ protocol: 'd_ai.director-wake.v1', scheduleId: 'schedule-1', planId: 'plan-1', dueAt: '2026-10-07T00:00:01.000Z' })
   })
 
   it('wakes a due active schedule when runnable work exists', () => {
@@ -143,7 +141,7 @@ describe('D_AI unattended Director scheduler admission', () => {
       nextTurn: [wake],
       nextStep: [] as UserMessage[],
     }
-    const agent = { inbox } as Pick<Agent, 'inbox'> as Agent
+    const agent = { inbox } as unknown as Agent
 
     expect(hasPendingDirectorSchedulerWake(agent, 'schedule-1')).toBe(true)
     expect(hasPendingDirectorSchedulerWake(agent, 'other')).toBe(false)

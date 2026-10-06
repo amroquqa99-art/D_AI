@@ -14,7 +14,6 @@ describe('D_AI runtime configuration', () => {
     expect(runtime.delegations.investigation.allowedTools).toEqual(['web_search', 'web_fetch'])
     expect(runtime.delegations.scientific.allowedTools).toEqual(['web_search', 'web_fetch'])
     expect(runtime.delegations.cyber.allowedTools).toEqual([])
-    expect(runtime.scheduler).toEqual({ enabled: false, pollMs: 250 })
     expect(runtime.delegations.investigation).toMatchObject({
       provider: 'spawn',
       maxDepth: 3,
@@ -53,6 +52,7 @@ describe('D_AI runtime configuration', () => {
       allowedTools: ['fixture_search'],
       assessmentModel: 'cyber-d',
     })
+    expect(runtime.scheduler).toEqual({ enabled: false, pollMs: 250 })
     expect(runtime.delegations.operations.adversarialModel).toBe('ops-e')
     expect(runtime.delegations.innovation.criticModel).toBe('innovation-f')
   })

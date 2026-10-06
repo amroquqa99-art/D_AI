@@ -125,8 +125,8 @@ describe('D_AI unattended Mission Director', () => {
       expect(Date.parse(expectedSchedule.ledgers[0]!.schedules[0]!.nextWakeAt))
         .toBeGreaterThan(Date.parse(expectedSchedule.ledgers[0]!.schedules[0]!.lastCycle!.attemptedAt))
 
-      const schedulerMessages = agent.session.snapshotEvents().filter(event =>
-        event.type === 'user/message' && event.data.source.kind === 'd-ai-scheduler')
+      const schedulerMessages = agent.session.snapshotEvents().flatMap(event =>
+        event.type === 'agent/inbox/spliced' ? event.data.inserted : []).filter(message => message.source.kind === 'schedule')
       expect(schedulerMessages).toHaveLength(1)
       await ctx.sessions.flush(agent.session)
     } finally {

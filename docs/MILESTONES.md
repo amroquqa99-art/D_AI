@@ -9,7 +9,7 @@ The owner-approved acceptance sequence below controls implementation order. Stat
 | P0 Source truth and lineage | Official source, pinned revision, install/build/tests/start evidence | In progress; complete private source import verified, build/start verification pending |
 | P1 Native D_AI boot | Native profile, loaded web surface, real state inspection | In progress; client foundation exists, D_AI launch not verified |
 | P2 Actual delegated execution | Manager, child, grandchild; independent provider calls and handoff | Blocked on configured model and runtime integration |
-| P3 Durable scheduling | DAG, bounds, leases/fencing, retries, restart, unattended native-turn wake scheduling and 1,000-task checks | In progress; unattended single-process scheduler implemented, current native acceptance and scale/fault-injection checks pending |
+| P3 Durable scheduling | DAG, bounds, leases/fencing, retries, restart, unattended native-turn wake scheduling and 1,000-task checks | In progress; unattended single-process scheduler implemented, local native fixture restart/wake acceptance passes; full workspace/CI acceptance and scale/fault-injection checks pending |
 | P4 Shared intelligence | Evidence lifecycle, scoped memory, audited cross-system sharing | Not accepted |
 | P5 Domain slices | Investigation, Scientific Research, Investor, Cybersecurity, Operations & Intelligence, Innovation & Discovery | In progress; Investigation is integrated, five domain contracts are registered foundations |
 | P6 Local Intelligence Core foundation | Governed dataset pipeline, model registry/lineage, local inference, baseline evaluation, controlled training/adapter experiment and rollback | Foundation registered; runtime/evaluation path not accepted |

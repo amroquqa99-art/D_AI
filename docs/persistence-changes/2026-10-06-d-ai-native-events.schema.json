@@ -1,0 +1,6466 @@
+{
+  "formatVersion": 2,
+  "roots": [
+    {
+      "key": "event:d_ai/budget-fact",
+      "kind": "event",
+      "event": "d_ai/budget-fact",
+      "surface": false,
+      "digest": "feb3beb8bed3789b4b0cf2975958f0995513d63844f85805d1f726ff73b8dfdf",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 18,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 19,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ledger",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 14,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 17,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "profiles",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 7,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 5
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "limits",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "scope",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "scopeId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "updatedAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "updatedBy",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "usage",
+                "type": 13,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "dataAccessCostUsd",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "humanAttentionMinutes",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "moneyLimitUsd",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "tokenLimit",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "wallClockMs",
+                "type": 7,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "union",
+            "types": [
+              9,
+              10,
+              11,
+              12
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "MISSION"
+          },
+          {
+            "kind": "literal",
+            "value": "PROJECT"
+          },
+          {
+            "kind": "literal",
+            "value": "SYSTEM"
+          },
+          {
+            "kind": "literal",
+            "value": "TASK"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "dataAccessCostUsd",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "humanAttentionMinutes",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "moneyUsd",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "tokens",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "wallClockMs",
+                "type": 7,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              15,
+              16
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_USAGE"
+          },
+          {
+            "kind": "literal",
+            "value": "SET_BUDGET"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/budget-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/control-plane-fact",
+      "kind": "event",
+      "event": "d_ai/control-plane-fact",
+      "surface": false,
+      "digest": "5b06f40e2aa825d51a0490941644f513bebfa5723d54b96c3cc5548d22b962c7",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 43,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 44,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "control",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 39,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 42,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "auditHeadHash",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "auditRecords",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "grants",
+                "type": 28,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 20,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 5
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "action",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "at",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "details",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "hash",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "missionId",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "previousHash",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "sequence",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "subjectId",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "systemId",
+                "type": 21,
+                "optional": true
+              },
+              {
+                "name": "taskId",
+                "type": 2,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "TOOL_EXECUTION"
+          },
+          {
+            "kind": "literal",
+            "value": "TRAINING_DATA_DECISION"
+          },
+          {
+            "kind": "literal",
+            "value": "CAPABILITY_DENY"
+          },
+          {
+            "kind": "literal",
+            "value": "MISSION_CREATE"
+          },
+          {
+            "kind": "literal",
+            "value": "CAPABILITY_GRANT"
+          },
+          {
+            "kind": "literal",
+            "value": "CROSS_SYSTEM_HANDOFF"
+          },
+          {
+            "kind": "literal",
+            "value": "HUMAN_APPROVAL"
+          },
+          {
+            "kind": "literal",
+            "value": "MODEL_ROUTE"
+          },
+          {
+            "kind": "literal",
+            "value": "TASK_TRANSITION"
+          },
+          {
+            "kind": "object",
+            "properties": [],
+            "indices": [
+              {
+                "key": 2,
+                "value": 17
+              }
+            ]
+          },
+          {
+            "kind": "union",
+            "types": [
+              2,
+              18,
+              19,
+              20
+            ]
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "primitive",
+            "type": "null"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "union",
+            "types": [
+              22,
+              23,
+              24,
+              25,
+              26,
+              27
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "cybersecurity"
+          },
+          {
+            "kind": "literal",
+            "value": "innovation-discovery"
+          },
+          {
+            "kind": "literal",
+            "value": "investigation"
+          },
+          {
+            "kind": "literal",
+            "value": "investor"
+          },
+          {
+            "kind": "literal",
+            "value": "operations-intelligence"
+          },
+          {
+            "kind": "literal",
+            "value": "scientific-research"
+          },
+          {
+            "kind": "array",
+            "element": 29
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "capability",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "decision",
+                "type": 30,
+                "optional": false
+              },
+              {
+                "name": "expiresAt",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "issuedAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "issuedBy",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "reason",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "scope",
+                "type": 33,
+                "optional": false
+              },
+              {
+                "name": "scopeId",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "systemId",
+                "type": 21,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              31,
+              32
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ALLOW"
+          },
+          {
+            "kind": "literal",
+            "value": "DENY"
+          },
+          {
+            "kind": "union",
+            "types": [
+              34,
+              35,
+              36,
+              37,
+              38
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "MISSION"
+          },
+          {
+            "kind": "literal",
+            "value": "GLOBAL"
+          },
+          {
+            "kind": "literal",
+            "value": "PROJECT"
+          },
+          {
+            "kind": "literal",
+            "value": "SYSTEM"
+          },
+          {
+            "kind": "literal",
+            "value": "TASK"
+          },
+          {
+            "kind": "union",
+            "types": [
+              40,
+              41
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "APPEND_AUDIT"
+          },
+          {
+            "kind": "literal",
+            "value": "APPEND_GRANT"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/control-plane-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/cyber-fact",
+      "kind": "event",
+      "event": "d_ai/cyber-fact",
+      "surface": false,
+      "digest": "db4bbe69d3b98ce030a3d621a086600880dcae11373c4282a74f310ad23b5511",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 37,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 38,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "engagement",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 29,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 36,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "authorization",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "delegations",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "findings",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "objective",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 23,
+                "optional": false
+              },
+              {
+                "name": "system",
+                "type": 28,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "approvedBy",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "expiresAt",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "issuedAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "permittedActions",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "targetDescription",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 2
+          },
+          {
+            "kind": "array",
+            "element": 7
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "assessment",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "remediationReview",
+                "type": 8,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "agentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 10
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "evidence",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "remediation",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "remediationNote",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "retestEvidence",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "severity",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 17,
+                "optional": false
+              },
+              {
+                "name": "title",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "updatedAt",
+                "type": 2,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              12,
+              13,
+              14,
+              15,
+              16
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "CRITICAL"
+          },
+          {
+            "kind": "literal",
+            "value": "HIGH"
+          },
+          {
+            "kind": "literal",
+            "value": "INFO"
+          },
+          {
+            "kind": "literal",
+            "value": "LOW"
+          },
+          {
+            "kind": "literal",
+            "value": "MEDIUM"
+          },
+          {
+            "kind": "union",
+            "types": [
+              18,
+              19,
+              20,
+              21
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "RETEST_PASSED"
+          },
+          {
+            "kind": "literal",
+            "value": "ACCEPTED_RISK"
+          },
+          {
+            "kind": "literal",
+            "value": "OPEN"
+          },
+          {
+            "kind": "literal",
+            "value": "REMEDIATED"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "union",
+            "types": [
+              24,
+              25,
+              26,
+              27
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_REMEDIATION"
+          },
+          {
+            "kind": "literal",
+            "value": "ACTIVE"
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETE"
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "literal",
+            "value": "cybersecurity"
+          },
+          {
+            "kind": "union",
+            "types": [
+              30,
+              31,
+              32,
+              33,
+              34,
+              35
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "RETEST"
+          },
+          {
+            "kind": "literal",
+            "value": "STATUS"
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_FINDING"
+          },
+          {
+            "kind": "literal",
+            "value": "CREATE"
+          },
+          {
+            "kind": "literal",
+            "value": "DELEGATE"
+          },
+          {
+            "kind": "literal",
+            "value": "RECORD_REMEDIATION"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/cyber-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/director-fact",
+      "kind": "event",
+      "event": "d_ai/director-fact",
+      "surface": false,
+      "digest": "3d32810370c869b79b1d25732e81ef7784c42b7ef90ff429deead6872dd2ffc7",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 23,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 18,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 18,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 24,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ledger",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 19,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 22,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "plans",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 18,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 5
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "objective",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "primarySystem",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 13,
+                "optional": false
+              },
+              {
+                "name": "stopConditions",
+                "type": 17,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "cybersecurity"
+          },
+          {
+            "kind": "literal",
+            "value": "innovation-discovery"
+          },
+          {
+            "kind": "literal",
+            "value": "investigation"
+          },
+          {
+            "kind": "literal",
+            "value": "investor"
+          },
+          {
+            "kind": "literal",
+            "value": "operations-intelligence"
+          },
+          {
+            "kind": "literal",
+            "value": "scientific-research"
+          },
+          {
+            "kind": "union",
+            "types": [
+              14,
+              15,
+              16
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETE"
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "literal",
+            "value": "ACTIVE"
+          },
+          {
+            "kind": "array",
+            "element": 2
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "union",
+            "types": [
+              20,
+              21
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "CREATE_PLAN"
+          },
+          {
+            "kind": "literal",
+            "value": "SET_STATUS"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/director-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/director-schedule-fact",
+      "kind": "event",
+      "event": "d_ai/director-schedule-fact",
+      "surface": false,
+      "digest": "3914e36f9a7d629637973b83fcc17c12d1c387517d16d188a8b534910490002f",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 24,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 25,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ledger",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 23,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "schedules",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "array",
+            "element": 6
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "enabled",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "intervalMs",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "lastCycle",
+                "type": 8,
+                "optional": true
+              },
+              {
+                "name": "leaseTtlMs",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "maxTasksPerCycle",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "nextWakeAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "planId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "updatedAt",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attemptedAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "error",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "executedTasks",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "outcome",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "phase",
+                "type": 13,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              10,
+              11,
+              12
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "EXECUTED"
+          },
+          {
+            "kind": "literal",
+            "value": "FAILED"
+          },
+          {
+            "kind": "literal",
+            "value": "IDLE"
+          },
+          {
+            "kind": "union",
+            "types": [
+              14,
+              15,
+              16,
+              17,
+              18,
+              19
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "BLOCKED"
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETE"
+          },
+          {
+            "kind": "literal",
+            "value": "EXECUTING"
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "literal",
+            "value": "PLANNING"
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_HUMAN"
+          },
+          {
+            "kind": "union",
+            "types": [
+              21,
+              22
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "UPSERT"
+          },
+          {
+            "kind": "literal",
+            "value": "RECORD_CYCLE"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/director-schedule-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/evidence-store-fact",
+      "kind": "event",
+      "event": "d_ai/evidence-store-fact",
+      "surface": false,
+      "digest": "db4beca988455d9f93ceb85610eaa8c65d43bcf15db533a1462e0acc6101b4a8",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 40,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 41,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "store",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 39,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_NODE"
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_EDGE"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "edges",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "nodes",
+                "type": 18,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 20,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 8
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "from",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "kind",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "to",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "RELATES_TO"
+          },
+          {
+            "kind": "literal",
+            "value": "SUPERSEDES"
+          },
+          {
+            "kind": "literal",
+            "value": "SUPPORTS"
+          },
+          {
+            "kind": "literal",
+            "value": "CONTRADICTS"
+          },
+          {
+            "kind": "literal",
+            "value": "DERIVED_FROM"
+          },
+          {
+            "kind": "literal",
+            "value": "DUPLICATES"
+          },
+          {
+            "kind": "literal",
+            "value": "MENTIONS"
+          },
+          {
+            "kind": "literal",
+            "value": "PRECEDES"
+          },
+          {
+            "kind": "array",
+            "element": 19
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "confidence",
+                "type": 20,
+                "optional": true
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "kind",
+                "type": 21,
+                "optional": false
+              },
+              {
+                "name": "label",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "provenance",
+                "type": 31,
+                "optional": false
+              },
+              {
+                "name": "systemId",
+                "type": 32,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "union",
+            "types": [
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "SOURCE"
+          },
+          {
+            "kind": "literal",
+            "value": "ARTIFACT"
+          },
+          {
+            "kind": "literal",
+            "value": "CLAIM"
+          },
+          {
+            "kind": "literal",
+            "value": "DATASET"
+          },
+          {
+            "kind": "literal",
+            "value": "DECISION"
+          },
+          {
+            "kind": "literal",
+            "value": "ENTITY"
+          },
+          {
+            "kind": "literal",
+            "value": "EVENT"
+          },
+          {
+            "kind": "literal",
+            "value": "EXPERIMENT"
+          },
+          {
+            "kind": "literal",
+            "value": "HYPOTHESIS"
+          },
+          {
+            "kind": "array",
+            "element": 2
+          },
+          {
+            "kind": "union",
+            "types": [
+              33,
+              34,
+              35,
+              36,
+              37,
+              38
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "cybersecurity"
+          },
+          {
+            "kind": "literal",
+            "value": "innovation-discovery"
+          },
+          {
+            "kind": "literal",
+            "value": "investigation"
+          },
+          {
+            "kind": "literal",
+            "value": "investor"
+          },
+          {
+            "kind": "literal",
+            "value": "operations-intelligence"
+          },
+          {
+            "kind": "literal",
+            "value": "scientific-research"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/evidence-store-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/execution-fact",
+      "kind": "event",
+      "event": "d_ai/execution-fact",
+      "surface": false,
+      "digest": "5b1f490724b4a3909c91fa77209a56f86ffe1281672263b8510e26210d4f1cb9",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 24,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 25,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              2,
+              17
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "ledger",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 16,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "checkpoints",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "leases",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 8,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 6
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "artifactRefs",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "at",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "sequence",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "summary",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "taskId",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 3
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "array",
+            "element": 10
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "acquiredAt",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "expiresAt",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "holderId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "missionId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "releasedAt",
+                "type": 3,
+                "optional": true
+              },
+              {
+                "name": "taskId",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              12,
+              13,
+              14,
+              15
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "CHECKPOINT"
+          },
+          {
+            "kind": "literal",
+            "value": "RELEASE_LEASE"
+          },
+          {
+            "kind": "literal",
+            "value": "RENEW_LEASE"
+          },
+          {
+            "kind": "literal",
+            "value": "ACQUIRE_LEASE"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "ledger",
+                "type": 18,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 23,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "checkpoints",
+                "type": 19,
+                "optional": false
+              },
+              {
+                "name": "leases",
+                "type": 21,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 8,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 20
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "artifactRefs",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "at",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "fence",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "leaseId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "sequence",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "summary",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "taskId",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 22
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "acquiredAt",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "expiresAt",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "fence",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "holderId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "missionId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "releasedAt",
+                "type": 3,
+                "optional": true
+              },
+              {
+                "name": "taskId",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": 2
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/execution-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/fact",
+      "kind": "event",
+      "event": "d_ai/fact",
+      "surface": false,
+      "digest": "fc0e119f85ebcc12d7ed14fe895b7b471c069f7c31aab6a9bef90ca765f5ed67",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 40,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 41,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "mission",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 33,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 39,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "claims",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "delegations",
+                "type": 13,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "objective",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "sources",
+                "type": 17,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 26,
+                "optional": false
+              },
+              {
+                "name": "system",
+                "type": 23,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 5
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "contradicts",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "excerpt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "scope",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "sourceId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "state",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "text",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "verifierId",
+                "type": 2,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "VERIFIED_WITH_SCOPE"
+          },
+          {
+            "kind": "literal",
+            "value": "ARCHIVED"
+          },
+          {
+            "kind": "literal",
+            "value": "CONTESTED"
+          },
+          {
+            "kind": "literal",
+            "value": "DERIVED"
+          },
+          {
+            "kind": "literal",
+            "value": "OBSERVED"
+          },
+          {
+            "kind": "literal",
+            "value": "SUPERSEDED"
+          },
+          {
+            "kind": "array",
+            "element": 14
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "research",
+                "type": 15,
+                "optional": false
+              },
+              {
+                "name": "verification",
+                "type": 15,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "agentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "array",
+            "element": 18
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "capturedAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "finalUrl",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "hashEncoding",
+                "type": 19,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "kind",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "originSystem",
+                "type": 23,
+                "optional": false
+              },
+              {
+                "name": "originTool",
+                "type": 24,
+                "optional": false
+              },
+              {
+                "name": "requestedUrl",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "sha256",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "statusCode",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "truncated",
+                "type": 25,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": "utf8-decoded-content"
+          },
+          {
+            "kind": "union",
+            "types": [
+              21,
+              22
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "html"
+          },
+          {
+            "kind": "literal",
+            "value": "text"
+          },
+          {
+            "kind": "literal",
+            "value": "investigation"
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai_capture_source"
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "union",
+            "types": [
+              27,
+              28,
+              29,
+              30,
+              31,
+              32
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_HUMAN"
+          },
+          {
+            "kind": "literal",
+            "value": "ACTIVE"
+          },
+          {
+            "kind": "literal",
+            "value": "BLOCKED_BUDGET"
+          },
+          {
+            "kind": "literal",
+            "value": "BLOCKED_POLICY"
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETE"
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "union",
+            "types": [
+              34,
+              35,
+              36,
+              37,
+              38
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_CLAIM"
+          },
+          {
+            "kind": "literal",
+            "value": "CAPTURE_SOURCE"
+          },
+          {
+            "kind": "literal",
+            "value": "DELEGATE"
+          },
+          {
+            "kind": "literal",
+            "value": "CREATE"
+          },
+          {
+            "kind": "literal",
+            "value": "STATUS"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/innovation-fact",
+      "kind": "event",
+      "event": "d_ai/innovation-fact",
+      "surface": false,
+      "digest": "29fda5c31bbb19c26792020bd8929ccc94d1394674088638eb84a0fed2bf5681",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 37,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 30,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 30,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 38,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "project",
+                "type": 10,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 36,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_CANDIDATE"
+          },
+          {
+            "kind": "literal",
+            "value": "CREATE"
+          },
+          {
+            "kind": "literal",
+            "value": "DELEGATE"
+          },
+          {
+            "kind": "literal",
+            "value": "RECORD_RESULT"
+          },
+          {
+            "kind": "literal",
+            "value": "REQUEST_EXPERIMENT"
+          },
+          {
+            "kind": "literal",
+            "value": "STATUS"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "candidates",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "delegations",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "experiments",
+                "type": 25,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "problem",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 30,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 31,
+                "optional": false
+              },
+              {
+                "name": "system",
+                "type": 35,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 12
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "description",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "falsificationTest",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "mechanism",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "noveltyStatus",
+                "type": 13,
+                "optional": false
+              },
+              {
+                "name": "state",
+                "type": 17,
+                "optional": false
+              },
+              {
+                "name": "title",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              14,
+              15,
+              16
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "UNKNOWN"
+          },
+          {
+            "kind": "literal",
+            "value": "KNOWN_VARIANT"
+          },
+          {
+            "kind": "literal",
+            "value": "POTENTIALLY_NOVEL"
+          },
+          {
+            "kind": "union",
+            "types": [
+              18,
+              19,
+              20,
+              21
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "VERIFIED_WITH_SCOPE"
+          },
+          {
+            "kind": "literal",
+            "value": "NEEDS_EXPERIMENT"
+          },
+          {
+            "kind": "literal",
+            "value": "OPEN"
+          },
+          {
+            "kind": "literal",
+            "value": "REFUTED"
+          },
+          {
+            "kind": "array",
+            "element": 23
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "critic",
+                "type": 24,
+                "optional": false
+              },
+              {
+                "name": "explorer",
+                "type": 24,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "agentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 26
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "artifactRef",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "completedAt",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "failureCriteria",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "objective",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "observation",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "protocol",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 27,
+                "optional": false
+              },
+              {
+                "name": "successCriteria",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "title",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              28,
+              29
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_HUMAN"
+          },
+          {
+            "kind": "literal",
+            "value": "RESULT_RECORDED"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "union",
+            "types": [
+              19,
+              32,
+              33,
+              34
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETE"
+          },
+          {
+            "kind": "literal",
+            "value": "ACTIVE"
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "literal",
+            "value": "innovation-discovery"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/innovation-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/investor-fact",
+      "kind": "event",
+      "event": "d_ai/investor-fact",
+      "surface": false,
+      "digest": "76e6d775ce1c281adfa3be99fd607a2dd1ec731b72b3bb9bbb2e6da1f3e74fb9",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 40,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 41,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "case",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 33,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 39,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "delegations",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "objective",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "sources",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 17,
+                "optional": false
+              },
+              {
+                "name": "system",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "theses",
+                "type": 23,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 5
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "fundamental",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "risk",
+                "type": 6,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "agentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "array",
+            "element": 9
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "capturedAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "category",
+                "type": 10,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "finalUrl",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "requestedUrl",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "sha256",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "statusCode",
+                "type": 7,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              11,
+              12,
+              13,
+              14,
+              15,
+              16
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "OTHER"
+          },
+          {
+            "kind": "literal",
+            "value": "SOCIAL"
+          },
+          {
+            "kind": "literal",
+            "value": "FILING"
+          },
+          {
+            "kind": "literal",
+            "value": "MACRO"
+          },
+          {
+            "kind": "literal",
+            "value": "MARKET"
+          },
+          {
+            "kind": "literal",
+            "value": "NEWS"
+          },
+          {
+            "kind": "union",
+            "types": [
+              18,
+              19,
+              20,
+              21
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_DATA"
+          },
+          {
+            "kind": "literal",
+            "value": "ACTIVE"
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETE"
+          },
+          {
+            "kind": "literal",
+            "value": "investor"
+          },
+          {
+            "kind": "array",
+            "element": 24
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "horizon",
+                "type": 25,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "invalidationConditions",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "rationale",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "state",
+                "type": 29,
+                "optional": false
+              },
+              {
+                "name": "statement",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              26,
+              27,
+              28
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "SHORT"
+          },
+          {
+            "kind": "literal",
+            "value": "LONG"
+          },
+          {
+            "kind": "literal",
+            "value": "MEDIUM"
+          },
+          {
+            "kind": "union",
+            "types": [
+              30,
+              31,
+              32
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "CLOSED"
+          },
+          {
+            "kind": "literal",
+            "value": "INVALIDATED"
+          },
+          {
+            "kind": "literal",
+            "value": "OPEN"
+          },
+          {
+            "kind": "union",
+            "types": [
+              34,
+              35,
+              36,
+              37,
+              38
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_THESIS"
+          },
+          {
+            "kind": "literal",
+            "value": "STATUS"
+          },
+          {
+            "kind": "literal",
+            "value": "CAPTURE_SOURCE"
+          },
+          {
+            "kind": "literal",
+            "value": "CREATE"
+          },
+          {
+            "kind": "literal",
+            "value": "DELEGATE"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/investor-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/model-lifecycle-fact",
+      "kind": "event",
+      "event": "d_ai/model-lifecycle-fact",
+      "surface": false,
+      "digest": "e03e5af7ee2e507b1eabecb9f8bc34fa409cdb82544796bce72b92c7ec7e7e80",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 20,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 21,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ledger",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 19,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "evaluations",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "promotions",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 8,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 5
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "artifactRef",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "recordedAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "recordedBy",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "result",
+                "type": 6,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "completedAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "datasetId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "holdoutId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "independentEvaluator",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "metrics",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "modelId",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "correctness",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "domainQuality",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "efficiencyScore",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "latencyScore",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "robustness",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "safety",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "toolUseReliability",
+                "type": 8,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "array",
+            "element": 10
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "baselineEvaluationId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "candidateEvaluationId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "decidedAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "decidedBy",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "decision",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "policy",
+                "type": 14,
+                "optional": false
+              },
+              {
+                "name": "release",
+                "type": 15,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "baselineModelId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "candidateModelId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "promote",
+                "type": 12,
+                "optional": false
+              },
+              {
+                "name": "reasons",
+                "type": 13,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "array",
+            "element": 2
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "maxAllowedRegression",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "minCorrectness",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "minDomainQuality",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "minRobustness",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "minSafety",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "minToolUseReliability",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "requireDistinctEvaluator",
+                "type": 12,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "activeModelId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "evaluationDatasetId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "promotedAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "rollbackModelId",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              17,
+              18
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "RECORD_EVALUATION"
+          },
+          {
+            "kind": "literal",
+            "value": "EVALUATE_PROMOTION"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/model-lifecycle-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/model-registry-fact",
+      "kind": "event",
+      "event": "d_ai/model-registry-fact",
+      "surface": false,
+      "digest": "1a27247a4fa0a40b72cec06fb5124e62f907d8e48766039bd89fb21d3a63d0c4",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 34,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 18,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 18,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 35,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "registry",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 33,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "SET_POLICY"
+          },
+          {
+            "kind": "literal",
+            "value": "UPSERT_MODEL"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "models",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "policies",
+                "type": 23,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 18,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 8
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "capabilities",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "costScore",
+                "type": 18,
+                "optional": false
+              },
+              {
+                "name": "enabled",
+                "type": 19,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "latencyScore",
+                "type": 18,
+                "optional": false
+              },
+              {
+                "name": "location",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "maxContextTokens",
+                "type": 18,
+                "optional": false
+              },
+              {
+                "name": "privacyScore",
+                "type": 18,
+                "optional": false
+              },
+              {
+                "name": "provider",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "qualityScore",
+                "type": 18,
+                "optional": false
+              },
+              {
+                "name": "reliabilityScore",
+                "type": 18,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 10
+          },
+          {
+            "kind": "union",
+            "types": [
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "tool-use"
+          },
+          {
+            "kind": "literal",
+            "value": "vision"
+          },
+          {
+            "kind": "literal",
+            "value": "arabic"
+          },
+          {
+            "kind": "literal",
+            "value": "coding"
+          },
+          {
+            "kind": "literal",
+            "value": "long-context"
+          },
+          {
+            "kind": "literal",
+            "value": "reasoning"
+          },
+          {
+            "kind": "literal",
+            "value": "research"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "union",
+            "types": [
+              21,
+              22
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "LOCAL"
+          },
+          {
+            "kind": "literal",
+            "value": "CLOUD"
+          },
+          {
+            "kind": "array",
+            "element": 24
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "localOnly",
+                "type": 19,
+                "optional": false
+              },
+              {
+                "name": "minContextTokens",
+                "type": 18,
+                "optional": false
+              },
+              {
+                "name": "requiredCapabilities",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "role",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "systemId",
+                "type": 25,
+                "optional": false
+              },
+              {
+                "name": "updatedAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "updatedBy",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "weights",
+                "type": 32,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              26,
+              27,
+              28,
+              29,
+              30,
+              31
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "scientific-research"
+          },
+          {
+            "kind": "literal",
+            "value": "cybersecurity"
+          },
+          {
+            "kind": "literal",
+            "value": "innovation-discovery"
+          },
+          {
+            "kind": "literal",
+            "value": "investigation"
+          },
+          {
+            "kind": "literal",
+            "value": "investor"
+          },
+          {
+            "kind": "literal",
+            "value": "operations-intelligence"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "cost",
+                "type": 18,
+                "optional": true
+              },
+              {
+                "name": "latency",
+                "type": 18,
+                "optional": true
+              },
+              {
+                "name": "privacy",
+                "type": 18,
+                "optional": true
+              },
+              {
+                "name": "quality",
+                "type": 18,
+                "optional": true
+              },
+              {
+                "name": "reliability",
+                "type": 18,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/model-registry-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/operations-fact",
+      "kind": "event",
+      "event": "d_ai/operations-fact",
+      "surface": false,
+      "digest": "0fd8bb87a1f519f2174d94a827c0144ee5b2fa068dd17c910152b98e34b025dd",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 35,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 42,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 42,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 62,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "case",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 52,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 61,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "classification",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "delegations",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "entities",
+                "type": 12,
+                "optional": false
+              },
+              {
+                "name": "gaps",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "objective",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "options",
+                "type": 33,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "relationships",
+                "type": 40,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 42,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 44,
+                "optional": false
+              },
+              {
+                "name": "system",
+                "type": 49,
+                "optional": false
+              },
+              {
+                "name": "timeline",
+                "type": 50,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              5,
+              6,
+              7,
+              8
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "INTERNAL"
+          },
+          {
+            "kind": "literal",
+            "value": "RESTRICTED"
+          },
+          {
+            "kind": "literal",
+            "value": "UNCLASSIFIED"
+          },
+          {
+            "kind": "literal",
+            "value": "CONFIDENTIAL"
+          },
+          {
+            "kind": "array",
+            "element": 10
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "adversarial",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "fusion",
+                "type": 11,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "agentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 13
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "label",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "summary",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 14,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "DEVICE"
+          },
+          {
+            "kind": "literal",
+            "value": "LOCATION"
+          },
+          {
+            "kind": "literal",
+            "value": "ORGANIZATION"
+          },
+          {
+            "kind": "literal",
+            "value": "OTHER"
+          },
+          {
+            "kind": "literal",
+            "value": "PERSON"
+          },
+          {
+            "kind": "literal",
+            "value": "ASSET"
+          },
+          {
+            "kind": "literal",
+            "value": "ACCOUNT"
+          },
+          {
+            "kind": "array",
+            "element": 23
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "priority",
+                "type": 24,
+                "optional": false
+              },
+              {
+                "name": "question",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "state",
+                "type": 29,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              25,
+              26,
+              27,
+              28
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "CRITICAL"
+          },
+          {
+            "kind": "literal",
+            "value": "HIGH"
+          },
+          {
+            "kind": "literal",
+            "value": "LOW"
+          },
+          {
+            "kind": "literal",
+            "value": "MEDIUM"
+          },
+          {
+            "kind": "union",
+            "types": [
+              30,
+              31,
+              32
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "OPEN"
+          },
+          {
+            "kind": "literal",
+            "value": "RESOLVED"
+          },
+          {
+            "kind": "literal",
+            "value": "SUPERSEDED"
+          },
+          {
+            "kind": "array",
+            "element": 34
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "description",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "expectedBenefit",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "requiresHumanApproval",
+                "type": 35,
+                "optional": false
+              },
+              {
+                "name": "risks",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "state",
+                "type": 36,
+                "optional": false
+              },
+              {
+                "name": "title",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "union",
+            "types": [
+              32,
+              37,
+              38,
+              39
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "PROPOSED"
+          },
+          {
+            "kind": "literal",
+            "value": "REJECTED"
+          },
+          {
+            "kind": "literal",
+            "value": "APPROVED"
+          },
+          {
+            "kind": "array",
+            "element": 41
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "confidence",
+                "type": 42,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "evidenceRefs",
+                "type": 43,
+                "optional": false
+              },
+              {
+                "name": "fromEntityId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "toEntityId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "array",
+            "element": 2
+          },
+          {
+            "kind": "union",
+            "types": [
+              45,
+              46,
+              47,
+              48
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ACTIVE"
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_DATA"
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETE"
+          },
+          {
+            "kind": "literal",
+            "value": "operations-intelligence"
+          },
+          {
+            "kind": "array",
+            "element": 51
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "details",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "evidenceRefs",
+                "type": 43,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "label",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "occurredAt",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "CREATE"
+          },
+          {
+            "kind": "literal",
+            "value": "DELEGATE"
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_ENTITY"
+          },
+          {
+            "kind": "literal",
+            "value": "STATUS"
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_GAP"
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_OPTION"
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_RELATIONSHIP"
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_TIMELINE"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/operations-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/scientific-fact",
+      "kind": "event",
+      "event": "d_ai/scientific-fact",
+      "surface": false,
+      "digest": "afcdb4c7e70ad64a9bdc787f2b7c85532d2c484ae972c551f415b60fd235f892",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 34,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 35,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "project",
+                "type": 10,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 33,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_HYPOTHESIS"
+          },
+          {
+            "kind": "literal",
+            "value": "CREATE"
+          },
+          {
+            "kind": "literal",
+            "value": "DELEGATE"
+          },
+          {
+            "kind": "literal",
+            "value": "RECORD_RESULT"
+          },
+          {
+            "kind": "literal",
+            "value": "REQUEST_EXPERIMENT"
+          },
+          {
+            "kind": "literal",
+            "value": "STATUS"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "delegations",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "experiments",
+                "type": 14,
+                "optional": false
+              },
+              {
+                "name": "hypotheses",
+                "type": 21,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "question",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 28,
+                "optional": false
+              },
+              {
+                "name": "system",
+                "type": 32,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 12
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "literature",
+                "type": 13,
+                "optional": false
+              },
+              {
+                "name": "methodology",
+                "type": 13,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "agentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 15
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "artifactRef",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "budgetUsd",
+                "type": 16,
+                "optional": true
+              },
+              {
+                "name": "completedAt",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "expectedEvidence",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "objective",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "observation",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "protocol",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 17,
+                "optional": false
+              },
+              {
+                "name": "title",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "union",
+            "types": [
+              18,
+              19,
+              20
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_HUMAN"
+          },
+          {
+            "kind": "literal",
+            "value": "PROPOSED"
+          },
+          {
+            "kind": "literal",
+            "value": "RESULT_RECORDED"
+          },
+          {
+            "kind": "array",
+            "element": 22
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "rationale",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "state",
+                "type": 23,
+                "optional": false
+              },
+              {
+                "name": "statement",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              24,
+              25,
+              26,
+              27
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "OPEN"
+          },
+          {
+            "kind": "literal",
+            "value": "REFUTED"
+          },
+          {
+            "kind": "literal",
+            "value": "SUPERSEDED"
+          },
+          {
+            "kind": "literal",
+            "value": "SUPPORTED_WITH_SCOPE"
+          },
+          {
+            "kind": "union",
+            "types": [
+              18,
+              29,
+              30,
+              31
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETE"
+          },
+          {
+            "kind": "literal",
+            "value": "ACTIVE"
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "literal",
+            "value": "scientific-research"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/scientific-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/side-effect-fact",
+      "kind": "event",
+      "event": "d_ai/side-effect-fact",
+      "surface": false,
+      "digest": "7f81f2c4d30d89ab07fe9198274a96c284e8267b76a74720d82f93d308ab509c",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 31,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 32,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ledger",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 30,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "records",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 7,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 5
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "abortedAt",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "artifactRefs",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "committedAt",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "dispatchedAt",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "fence",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "idempotencyKey",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "leaseId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "missionId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "requestDigest",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "resolution",
+                "type": 8,
+                "optional": true
+              },
+              {
+                "name": "resultDigest",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "state",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "systemId",
+                "type": 15,
+                "optional": false
+              },
+              {
+                "name": "targetDigest",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "taskId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "toolName",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "unknownAt",
+                "type": 2,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 2
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "at",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "by",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "note",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              10,
+              11,
+              12,
+              13,
+              14
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ABORTED"
+          },
+          {
+            "kind": "literal",
+            "value": "COMMITTED"
+          },
+          {
+            "kind": "literal",
+            "value": "DISPATCHED"
+          },
+          {
+            "kind": "literal",
+            "value": "OUTCOME_UNKNOWN"
+          },
+          {
+            "kind": "literal",
+            "value": "RESERVED"
+          },
+          {
+            "kind": "union",
+            "types": [
+              16,
+              17,
+              18,
+              19,
+              20,
+              21
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "investor"
+          },
+          {
+            "kind": "literal",
+            "value": "operations-intelligence"
+          },
+          {
+            "kind": "literal",
+            "value": "scientific-research"
+          },
+          {
+            "kind": "literal",
+            "value": "cybersecurity"
+          },
+          {
+            "kind": "literal",
+            "value": "innovation-discovery"
+          },
+          {
+            "kind": "literal",
+            "value": "investigation"
+          },
+          {
+            "kind": "union",
+            "types": [
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ABORT"
+          },
+          {
+            "kind": "literal",
+            "value": "COMMIT"
+          },
+          {
+            "kind": "literal",
+            "value": "MARK_DISPATCHED"
+          },
+          {
+            "kind": "literal",
+            "value": "RECONCILE"
+          },
+          {
+            "kind": "literal",
+            "value": "MARK_UNKNOWN"
+          },
+          {
+            "kind": "literal",
+            "value": "REBIND"
+          },
+          {
+            "kind": "literal",
+            "value": "RESERVE"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/side-effect-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/task-ledger-fact",
+      "kind": "event",
+      "event": "d_ai/task-ledger-fact",
+      "surface": false,
+      "digest": "6b9e3438ab660de0f81f12997ee8c71d236b2a224c6d634c9d22bfd1463c5f0e",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 31,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 32,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ledger",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 27,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 30,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "tasks",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "array",
+            "element": 6
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attempt",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "dependsOn",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "maxAttempts",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "missionId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "priority",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "state",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "systemId",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "title",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 2
+          },
+          {
+            "kind": "union",
+            "types": [
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "BLOCKED_BUDGET"
+          },
+          {
+            "kind": "literal",
+            "value": "BLOCKED_POLICY"
+          },
+          {
+            "kind": "literal",
+            "value": "CANCELLED"
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETED"
+          },
+          {
+            "kind": "literal",
+            "value": "FAILED"
+          },
+          {
+            "kind": "literal",
+            "value": "RUNNING"
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "literal",
+            "value": "PENDING"
+          },
+          {
+            "kind": "literal",
+            "value": "READY"
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_HUMAN"
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_TOOL"
+          },
+          {
+            "kind": "union",
+            "types": [
+              21,
+              22,
+              23,
+              24,
+              25,
+              26
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "investigation"
+          },
+          {
+            "kind": "literal",
+            "value": "investor"
+          },
+          {
+            "kind": "literal",
+            "value": "operations-intelligence"
+          },
+          {
+            "kind": "literal",
+            "value": "scientific-research"
+          },
+          {
+            "kind": "literal",
+            "value": "cybersecurity"
+          },
+          {
+            "kind": "literal",
+            "value": "innovation-discovery"
+          },
+          {
+            "kind": "union",
+            "types": [
+              28,
+              29
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_TASKS"
+          },
+          {
+            "kind": "literal",
+            "value": "TRANSITION"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/task-ledger-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/training-fact",
+      "kind": "event",
+      "event": "d_ai/training-fact",
+      "surface": false,
+      "digest": "41d9c5e635e6547412b71a2a480783c3adb34a12a4ec1b5fc23493a4668b7f63",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 33,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 34,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ledger",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 30,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 25,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "candidates",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "datasets",
+                "type": 27,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 8,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 5
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "artifactRef",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "candidate",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "eligibility",
+                "type": 21,
+                "optional": false
+              },
+              {
+                "name": "registeredAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "registeredBy",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "containsPersonalData",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "containsSecret",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "explicitTrainingOptIn",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "humanApproved",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "licenseAllowsTraining",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "ownershipAllowsTraining",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "personalDataRedacted",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "projectId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "qualityScore",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "sensitivity",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "sourceType",
+                "type": 14,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "union",
+            "types": [
+              10,
+              11,
+              12,
+              13
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "CONFIDENTIAL"
+          },
+          {
+            "kind": "literal",
+            "value": "INTERNAL"
+          },
+          {
+            "kind": "literal",
+            "value": "PUBLIC"
+          },
+          {
+            "kind": "literal",
+            "value": "RESTRICTED"
+          },
+          {
+            "kind": "union",
+            "types": [
+              15,
+              16,
+              17,
+              18,
+              19,
+              20
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "artifact"
+          },
+          {
+            "kind": "literal",
+            "value": "conversation"
+          },
+          {
+            "kind": "literal",
+            "value": "evaluation"
+          },
+          {
+            "kind": "literal",
+            "value": "expert-correction"
+          },
+          {
+            "kind": "literal",
+            "value": "mission"
+          },
+          {
+            "kind": "literal",
+            "value": "tool-trace"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "candidateId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "decision",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "policyVersion",
+                "type": 25,
+                "optional": false
+              },
+              {
+                "name": "reasons",
+                "type": 26,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              23,
+              24
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ELIGIBLE"
+          },
+          {
+            "kind": "literal",
+            "value": "REJECTED"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "array",
+            "element": 2
+          },
+          {
+            "kind": "array",
+            "element": 28
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdBy",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "lineage",
+                "type": 29,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "candidateIds",
+                "type": 26,
+                "optional": false
+              },
+              {
+                "name": "datasetId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "holdoutCandidateIds",
+                "type": 26,
+                "optional": false
+              },
+              {
+                "name": "policyVersion",
+                "type": 25,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 8,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              31,
+              32
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "BUILD_DATASET"
+          },
+          {
+            "kind": "literal",
+            "value": "REGISTER_CANDIDATE"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/training-fact"
+          }
+        ]
+      }
+    }
+  ],
+  "types": []
+}

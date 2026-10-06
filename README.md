@@ -18,36 +18,36 @@ Legend:
 | Area | Current state | What exists now |
 | --- | --- | --- |
 | Investigation | **TESTED / native** | Durable missions, bounded source capture, source hashes/provenance, anchored claims/counterclaims, independent research + verification child Agents, replay after restart. |
-| Scientific Research | **IMPLEMENTED / CI PENDING** | Durable research projects, open hypotheses, human/lab experiment handoff, result recording, independent literature + methodology Agents, restart projection. |
-| Investor | **IMPLEMENTED / CI PENDING** | Durable cases, immutable captured financial sources, explicit theses + invalidation conditions, independent fundamental + risk Agents. No capital execution tool. |
-| Cybersecurity | **IMPLEMENTED / CI PENDING** | Explicit authorization scope, defensive findings, remediation, safe retest recording, independent assessment + remediation-review Agents. |
-| Operations & Intelligence | **IMPLEMENTED / CI PENDING** | Durable cases, entities, relationships, timelines, intelligence gaps, human-gated proposed options, fusion + adversarial analysis Agents. |
-| Innovation & Discovery | **IMPLEMENTED / CI PENDING** | Testable candidates, mechanisms, falsification tests, experiment handoff/results, independent explorer + critic Agents. Generated ideas cannot self-declare as discoveries. |
-| Shared Task DAG | **IMPLEMENTED / CI PENDING** | Task states, dependencies, retry accounting, durable task-ledger replay, and scheduler admission that respects dependencies/blocking states. |
-| Mission Director | **IMPLEMENTED / CI PENDING** | Durable cross-system plans, isolated planner decomposition, single-task/bounded-cycle execution, and a durable unattended scheduler now exist. Schedules are human-approval gated, retain cadence and cycle receipts, wake only idle root Agents, and execute inside a native Agent turn so leases/fencing/checkpoints remain authoritative. Full CI/native acceptance and multi-process worker scheduling are still pending. |
-| Durable execution | **IMPLEMENTED / CI PENDING** | Runnable tasks use durable leases with monotonically increasing per-task fencing tokens. Renew/checkpoint/executor-state/release mutations require the exact `taskId + leaseId + fence`, stale workers fail closed, checkpoints retain lease lineage, expired leases recover through retry accounting, and persisted execution facts migrate deterministically from v1 to fenced v2. The unattended Director wake loop is implemented; distributed worker-pool/fault-injection acceptance remains pending. |
-| External side-effect idempotency | **IMPLEMENTED FOUNDATION / CI PENDING** | A durable journal and connector gateway now model `RESERVED → DISPATCHED → COMMITTED`, preserve `OUTCOME_UNKNOWN`, suppress replay of committed keys, allow safe rebind only before dispatch, and require human reconciliation for uncertain outcomes. No production mutable connector is enabled yet. |
-| Capability control plane | **IMPLEMENTED / CI PENDING** | Scoped ALLOW/DENY grants, fail-closed authorization, human-approved durable grant changes, append-only audit hash chain, durable control-plane projection. |
-| Evidence / Knowledge graph | **IMPLEMENTED / CI PENDING** | Shared append-only evidence nodes/edges now persist through Session replay with provenance and confidence; support/contradiction graph primitives exist. Automatic domain-to-graph ingestion and graph UI are still incomplete. |
-| Cross-system handoff | **IMPLEMENTED / CI PENDING** | Mission Director execution now enforces persisted capability grants fail-closed before cross-system task work begins, derives handoff sources from durable dependencies, records authorized handoffs in the audit chain, and moves denied work to `BLOCKED_POLICY`. Broader cross-system tool/data gateways remain incomplete. |
-| Model Router | **IMPLEMENTED / CI PENDING** | Durable non-secret Model Profiles and per-system/role Routing Policies persist, route by hard capability/context/locality constraints plus weighted ranking, and automatically inject the selected provider/model into native worker roles across all six domains. Provider-secret storage and live telemetry are still incomplete. |
-| Resource budgets + VoI | **IMPLEMENTED / CI PENDING** | Durable TASK/MISSION/SYSTEM budget profiles participate in scheduler admission; exact exhaustion is fail-closed. Mission Director task execution now meters real wall-clock time into all matching scopes atomically. Token, money, human-attention and data-access telemetry are not yet automatically measured. |
-| Training governance | **IMPLEMENTED / CI PENDING** | Governed training-artifact metadata now persists with deterministic eligibility decisions; raw training content is referenced by artifact ID rather than embedded, and versioned datasets require eligible training candidates plus an independent holdout. Actual training jobs are not implemented yet. |
+| Scientific Research | **TESTED / native fixtures / CI PENDING** | Durable research projects, open hypotheses, human/lab experiment handoff, result recording, independent literature + methodology Agents, restart projection. |
+| Investor | **TESTED / native fixtures / CI PENDING** | Durable cases, immutable captured financial sources, explicit theses + invalidation conditions, independent fundamental + risk Agents. No capital execution tool. |
+| Cybersecurity | **TESTED / native fixtures / CI PENDING** | Explicit authorization scope, defensive findings, remediation, safe retest recording, independent assessment + remediation-review Agents. |
+| Operations & Intelligence | **TESTED / native fixtures / CI PENDING** | Durable cases, entities, relationships, timelines, intelligence gaps, human-gated proposed options, fusion + adversarial analysis Agents. |
+| Innovation & Discovery | **TESTED / native fixtures / CI PENDING** | Testable candidates, mechanisms, falsification tests, experiment handoff/results, independent explorer + critic Agents. Generated ideas cannot self-declare as discoveries. |
+| Shared Task DAG | **TESTED / native fixtures / CI PENDING** | Task states, dependencies, retry accounting, durable task-ledger replay, and scheduler admission that respects dependencies/blocking states. |
+| Mission Director | **TESTED / native fixtures / CI PENDING** | Durable cross-system plans, isolated planner decomposition, single-task execution and bounded multi-task execution cycles now exist with authoritative Task-Ledger linkage, dependency-checkpoint reconstruction, derived lifecycle phase and budget-aware admission. Approved schedules now wake loaded idle owner Agents through the native inbox; cold-session activation and production scheduling remain incomplete. |
+| Durable execution | **TESTED / native fixtures / CI PENDING** | Runnable tasks use durable leases with monotonically increasing per-task fencing tokens. Renew/checkpoint/executor-state/release mutations require the exact `taskId + leaseId + fence`, stale workers fail closed, checkpoints retain lease lineage, expired leases recover through retry accounting, and persisted execution facts migrate deterministically from v1 to fenced v2. An opt-in native wake loop now persists approved schedules and executes bounded cycles for loaded owner Agents; cold-session activation and production worker acceptance remain incomplete. |
+| External side-effect idempotency | **TESTED / fixtures / CI PENDING** | A durable journal and connector gateway now model `RESERVED → DISPATCHED → COMMITTED`, preserve `OUTCOME_UNKNOWN`, suppress replay of committed keys, allow safe rebind only before dispatch, and require human reconciliation for uncertain outcomes. No production mutable connector is enabled yet. |
+| Capability control plane | **TESTED / native fixtures / CI PENDING** | Scoped ALLOW/DENY grants, fail-closed authorization, human-approved durable grant changes, append-only audit hash chain, durable control-plane projection. |
+| Evidence / Knowledge graph | **TESTED / native fixtures / CI PENDING** | Shared append-only evidence nodes/edges now persist through Session replay with provenance and confidence; support/contradiction graph primitives exist. Automatic domain-to-graph ingestion and graph UI are still incomplete. |
+| Cross-system handoff | **TESTED / native fixtures / CI PENDING** | Mission Director execution now enforces persisted capability grants fail-closed before cross-system task work begins, derives handoff sources from durable dependencies, records authorized handoffs in the audit chain, and moves denied work to `BLOCKED_POLICY`. Broader cross-system tool/data gateways remain incomplete. |
+| Model Router | **TESTED / native fixtures / CI PENDING** | Durable non-secret Model Profiles and per-system/role Routing Policies persist, route by hard capability/context/locality constraints plus weighted ranking, and automatically inject the selected provider/model into native worker roles across all six domains. Provider-secret storage and live telemetry are still incomplete. |
+| Resource budgets + VoI | **TESTED / native fixtures / CI PENDING** | Durable TASK/MISSION/SYSTEM budget profiles participate in scheduler admission; exact exhaustion is fail-closed. Mission Director task execution now meters real wall-clock time into all matching scopes atomically. Token, money, human-attention and data-access telemetry are not yet automatically measured. |
+| Training governance | **TESTED / native fixtures / CI PENDING** | Governed training-artifact metadata now persists with deterministic eligibility decisions; raw training content is referenced by artifact ID rather than embedded, and versioned datasets require eligible training candidates plus an independent holdout. Actual training jobs are not implemented yet. |
 | Local Intelligence Core | **FOUNDATION ONLY** | Architecture, governed candidate/dataset pipeline, durable evaluation records, recomputed promotion decisions and rollback pointers now exist. **No D_AI local model has been trained, deployed or activated yet.** Training execution and real model artifacts are still missing. |
-| Control Center read API | **IMPLEMENTED / CI PENDING** | A consolidated platform snapshot now exposes domain counts, task states, control-plane grants/audit, budgets, evidence-graph size and execution lease/checkpoint health for future dashboards. |
+| Control Center read API | **TESTED / native fixtures / CI PENDING** | A consolidated platform snapshot now exposes domain counts, task states, control-plane grants/audit, budgets, evidence-graph size and execution lease/checkpoint health for future dashboards. |
 | Admin / Control Center UI | **NOT BUILT** | Runtime control APIs are being built first; full GUI for users, grants, systems, models, budgets and audit is still pending. |
 
 ## Current CI blocker
 
-As of 2026-10-07, the latest inspected scheduler-code checkpoint `D_AI v2 checks` run is [37532703605](https://github.com/amroquqa99-art/D_AI/actions/runs/37532703605), job `112505811309`. The job concluded `failure` with **no workflow steps**, so checkout/install/persistence generation/build/typecheck/tests did not execute. The precise runner rejection reason remains unavailable through the connected API.
+As of 2026-10-06, the latest inspected `D_AI v2 checks` run is [37532703605](https://github.com/amroquqa99-art/D_AI/actions/runs/37532703605), job `112505811309`. The job concluded `failure` with **no workflow steps**, so checkout/install/persistence generation/build/typecheck/tests did not execute. The precise runner rejection reason remains unavailable through the connected API.
 
-The complete native integration/build gate remains **CI PENDING**. Focused local verification is recorded separately below and does not establish full runtime readiness.
+The complete workspace build and CI gate remain **CI PENDING**. Local native fixture integration now passes; its scope and remaining acceptance checks are recorded below.
 
 ## Latest local engineering checkpoint
 
 The lease heartbeat now preserves renewal failures that settle during cleanup, prevents cancelled work from reporting success, checks cancellation before deferred worker startup, retains arbitrary rejection values and supports short lease intervals. Cleanup still waits for both the worker and renewal to settle.
 
-The last recorded focused local verification on 2026-10-06 passed **86 tests across 21 D_AI test files**, including ten lease-heartbeat cases, plus strict TypeScript checks for the changed helper and its tests. Five regression cases failed against the previous helper before the fix. Scheduler projection/wake/runtime/REAL-Loader tests were added after that receipt and remain **authored / CI_PENDING**, not claimed passing. Exact scope and remaining checks are in [TEST_REPORT.md](docs/TEST_REPORT.md).
+Local verification on 2026-10-06 passed **157 tests across all 41 D_AI test files**, using actual native AgentLoop/Session/JSONL/flock integration with scripted model and web fixtures. Expired running tasks now recover before Director cycle selection; human-wait tasks retain their approval boundary; pre-cancelled execution leaves tasks unclaimed; retry recovery propagates persistence failures. Four new regressions failed against the previous runtime and all five pass after the fix. The regenerated persistence catalog recognizes all 17 D_AI events, preserves every existing root digest, and passes catalog/history checks. Scoped D_AI source and touched native-test type checking reports zero D_AI diagnostics; the full project-reference build remains pending. Exact receipts are in [TEST_REPORT.md](docs/TEST_REPORT.md). The opt-in scheduler now has native restart/wake fixture evidence; cold-session activation, long-running worker stress and production acceptance remain unfinished.
 
 ## What is being worked on right now
 
@@ -55,10 +55,10 @@ The active engineering path is:
 
 1. Continue thinning the runtime composition root behind characterization tests; shared owner/turn/mutation invariants and typed projection reads are already centralized.
 2. Restore an executable CI gate and run the full current branch validation. No maturity promotion happens while Actions is failing before steps.
-3. Validate and harden the new unattended scheduler under restart/cancellation/fault injection, then extend from one-process root-Agent wake coordination to a bounded multi-worker execution model.
+3. Extend the opt-in scheduler for loaded owner Agents with cold-session activation, saturation/stagnation policies and worker stress/recovery acceptance.
 4. Extend resource telemetry beyond real wall-clock metering to model tokens/cost, data-access cost and human-attention accounting without fabricated estimates.
 5. Expand cross-system authorization from Director task execution into the general tool/evidence gateway.
-6. Regenerate/verify the Harness persistence catalog for all D_AI Session events as part of the gate.
+6. Keep the regenerated Harness persistence catalog and acknowledged schema history current for all D_AI Session events.
 7. Pass the strict D_AI gate:
    - native system addon build
    - persistence catalog generation/verification
@@ -66,7 +66,7 @@ The active engineering path is:
    - system registry tests
    - all D_AI package/integration tests
 8. Promote system registry statuses only after the gate is green.
-9. Continue long-horizon Mission Director policies (stagnation/saturation, fairness and multi-worker recovery) and the full cross-system runtime.
+9. Continue long-horizon Mission Director policies for stagnation/saturation, fairness and multi-worker recovery, and the full cross-system runtime.
 10. Build the Control Center/Admin UI after the control APIs and durable state are stable.
 
 The CI workflow used for this branch is `.github/workflows/d-ai-v2-checks.yml`.
@@ -85,6 +85,7 @@ packages/experimental/d-ai/
 │   ├── runtime-kernel.ts         # owner/turn/mutation-order invariants
 │   ├── runtime-state.ts          # typed immutable projection reads
 │   ├── runtime-errors.ts         # stable D_AI error routing
+│   ├── lease-heartbeat.ts        # fail-closed lease renewal during work
 │   ├── director-runtime.ts       # bounded Director execution contracts
 │   ├── director-schedule-state.ts # durable unattended cadence/receipts
 │   ├── director-scheduler.ts     # native-turn unattended wake coordinator
@@ -118,7 +119,6 @@ packages/experimental/d-ai/
 │   ├── runtime-scheduler.ts
 │   ├── execution-state.ts
 │   ├── execution-fencing.ts
-│   ├── lease-heartbeat.ts
 │   ├── side-effect-state.ts
 │   ├── side-effect-runtime.ts
 │   ├── model-router.ts
@@ -183,7 +183,7 @@ Still required before it can be called a working D_AI model:
 
 The repository is already beyond a design-only prototype, but major engineering remains:
 
-- bounded multi-process/distributed worker scheduling, crash/restart fault injection and fairness/stagnation policies around the implemented unattended Director wake loop
+- cold-session discovery/activation and production acceptance for the opt-in native scheduler; durable approved schedules, loaded-owner wakeup, bounded cycles and restart recovery now have fixture evidence
 - checkpoint/recovery across arbitrary active external tool execution, not only Session projection replay and Director child-agent execution
 - generalized cross-system tool/evidence dispatch using the shared grants/control plane
 - persistent scalable shared Evidence/Knowledge Graph backend beyond the current append-only Session projection

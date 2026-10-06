@@ -105,7 +105,7 @@ const indexSpec = defineDomain({ name: 'd_ai_mission_index', version: 1, tables:
   missions: domainTable(schema.object({ id: schema.string(), rootSessionId: schema.string() }).strict()),
 } })
 
-const fail = failDai
+const fail: typeof failDai = failDai
 
 /** Single-owner native service; raw Session history is authoritative, index is discoverability only. */
 export class DAI extends Service {
@@ -591,7 +591,7 @@ export class DAI extends Service {
     return immutableSnapshot(fact.project)
   }
 
-  private async appendTaskLedger(agent: Agent, operation: TaskLedgerFact['operation'], ledger: DurableTaskLedger): Promise<DurableTaskLedger> {
+  private async appendTaskLedger(agent: Agent, operation: TaskLedgerFact['operation'], ledger: Omit<DurableTaskLedger, 'tasks'> & { readonly tasks: readonly MissionTask[] }): Promise<DurableTaskLedger> {
     this.authorize(agent)
     const fact = immutableSnapshot(taskLedgerFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('task ledger storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
@@ -621,7 +621,7 @@ export class DAI extends Service {
     return immutableSnapshot(fact.ledger)
   }
 
-  private async appendEvidenceStore(agent: Agent, operation: EvidenceStoreFact['operation'], store: EvidenceStore): Promise<EvidenceStore> {
+  private async appendEvidenceStore(agent: Agent, operation: EvidenceStoreFact['operation'], store: Omit<EvidenceStore, 'nodes'> & { readonly nodes: readonly EvidenceNode[] }): Promise<EvidenceStore> {
     this.authorize(agent)
     const fact = immutableSnapshot(evidenceStoreFactSchema.parse({ version: 1, operation, actorId: agent.id, store }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('evidence store storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
@@ -662,7 +662,7 @@ export class DAI extends Service {
     return immutableSnapshot(fact.ledger)
   }
 
-  private async appendModelRegistry(agent: Agent, operation: ModelRegistryFact['operation'], registry: ModelRegistry): Promise<ModelRegistry> {
+  private async appendModelRegistry(agent: Agent, operation: ModelRegistryFact['operation'], registry: Omit<ModelRegistry, 'models'> & { readonly models: readonly ModelProfile[] }): Promise<ModelRegistry> {
     this.authorize(agent)
     const fact = immutableSnapshot(modelRegistryFactSchema.parse({ version: 1, operation, actorId: agent.id, registry }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('model registry storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
@@ -866,10 +866,12 @@ export class DAI extends Service {
     signal: AbortSignal,
     ttlMs = 600000,
   ): Promise<Readonly<{ task: MissionTask; execution: TaskExecutionResult }>> {
+    signal.throwIfAborted()
     const plan = this.directorPlan(agent, planId)
     if (plan.status !== 'ACTIVE') fail('Mission Director execution requires an active plan', 'D_AI_INVALID_TRANSITION')
 
     await this.recoverExpiredTaskLeases(agent)
+    signal.throwIfAborted()
     const claimed = await this.claimNextRunnableTask(agent, ttlMs, plan.id)
     const startedAt = performance.now()
 
@@ -1091,6 +1093,10 @@ export class DAI extends Service {
 
     try {
       const executed: DirectorTaskExecution[] = []
+      signal.throwIfAborted()
+      if (this.directorPlan(agent, planId).status === 'ACTIVE') {
+        await this.recoverExpiredTaskLeases(agent)
+      }
 
       while (executed.length < maxTasks) {
         signal.throwIfAborted()
@@ -1222,9 +1228,6 @@ export class DAI extends Service {
     const plan = this.directorPlan(agent, schedule.planId)
     const attemptedAt = new Date().toISOString()
 
-    // A queued wake is a capability token for one exact durable due time.
-    // Reconfiguration or disablement invalidates the old token rather than
-    // letting stale background work execute under new settings.
     if (plan.status !== 'ACTIVE'
       || !isCurrentDirectorScheduleWake(schedule, expectedDueAt, Date.parse(attemptedAt))) {
       return immutableSnapshot({
@@ -1236,6 +1239,7 @@ export class DAI extends Service {
 
     let cycle: DirectorCycleResult | undefined
     let failure: unknown
+    let failed = false
     try {
       cycle = await this.executeDirectorCycle(
         agent,
@@ -1245,11 +1249,12 @@ export class DAI extends Service {
         schedule.leaseTtlMs,
       )
     } catch (error) {
+      failed = true
       failure = error
     }
 
     const finalView = this.directorPlanView(agent, schedule.planId, 1)
-    const receipt: DirectorScheduleCycle = failure === undefined
+    const receipt: DirectorScheduleCycle = !failed
       ? {
           attemptedAt,
           outcome: (cycle?.executed.length ?? 0) > 0 ? 'EXECUTED' : 'IDLE',
@@ -1281,7 +1286,7 @@ export class DAI extends Service {
       })
     })
 
-    if (failure !== undefined) throw failure
+    if (failed) throw failure
 
     return immutableSnapshot({
       scheduleId,
@@ -1442,7 +1447,7 @@ export class DAI extends Service {
         baselineEvaluationId: baseline.id,
         candidateEvaluationId: candidate.id,
         policy: input.policy,
-        decision,
+        decision: { ...decision, reasons: [...decision.reasons] },
         ...(release === undefined ? {} : { release }),
         decidedAt: now,
         decidedBy: agent.id,
@@ -1493,12 +1498,13 @@ export class DAI extends Service {
         qualityScore: input.qualityScore,
         humanApproved: true,
       }
+      const eligibility = evaluateTrainingEligibilityInternal(candidate)
       const governed: GovernedTrainingCandidate = {
         candidate,
         artifactRef: input.artifactRef,
         registeredAt: new Date().toISOString(),
         registeredBy: agent.id,
-        eligibility: evaluateTrainingEligibilityInternal(candidate),
+        eligibility: { ...eligibility, reasons: [...eligibility.reasons] },
       }
       return this.appendTrainingLedger(agent, 'REGISTER_CANDIDATE', {
         ownerAgentId: agent.id,
@@ -1561,7 +1567,7 @@ export class DAI extends Service {
       const latest = this.trainingLedger(agent)
       if (latest.revision !== current.revision) fail('training ledger changed during dataset approval; retry with current state', 'D_AI_STALE_STATE')
       const dataset: GovernedDataset = {
-        lineage,
+        lineage: { ...lineage, candidateIds: [...lineage.candidateIds], holdoutCandidateIds: [...lineage.holdoutCandidateIds] },
         createdAt: new Date().toISOString(),
         createdBy: agent.id,
       }
@@ -1873,8 +1879,8 @@ export class DAI extends Service {
 
   /**
    * Recover tasks stranded by expired leases. Expired RUNNING/WAITING_FOR_TOOL
-   * work is failed then retried within its maxAttempts budget; WAITING_FOR_HUMAN
-   * returns to READY without consuming a retry.
+   * work is failed then retried within its maxAttempts budget. Lease expiry
+   * never satisfies a pending human requirement or resumes paused work.
    */
   async recoverExpiredTaskLeases(
     agent: Agent,
@@ -1920,7 +1926,7 @@ export class DAI extends Service {
             revision: tasks.revision + 1,
             tasks: tasks.tasks.map(item => item.id === task.id ? failed : item),
           })
-          try {
+          if (failed.attempt < failed.maxAttempts) {
             const pending = transitionTaskInternal(failed, 'PENDING')
             tasks = await this.appendTaskLedger(agent, 'TRANSITION', {
               ownerAgentId: agent.id,
@@ -1928,19 +1934,11 @@ export class DAI extends Service {
               tasks: tasks.tasks.map(item => item.id === task.id ? pending : item),
             })
             recovered.add(task.id)
-          } catch {
+          } else {
             exhausted.add(task.id)
           }
-        } else if (task.state === 'WAITING_FOR_HUMAN') {
-          const ready = transitionTaskInternal(task as MissionTask, 'READY')
-          tasks = await this.appendTaskLedger(agent, 'TRANSITION', {
-            ownerAgentId: agent.id,
-            revision: tasks.revision + 1,
-            tasks: tasks.tasks.map(item => item.id === task.id ? ready : item),
-          })
-          recovered.add(task.id)
         } else if (task.state === 'FAILED') {
-          try {
+          if (task.attempt < task.maxAttempts) {
             const pending = transitionTaskInternal(task as MissionTask, 'PENDING')
             tasks = await this.appendTaskLedger(agent, 'TRANSITION', {
               ownerAgentId: agent.id,
@@ -1948,7 +1946,7 @@ export class DAI extends Service {
               tasks: tasks.tasks.map(item => item.id === task.id ? pending : item),
             })
             recovered.add(task.id)
-          } catch {
+          } else {
             exhausted.add(task.id)
           }
         }

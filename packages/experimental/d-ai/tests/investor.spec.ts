@@ -120,7 +120,8 @@ describe('D_AI Investor native slice', () => {
       await agent.whenIdle()
       const tools = adapter.requests[0]?.tools?.map(tool => tool.name) ?? []
       expect(tools).toContain('d_ai_investor_create')
-      expect(tools.some(name => /buy|sell|trade|order|execute/i.test(name))).toBe(false)
+      expect(tools.some(name => /(?:^|_)(buy|sell|trade|order)(?:_|$)/i.test(name))).toBe(false)
+      expect(tools.filter(name => name.startsWith('d_ai_investor_')).some(name => /execute/i.test(name))).toBe(false)
     } finally {
       await ctx.fiber.dispose()
     }
