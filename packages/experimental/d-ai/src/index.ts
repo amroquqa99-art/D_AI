@@ -555,6 +555,16 @@ export class DAI extends Service {
           policies: registry.policies.length,
         }
       })(),
+      trainingGovernance: (() => {
+        const ledger = this.trainingLedger(agent)
+        return {
+          revision: ledger.revision,
+          candidates: ledger.candidates.length,
+          eligibleCandidates: ledger.candidates.filter(item => item.eligibility.decision === 'ELIGIBLE').length,
+          rejectedCandidates: ledger.candidates.filter(item => item.eligibility.decision === 'REJECTED').length,
+          datasets: ledger.datasets.length,
+        }
+      })(),
     })
   }
 
@@ -730,6 +740,124 @@ export class DAI extends Service {
 
 
 
+
+  /**
+   * Register metadata for one possible training artifact after explicit human
+   * approval. Raw training content is never accepted here; only an artifactRef
+   * plus governance metadata enters the durable Session log.
+   */
+  async registerTrainingCandidate(
+    agent: Agent,
+    input: Omit<TrainingDataCandidate, 'id' | 'humanApproved'> & { readonly artifactRef: string },
+    signal?: AbortSignal,
+  ): Promise<TrainingLedger> {
+    this.authorize(agent)
+    if (input.artifactRef.trim().length === 0) fail('training artifactRef is required', 'D_AI_INVALID_INPUT')
+
+    const outcome = await this.ctx.approval.request({
+      agent,
+      toolName: 'd_ai_training_register_candidate',
+      reason: 'Register training-governance metadata for project ' + input.projectId + ' from ' + input.artifactRef,
+      ...(signal === undefined ? {} : { signal }),
+    })
+    if (outcome !== 'allowed-once') fail('human approval is required to register training candidates')
+
+    return this.transact(agent, async () => {
+      const current = this.trainingLedger(agent)
+      const candidate: TrainingDataCandidate = {
+        id: randomUUID(),
+        projectId: input.projectId,
+        sourceType: input.sourceType,
+        sensitivity: input.sensitivity,
+        explicitTrainingOptIn: input.explicitTrainingOptIn,
+        ownershipAllowsTraining: input.ownershipAllowsTraining,
+        licenseAllowsTraining: input.licenseAllowsTraining,
+        containsSecret: input.containsSecret,
+        containsPersonalData: input.containsPersonalData,
+        personalDataRedacted: input.personalDataRedacted,
+        qualityScore: input.qualityScore,
+        humanApproved: true,
+      }
+      const governed: GovernedTrainingCandidate = {
+        candidate,
+        artifactRef: input.artifactRef,
+        registeredAt: new Date().toISOString(),
+        registeredBy: agent.id,
+        eligibility: evaluateTrainingEligibilityInternal(candidate),
+      }
+      return this.appendTrainingLedger(agent, 'REGISTER_CANDIDATE', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        candidates: [...current.candidates, governed],
+        datasets: [...current.datasets],
+      })
+    })
+  }
+
+  /**
+   * Build immutable dataset lineage from previously registered eligible
+   * candidates. Training and holdout identities must be disjoint and both are
+   * re-evaluated against the current fail-closed policy before commit.
+   */
+  async buildTrainingDataset(
+    agent: Agent,
+    input: {
+      readonly datasetId: string
+      readonly version: number
+      readonly candidateIds: readonly string[]
+      readonly holdoutCandidateIds: readonly string[]
+    },
+    signal?: AbortSignal,
+  ): Promise<TrainingLedger> {
+    this.authorize(agent)
+    if (input.datasetId.trim().length === 0) fail('training dataset id is required', 'D_AI_INVALID_INPUT')
+    if (!Number.isSafeInteger(input.version) || input.version < 1) fail('training dataset version must be a positive safe integer', 'D_AI_INVALID_INPUT')
+
+    const current = this.trainingLedger(agent)
+    const byId = new Map(current.candidates.map(item => [item.candidate.id, item]))
+    const resolve = (id: string): GovernedTrainingCandidate => {
+      const item = byId.get(id)
+      if (item === undefined) fail('unknown training candidate: ' + id, 'D_AI_INVALID_INPUT')
+      return item
+    }
+    const accepted = input.candidateIds.map(id => resolve(id).candidate as TrainingDataCandidate)
+    const holdout = input.holdoutCandidateIds.map(id => resolve(id).candidate as TrainingDataCandidate)
+
+    let lineage
+    try {
+      lineage = buildDatasetLineageInternal(input.datasetId, input.version, accepted, holdout)
+    } catch (error) {
+      fail(error instanceof Error ? error.message : String(error), 'D_AI_TRAINING_POLICY_DENIED')
+    }
+
+    if (current.datasets.some(item => item.lineage.datasetId === input.datasetId && item.lineage.version === input.version)) {
+      fail('training dataset version already exists', 'D_AI_INVALID_INPUT')
+    }
+
+    const outcome = await this.ctx.approval.request({
+      agent,
+      toolName: 'd_ai_training_build_dataset',
+      reason: 'Build governed Local Intelligence Core dataset ' + input.datasetId + ' v' + input.version,
+      ...(signal === undefined ? {} : { signal }),
+    })
+    if (outcome !== 'allowed-once') fail('human approval is required to build training datasets')
+
+    return this.transact(agent, async () => {
+      const latest = this.trainingLedger(agent)
+      if (latest.revision !== current.revision) fail('training ledger changed during dataset approval; retry with current state', 'D_AI_STALE_STATE')
+      const dataset: GovernedDataset = {
+        lineage,
+        createdAt: new Date().toISOString(),
+        createdBy: agent.id,
+      }
+      return this.appendTrainingLedger(agent, 'BUILD_DATASET', {
+        ownerAgentId: agent.id,
+        revision: latest.revision + 1,
+        candidates: [...latest.candidates],
+        datasets: [...latest.datasets, dataset],
+      })
+    })
+  }
 
   /** Register or update one non-secret model capability/evaluation profile after human approval. */
   async upsertModelProfile(
@@ -2321,6 +2449,59 @@ export class DAI extends Service {
         const states = ['PENDING', 'READY', 'RUNNING', 'WAITING_FOR_HUMAN', 'WAITING_FOR_TOOL', 'BLOCKED_POLICY', 'BLOCKED_BUDGET', 'PAUSED', 'FAILED', 'COMPLETED', 'CANCELLED'] as const
         if (!states.includes(args.next_state as typeof states[number])) fail('invalid durable task state', 'D_AI_INVALID_INPUT')
         return encoded(this.transitionDurableTask(owner(exec.agent), args.task_id, args.next_state as TaskState))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_training_read', description: 'Read governed Local Intelligence Core training-candidate metadata and dataset lineage. Raw training content is not stored in this state.',
+      parameters: {}, output,
+      execute: (_args, exec) => encoded(this.readTraining(owner(exec.agent))) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_training_register_candidate', description: 'Register one potential training artifact by reference plus governance metadata after human approval. This tool never accepts raw training content.',
+      parameters: {
+        project_id: { type: 'string', required: true },
+        artifact_ref: { type: 'string', required: true },
+        source_type: { type: 'string', required: true },
+        sensitivity: { type: 'string', required: true },
+        explicit_training_opt_in: { type: 'boolean', required: true },
+        ownership_allows_training: { type: 'boolean', required: true },
+        license_allows_training: { type: 'boolean', required: true },
+        contains_secret: { type: 'boolean', required: true },
+        contains_personal_data: { type: 'boolean', required: true },
+        personal_data_redacted: { type: 'boolean', required: true },
+        quality_score: { type: 'number', required: true },
+      }, output,
+      execute: (args, exec) => {
+        const sourceTypes = ['mission', 'tool-trace', 'expert-correction', 'evaluation', 'artifact', 'conversation'] as const
+        const sensitivities = ['PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED'] as const
+        if (!sourceTypes.includes(args.source_type as typeof sourceTypes[number])) fail('invalid training source type', 'D_AI_INVALID_INPUT')
+        if (!sensitivities.includes(args.sensitivity as typeof sensitivities[number])) fail('invalid training sensitivity', 'D_AI_INVALID_INPUT')
+        return encoded(this.registerTrainingCandidate(owner(exec.agent), {
+          projectId: args.project_id,
+          artifactRef: args.artifact_ref,
+          sourceType: args.source_type as TrainingDataCandidate['sourceType'],
+          sensitivity: args.sensitivity as DataSensitivity,
+          explicitTrainingOptIn: args.explicit_training_opt_in,
+          ownershipAllowsTraining: args.ownership_allows_training,
+          licenseAllowsTraining: args.license_allows_training,
+          containsSecret: args.contains_secret,
+          containsPersonalData: args.contains_personal_data,
+          personalDataRedacted: args.personal_data_redacted,
+          qualityScore: args.quality_score,
+        }, exec.signal))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_training_build_dataset', description: 'Build versioned dataset lineage from already registered ELIGIBLE training and holdout candidates after human approval. Rejected candidates fail closed.',
+      parameters: {
+        dataset_id: { type: 'string', required: true },
+        version: { type: 'number', required: true },
+        candidate_ids: { type: 'string', required: true },
+        holdout_candidate_ids: { type: 'string', required: true },
+      }, output,
+      execute: (args, exec) => {
+        const candidateIds = args.candidate_ids.split(/[\n,]+/).map(value => value.trim()).filter(Boolean)
+        const holdoutCandidateIds = args.holdout_candidate_ids.split(/[\n,]+/).map(value => value.trim()).filter(Boolean)
+        return encoded(this.buildTrainingDataset(owner(exec.agent), {
+          datasetId: args.dataset_id,
+          version: args.version,
+          candidateIds,
+          holdoutCandidateIds,
+        }, exec.signal))
       } }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_models_read', description: 'Read the durable non-secret D_AI model registry and system/role routing policies.',
       parameters: {}, output,
