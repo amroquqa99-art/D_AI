@@ -51,6 +51,8 @@ import type { EvidenceStore, EvidenceStoreFact, EvidenceStoreState } from './evi
 import type { EvidenceEdge, EvidenceNode } from './evidence-graph.ts'
 import { executionFactSchema } from './execution-state.ts'
 import type { ExecutionFact, ExecutionLedger, ExecutionState, TaskCheckpoint, TaskLease } from './execution-state.ts'
+import { sideEffectFactSchema } from './side-effect-state.ts'
+import type { SideEffectFact, SideEffectLedger, SideEffectRecord, SideEffectState } from './side-effect-state.ts'
 import { modelRegistryFactSchema } from './model-registry-state.ts'
 import type { ModelRegistry, ModelRegistryFact, ModelRegistryState, ModelRoutingPolicy } from './model-registry-state.ts'
 import { chooseModel as chooseModelInternal } from './model-router.ts'
@@ -299,6 +301,20 @@ export class DAI extends Service {
     }
   }
 
+  /** Read the durable external side-effect idempotency journal. */
+  readSideEffects(agent: Agent): SideEffectState {
+    return this.projections.read(agent, 'daiSideEffects')
+  }
+
+  private sideEffectLedger(agent: Agent): SideEffectLedger {
+    const existing = this.readSideEffects(agent).ledgers.find(item => item.ownerAgentId === agent.id)
+    return existing ?? {
+      ownerAgentId: agent.id,
+      revision: 0,
+      records: [],
+    }
+  }
+
   /** Read the durable shared Evidence/Knowledge Graph for the owner. */
   readEvidenceStore(agent: Agent): EvidenceStoreState {
     return this.projections.read(agent, 'daiEvidenceStore')
@@ -401,6 +417,18 @@ export class DAI extends Service {
           leases: ledger.leases.length,
           activeLeases: ledger.leases.filter(lease => lease.releasedAt === undefined && Date.parse(lease.expiresAt) > now).length,
           checkpoints: ledger.checkpoints.length,
+        }
+      })(),
+      sideEffects: (() => {
+        const ledger = this.sideEffectLedger(agent)
+        return {
+          revision: ledger.revision,
+          records: ledger.records.length,
+          reserved: ledger.records.filter(record => record.state === 'RESERVED').length,
+          dispatched: ledger.records.filter(record => record.state === 'DISPATCHED').length,
+          committed: ledger.records.filter(record => record.state === 'COMMITTED').length,
+          outcomeUnknown: ledger.records.filter(record => record.state === 'OUTCOME_UNKNOWN').length,
+          aborted: ledger.records.filter(record => record.state === 'ABORTED').length,
         }
       })(),
       modelRegistry: (() => {
@@ -565,6 +593,27 @@ export class DAI extends Service {
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('execution ledger storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/execution-fact', fact)
+    await this.ctx.sessions.flush(agent.session)
+    return immutableSnapshot(fact.ledger)
+  }
+
+  private async appendSideEffectLedger(
+    agent: Agent,
+    operation: SideEffectFact['operation'],
+    ledger: SideEffectLedger,
+  ): Promise<SideEffectLedger> {
+    this.authorize(agent)
+    const fact = immutableSnapshot(sideEffectFactSchema.parse({
+      version: 1,
+      operation,
+      actorId: agent.id,
+      ledger,
+    }))
+    if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) {
+      fail('side-effect journal storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+    }
+    this.requireOpenTurn(agent)
+    agent.session.append('d_ai/side-effect-fact', fact)
     await this.ctx.sessions.flush(agent.session)
     return immutableSnapshot(fact.ledger)
   }
