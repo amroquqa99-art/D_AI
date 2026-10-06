@@ -36,6 +36,7 @@ export interface DirectorSchedulerRuntime {
   runScheduledDirectorCycle(
     agent: Agent,
     scheduleId: string,
+    expectedDueAt: string,
     signal: AbortSignal,
   ): Promise<ScheduledDirectorCycleResult>
 }
@@ -140,7 +141,12 @@ export class DirectorScheduler {
 
       this.active.add(key)
       try {
-        await this.runtime.runScheduledDirectorCycle(agent, source.scheduleId, signal)
+        await this.runtime.runScheduledDirectorCycle(
+          agent,
+          source.scheduleId,
+          source.dueAt,
+          signal,
+        )
       } catch (error) {
         this.ctx.logger.warn(
           'D_AI unattended Director cycle failed for plan '
