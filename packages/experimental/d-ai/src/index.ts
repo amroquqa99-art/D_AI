@@ -1,5 +1,6 @@
 /** Native D_AI mission service, investigative tools, and auditable Session facts. */
 import { createHash, randomUUID } from 'node:crypto'
+import { performance } from 'node:perf_hooks'
 import { Context, Service } from '@deepseek-ai/cordis'
 import { z as schema } from 'zod'
 import type { Agent } from '@deepseek-ai/dsh-agent'
@@ -40,9 +41,10 @@ import { validateGrant as validateGrantInternal } from './capability-grants.ts'
 import type { CapabilityGrant } from './capability-grants.ts'
 import { transitionTask as transitionTaskInternal } from './task-dag.ts'
 import { CROSS_SYSTEM_TASK_EXECUTION_CAPABILITY, authorizeCrossSystemHandoff as authorizeCrossSystemHandoffInternal, deriveTaskHandoffSources } from './cross-system.ts'
-import { selectDurableRunnableTasks } from './runtime-scheduler.ts'
+import { budgetProfilesForTask, selectDurableRunnableTasks } from './runtime-scheduler.ts'
 import { budgetFactSchema } from './budget-state.ts'
 import type { BudgetFact, BudgetLedger, BudgetProfile, BudgetState } from './budget-state.ts'
+import { addResourceUsage } from './resource-value.ts'
 import type { ResourceBudget, ResourceUsage } from './resource-value.ts'
 import { evidenceStoreFactSchema } from './evidence-store-state.ts'
 import type { EvidenceStore, EvidenceStoreFact, EvidenceStoreState } from './evidence-store-state.ts'
@@ -1682,22 +1684,13 @@ export class DAI extends Service {
     profileId: string,
     delta: ResourceUsage,
   ): Promise<BudgetLedger> {
-    for (const [name, value] of Object.entries(delta)) {
-      if (!Number.isFinite(value) || value < 0) fail('invalid resource usage delta: ' + name, 'D_AI_INVALID_INPUT')
-    }
     return this.transact(agent, async () => {
       const current = this.budgetLedger(agent)
       const existing = current.profiles.find(profile => profile.id === profileId)
       if (existing === undefined) fail('unknown budget profile', 'D_AI_INVALID_INPUT')
       const next: BudgetProfile = {
         ...existing,
-        usage: {
-          tokens: existing.usage.tokens + delta.tokens,
-          moneyUsd: existing.usage.moneyUsd + delta.moneyUsd,
-          wallClockMs: existing.usage.wallClockMs + delta.wallClockMs,
-          humanAttentionMinutes: existing.usage.humanAttentionMinutes + delta.humanAttentionMinutes,
-          dataAccessCostUsd: existing.usage.dataAccessCostUsd + delta.dataAccessCostUsd,
-        },
+        usage: addResourceUsage(existing.usage, delta),
         updatedAt: new Date().toISOString(),
         updatedBy: agent.id,
       }
@@ -1705,6 +1698,37 @@ export class DAI extends Service {
         ownerAgentId: agent.id,
         revision: current.revision + 1,
         profiles: current.profiles.map(item => item.id === existing.id ? next : item),
+      })
+    })
+  }
+
+  /**
+   * Apply one measured task-execution delta to every configured budget scope
+   * that governs that task. All matching profiles advance in one durable fact.
+   */
+  async recordTaskResourceUsage(
+    agent: Agent,
+    task: MissionTask,
+    delta: ResourceUsage,
+  ): Promise<BudgetLedger> {
+    return this.transact(agent, async () => {
+      const current = this.budgetLedger(agent)
+      const matching = budgetProfilesForTask(task, current.profiles)
+      if (matching.length === 0) return current
+
+      const matchingIds = new Set(matching.map(profile => profile.id))
+      const now = new Date().toISOString()
+      return this.appendBudgetLedger(agent, 'ADD_USAGE', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        profiles: current.profiles.map((profile) => matchingIds.has(profile.id)
+          ? {
+              ...profile,
+              usage: addResourceUsage(profile.usage, delta),
+              updatedAt: now,
+              updatedBy: agent.id,
+            }
+          : profile),
       })
     })
   }
