@@ -85,8 +85,9 @@ packages/experimental/d-ai/
 │   ├── runtime-kernel.ts         # owner/turn/mutation-order invariants
 │   ├── runtime-state.ts          # typed immutable projection reads
 │   ├── runtime-errors.ts         # stable D_AI error routing
-│   ├── lease-heartbeat.ts        # fail-closed lease renewal during work
 │   ├── director-runtime.ts       # bounded Director execution contracts
+│   ├── director-schedule-state.ts # durable unattended cadence/receipts
+│   ├── director-scheduler.ts     # native-turn unattended wake coordinator
 │   ├── tool-support.ts           # shared native-tool boundary helpers
 │   ├── *-tools.ts                # bounded-context tool registrars
 │   ├── systems.ts
@@ -116,6 +117,10 @@ packages/experimental/d-ai/
 │   ├── budget-state.ts
 │   ├── runtime-scheduler.ts
 │   ├── execution-state.ts
+│   ├── execution-fencing.ts
+│   ├── lease-heartbeat.ts
+│   ├── side-effect-state.ts
+│   ├── side-effect-runtime.ts
 │   ├── model-router.ts
 │   ├── model-registry-state.ts
 │   ├── training-governance.ts
