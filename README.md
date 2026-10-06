@@ -24,7 +24,8 @@ Legend:
 | Operations & Intelligence | **IMPLEMENTED / CI PENDING** | Durable cases, entities, relationships, timelines, intelligence gaps, human-gated proposed options, fusion + adversarial analysis Agents. |
 | Innovation & Discovery | **IMPLEMENTED / CI PENDING** | Testable candidates, mechanisms, falsification tests, experiment handoff/results, independent explorer + critic Agents. Generated ideas cannot self-declare as discoveries. |
 | Shared Task DAG | **IMPLEMENTED / CI PENDING** | Task states, dependencies, retry accounting, durable task-ledger replay, and scheduler admission that respects dependencies/blocking states. |
-| Mission Director | **FOUNDATION** | Mission planning primitives, runnable-work selection, resource admission and Value-of-Information ranking. Full long-running scheduler/executor loop is still being built. |
+| Mission Director | **FOUNDATION** | Mission planning primitives, runnable-work selection, resource admission and Value-of-Information ranking. Full autonomous orchestration loop is still being built. |
+| Durable execution | **IMPLEMENTED / CI PENDING** | Runnable tasks can now be claimed with durable leases, checkpointed, lease-renewed, explicitly completed/failed through task state transitions, released, and replayed after restart. Worker-process recovery/automatic lease expiry handling is still incomplete. |
 | Capability control plane | **IMPLEMENTED / CI PENDING** | Scoped ALLOW/DENY grants, fail-closed authorization, human-approved durable grant changes, append-only audit hash chain, durable control-plane projection. |
 | Evidence / Knowledge graph | **IMPLEMENTED / CI PENDING** | Shared append-only evidence nodes/edges now persist through Session replay with provenance and confidence; support/contradiction graph primitives exist. Automatic domain-to-graph ingestion and graph UI are still incomplete. |
 | Cross-system handoff | **IMPLEMENTED / CI PENDING** | Persisted grant-backed authorization and durable audit records exist for declared system-to-system handoffs. Automatic target-task execution/routing is still incomplete. |
@@ -89,6 +90,7 @@ packages/experimental/d-ai/
 │   ├── resource-value.ts
 │   ├── budget-state.ts
 │   ├── runtime-scheduler.ts
+│   ├── execution-state.ts
 │   ├── model-router.ts
 │   ├── training-governance.ts
 │   └── model-evaluation.ts
@@ -149,7 +151,7 @@ Still required before it can be called a working D_AI model:
 
 The repository is already beyond a design-only prototype, but major engineering remains:
 
-- durable long-running scheduler/executor for missions that last hours/days/weeks
+- automatic long-running executor loop around the new durable task leases/checkpoints, including worker recovery and expired-lease reclamation
 - checkpoint/recovery across active tool execution, not only Session projection replay
 - cross-system runtime dispatch using the shared grants/control plane
 - persistent shared Evidence/Knowledge Graph backend
