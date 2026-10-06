@@ -13,7 +13,7 @@ This matrix separates **implementation maturity** from **verification state**. A
 - `VERIFIED` — the appropriate executable acceptance checks have passed for the relevant current code.
 - `LIVE_VERIFIED` — required real-provider/browser/environment proof also exists.
 
-Verification is tracked separately because the current branch CI runner is failing before workflow steps execute. Focused local checks now pass 86 tests in 21 files; this evidence does not replace native integration/build acceptance.
+Verification is tracked separately because the current branch CI runner is failing before workflow steps execute. The last recorded focused pre-scheduler local check passed 86 tests in 21 files; scheduler tests added afterward remain authored/CI_PENDING and do not replace native integration/build acceptance.
 
 ## Current checkpoint
 
@@ -28,8 +28,8 @@ Verification is tracked separately because the current branch CI runner is faili
 | Operations & Intelligence | durable entities/relations/timeline/gaps/options, fusion/adversarial agents | INTEGRATED | CI_PENDING | Collaborative case workspace, richer ingestion/geo integrations |
 | Innovation & Discovery | candidates, mechanisms, falsification tests, experiment handoff/results, explorer/critic | INTEGRATED | CI_PENDING | Prior-art connectors, deterministic math/simulation integrations |
 | Task DAG / Task Ledger | durable typed task graph, transitions, retry accounting, replay | INTEGRATED | CI_PENDING | 1000-task bounded-concurrency/fairness acceptance |
-| Mission Director | durable plans, planner agent, task creation/view/status, single-task executor | INTEGRATED | CI_PENDING | unattended worker loop, long-horizon scheduling, saturation/stagnation policy |
-| Durable execution | fenced leases, heartbeat renewal, checkpoint lineage, release/recovery and deterministic v1→v2 replay migration; heartbeat cancellation/cleanup regressions fixed | INTEGRATED | LOCAL_UNIT_PASS / CI_PENDING | unattended worker pool, native integration acceptance, live stress/recovery proof |
+| Mission Director | durable plans, planner agent, task creation/view/status, single-task/bounded-cycle executor, approval-gated durable unattended schedules and native-turn wake loop | INTEGRATED | CI_PENDING | full native acceptance, multi-worker scheduling, long-horizon saturation/stagnation/fairness policy |
+| Durable execution | fenced leases, heartbeat renewal, checkpoint lineage, release/recovery, deterministic v1→v2 replay migration and unattended root-Agent wake coordination; heartbeat cancellation/cleanup regressions fixed | INTEGRATED | PRE_SCHEDULER_LOCAL_UNIT_PASS / CI_PENDING | multi-worker pool, native scheduler acceptance, crash/restart stress and live recovery proof |
 | External side-effect idempotency | durable reservation/dispatch/commit/unknown/reconcile journal + fenced connector gateway; no production mutable connector | INTEGRATED | CI_PENDING | connector-level adoption, live idempotency/reconciliation acceptance and provider-specific semantics |
 | Resource budgets / VoI | durable scoped limits/usage, budget-aware scheduler, VoI primitives | INTEGRATED | CI_PENDING | automatic metering on every relevant model/tool/data boundary |
 | Capability control plane | scoped grants/denies, native approval, audit hash chain | INTEGRATED | CI_PENDING | institutional ABAC/admin UI and organization/multi-user model |
