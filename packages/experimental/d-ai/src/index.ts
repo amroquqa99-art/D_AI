@@ -1096,6 +1096,12 @@ export class DAI extends Service {
     this.directorCycles.add(key)
 
     try {
+      // Recovery must happen before scheduler admission. An expired lease
+      // leaves its task in RUNNING, which is intentionally not runnable; if
+      // admission ran first, an unattended wake could observe no work and
+      // return without ever making the expired task eligible again.
+      await this.recoverExpiredTaskLeases(agent)
+
       const executed: DirectorTaskExecution[] = []
 
       while (executed.length < maxTasks) {
