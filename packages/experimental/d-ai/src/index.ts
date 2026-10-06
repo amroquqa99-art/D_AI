@@ -1402,7 +1402,7 @@ export class DAI extends Service {
         toEntityId: args.to_entity_id,
         type: args.type,
         confidence: args.confidence,
-        evidenceRefs: args.evidence_refs?.split(',').map(value => value.trim()).filter(Boolean),
+        ...(args.evidence_refs === undefined ? {} : { evidenceRefs: args.evidence_refs.split(',').map(value => value.trim()).filter(Boolean) }),
       })) }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_operations_add_timeline', description: 'Append a sourced timeline event to an Operations & Intelligence case.',
       parameters: {
@@ -1416,7 +1416,7 @@ export class DAI extends Service {
         occurredAt: args.occurred_at,
         label: args.label,
         details: args.details,
-        evidenceRefs: args.evidence_refs?.split(',').map(value => value.trim()).filter(Boolean),
+        ...(args.evidence_refs === undefined ? {} : { evidenceRefs: args.evidence_refs.split(',').map(value => value.trim()).filter(Boolean) }),
       })) }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_operations_add_gap', description: 'Record an unresolved intelligence gap so the system can direct further collection or analysis.',
       parameters: { case_id: { type: 'string', required: true }, question: { type: 'string', required: true }, priority: { type: 'string', required: true } }, output,
