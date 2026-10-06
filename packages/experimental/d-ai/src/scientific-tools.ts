@@ -1,12 +1,13 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { ScientificProject, ScientificState } from './scientific-state.ts'
 import { encodeToolResult, jsonToolOutput } from './tool-support.ts'
 import type { ToolOwnerResolver } from './tool-support.ts'
 
 export interface ScientificToolRuntime {
-  createScientific(agent: Agent, question: string, signal?: AbortSignal): Promise<unknown>
-  readScientific(agent: Agent): unknown
+  createScientific(agent: Agent, question: string, signal?: AbortSignal): Promise<ScientificProject>
+  readScientific(agent: Agent): ScientificState
   addScientificHypothesis(
     agent: Agent,
     projectId: string,
