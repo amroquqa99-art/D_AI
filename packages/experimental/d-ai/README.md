@@ -1,6 +1,6 @@
 # @deepseek-ai/dsh-experimental-d-ai
 
-Native experimental D_AI investigation service over the original Harness Agent, Session, subagent, tools, web and storage services. Activate explicitly through a D_AI profile overlay; this package does not change shipped upstream profiles.
+Native D_AI platform foundation over the original Harness Agent, Session, subagent, tools, web and storage services. The investigation slice executes today; all six approved domain systems are registered as first-class contracts with explicit execution truth. Activate explicitly through a D_AI profile overlay; this package does not change shipped upstream profiles.
 
 ## Use this package
 
@@ -32,6 +32,6 @@ Tool registration changes the assembled tool prefix once at activation. Subseque
 
 ## Known Limitations and Deferred Work
 
-Only the investigation slice executes. Other system registrations are foundations. A distinct durable system-manager tree, continuable grandchildren, task DAG leases/retries, cross-system grants, experimental laboratory execution, original binary artifacts, and claim verification authority remain future milestones. Child runs are sequential one-shot native Agents; this is not a durable scheduler. Selecting worker model IDs remains on the owner Agent provider. Resource limits are bounds rather than measured money/VRAM reservations.
+Only the investigation slice executes. Scientific Research, Investor, Cybersecurity, Operations & Intelligence, and Innovation & Discovery are registered foundations. The Local Intelligence Core is a separate governed platform component, not a seventh domain. A distinct durable system-manager tree, continuable grandchildren, task DAG leases/retries, cross-system grants, experimental laboratory execution, original binary artifacts, and claim verification authority remain future milestones. Child runs are sequential one-shot native Agents; this is not a durable scheduler. Selecting worker model IDs remains on the owner Agent provider. Resource limits are bounds rather than measured money/VRAM reservations.
 
 The index is not reconciled automatically after a Session-success/index-failure. A failed Session flush rejects the mutation but native pending in-memory Session events remain visible until retry or restart; no cross-store transaction or rollback is promised. Events emitted inside an interrupted turn retain native Harness recovery semantics. Process-crash fault injection and live-provider acceptance remain unverified.
