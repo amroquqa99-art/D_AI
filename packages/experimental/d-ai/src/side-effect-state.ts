@@ -53,6 +53,7 @@ export const sideEffectFactSchema = z.object({
   version: z.literal(1),
   operation: z.enum([
     'RESERVE',
+    'REBIND',
     'MARK_DISPATCHED',
     'COMMIT',
     'MARK_UNKNOWN',
@@ -92,8 +93,6 @@ const immutableFields = [
   'taskId',
   'missionId',
   'systemId',
-  'leaseId',
-  'fence',
   'toolName',
   'targetDigest',
   'requestDigest',
@@ -199,8 +198,20 @@ function assertTransition(
     }
   }
 
+  if (operation !== 'REBIND') {
+    if (before.leaseId !== after.leaseId || before.fence !== after.fence) {
+      throw new Error('side-effect lease fence changed outside REBIND')
+    }
+  }
+
   const allowed =
-    (operation === 'MARK_DISPATCHED' && before.state === 'RESERVED' && after.state === 'DISPATCHED')
+    (
+      operation === 'REBIND'
+      && before.state === 'RESERVED'
+      && after.state === 'RESERVED'
+      && (before.leaseId !== after.leaseId || before.fence !== after.fence)
+    )
+    || (operation === 'MARK_DISPATCHED' && before.state === 'RESERVED' && after.state === 'DISPATCHED')
     || (operation === 'COMMIT' && before.state === 'DISPATCHED' && after.state === 'COMMITTED')
     || (operation === 'MARK_UNKNOWN' && before.state === 'DISPATCHED' && after.state === 'OUTCOME_UNKNOWN')
     || (operation === 'ABORT' && before.state === 'RESERVED' && after.state === 'ABORTED')
