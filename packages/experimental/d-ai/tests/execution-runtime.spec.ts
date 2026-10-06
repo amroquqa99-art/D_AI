@@ -101,6 +101,7 @@ describe('D_AI long-running task execution', () => {
       expect(expectedExecution.ledgers[0]?.revision).toBe(4)
       expect(expectedExecution.ledgers[0]?.leases).toHaveLength(1)
       expect(expectedExecution.ledgers[0]?.leases[0]?.releasedAt).toBeDefined()
+      expect(expectedExecution.ledgers[0]?.leases[0]?.holderId).toBe(agent.id)
       expect(expectedExecution.ledgers[0]?.checkpoints).toHaveLength(1)
       expect(expectedExecution.ledgers[0]?.checkpoints[0]).toMatchObject({
         taskId: expectedTasks.ledgers[0]?.tasks[0]?.id,
