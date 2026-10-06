@@ -1,0 +1,36 @@
+name: D_AI v2 checks
+
+on:
+  push:
+    branches:
+      - dai/v2-core-foundation
+  pull_request:
+    paths:
+      - 'packages/experimental/d-ai/**'
+      - 'docs/PRODUCT_SPEC.md'
+      - 'docs/ARCHITECTURE.md'
+      - 'docs/FEATURE_MATRIX.md'
+      - 'docs/MILESTONES.md'
+      - 'D_AI_EXECUTION_STATUS_AR.md'
+      - '.github/workflows/d-ai-v2-checks.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  d-ai-v2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: D_AI registry tests
+        run: pnpm exec vitest run packages/experimental/d-ai/tests/systems.spec.ts
+      - name: D_AI package tests
+        run: pnpm exec vitest run packages/experimental/d-ai/tests
