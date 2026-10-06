@@ -17,7 +17,8 @@ export interface SchedulerSelection {
   readonly blocked: readonly SchedulerBlockedTask[]
 }
 
-function relevantBudgets(task: MissionTask, budgets: readonly BudgetProfile[]): readonly BudgetProfile[] {
+/** Budget profiles whose scope applies directly to one durable task. */
+export function budgetProfilesForTask(task: MissionTask, budgets: readonly BudgetProfile[]): readonly BudgetProfile[] {
   return budgets.filter(profile =>
     (profile.scope === 'TASK' && profile.scopeId === task.id)
     || (profile.scope === 'MISSION' && profile.scopeId === task.missionId)
@@ -39,7 +40,7 @@ export function selectDurableRunnableTasks(
   const budgetBlocked = new Map<string, readonly string[]>()
 
   const admitted = structurallyRunnable.filter((task) => {
-    const reasons = relevantBudgets(task, budgets)
+    const reasons = budgetProfilesForTask(task, budgets)
       .flatMap(profile => checkBudget(profile.limits, profile.usage).reasons)
     if (reasons.length === 0) return true
     budgetBlocked.set(task.id, Object.freeze([...new Set(reasons)].sort()))
