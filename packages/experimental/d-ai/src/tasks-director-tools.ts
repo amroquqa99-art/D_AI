@@ -69,6 +69,9 @@ export interface TasksDirectorToolRuntime {
       readonly intervalMs?: number
       readonly maxTasksPerCycle?: number
       readonly maxParallelTasks?: number
+      readonly maxConsecutiveFailures?: number
+      readonly maxConsecutiveIdleCycles?: number
+      readonly resetStagnation?: boolean
       readonly leaseTtlMs?: number
       readonly startImmediately?: boolean
     },
@@ -324,6 +327,9 @@ export function registerTasksDirectorTools(
       interval_ms: { type: 'number' },
       max_tasks_per_cycle: { type: 'number' },
       max_parallel_tasks: { type: 'number' },
+      max_consecutive_failures: { type: 'number' },
+      max_consecutive_idle_cycles: { type: 'number' },
+      reset_stagnation: { type: 'boolean' },
       lease_ttl_ms: { type: 'number' },
       start_immediately: { type: 'boolean' },
     },
@@ -345,6 +351,16 @@ export function registerTasksDirectorTools(
           || args.max_parallel_tasks > (args.max_tasks_per_cycle ?? 8))) {
         rejectInvalidInput('max_parallel_tasks must be an integer from 1 to max_tasks_per_cycle')
       }
+      if (args.max_consecutive_failures !== undefined
+        && (!Number.isSafeInteger(args.max_consecutive_failures)
+          || args.max_consecutive_failures < 0)) {
+        rejectInvalidInput('max_consecutive_failures must be a non-negative integer')
+      }
+      if (args.max_consecutive_idle_cycles !== undefined
+        && (!Number.isSafeInteger(args.max_consecutive_idle_cycles)
+          || args.max_consecutive_idle_cycles < 0)) {
+        rejectInvalidInput('max_consecutive_idle_cycles must be a non-negative integer')
+      }
       if (args.lease_ttl_ms !== undefined
         && (!Number.isSafeInteger(args.lease_ttl_ms) || args.lease_ttl_ms < 1)) {
         rejectInvalidInput('lease_ttl_ms must be a positive integer')
@@ -358,6 +374,13 @@ export function registerTasksDirectorTools(
           ...(args.interval_ms === undefined ? {} : { intervalMs: args.interval_ms }),
           ...(args.max_tasks_per_cycle === undefined ? {} : { maxTasksPerCycle: args.max_tasks_per_cycle }),
           ...(args.max_parallel_tasks === undefined ? {} : { maxParallelTasks: args.max_parallel_tasks }),
+          ...(args.max_consecutive_failures === undefined
+            ? {}
+            : { maxConsecutiveFailures: args.max_consecutive_failures }),
+          ...(args.max_consecutive_idle_cycles === undefined
+            ? {}
+            : { maxConsecutiveIdleCycles: args.max_consecutive_idle_cycles }),
+          ...(args.reset_stagnation === undefined ? {} : { resetStagnation: args.reset_stagnation }),
           ...(args.lease_ttl_ms === undefined ? {} : { leaseTtlMs: args.lease_ttl_ms }),
           ...(args.start_immediately === undefined ? {} : { startImmediately: args.start_immediately }),
         },
