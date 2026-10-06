@@ -10,11 +10,14 @@ describe('D_AI runtime configuration', () => {
       maxMissionBytes: 2000000,
       maxSources: 32,
     })
-    expect(runtime.scheduler).toEqual({ enabled: true, pollMs: 1000 })
+    expect(runtime.scheduler).toEqual({
+      enabled: true,
+      pollMs: 1000,
+      maxConcurrentCycles: 1,
+    })
     expect(runtime.delegations.investigation.allowedTools).toEqual(['web_search', 'web_fetch'])
     expect(runtime.delegations.scientific.allowedTools).toEqual(['web_search', 'web_fetch'])
     expect(runtime.delegations.cyber.allowedTools).toEqual([])
-    expect(runtime.scheduler).toEqual({ enabled: false, pollMs: 250 })
     expect(runtime.delegations.investigation).toMatchObject({
       provider: 'spawn',
       maxDepth: 3,
@@ -37,8 +40,14 @@ describe('D_AI runtime configuration', () => {
       innovationCriticModel: 'innovation-f',
       directorSchedulerEnabled: false,
       directorSchedulerPollMs: 250,
+      directorSchedulerMaxConcurrentCycles: 4,
     })
 
+    expect(runtime.scheduler).toEqual({
+      enabled: false,
+      pollMs: 250,
+      maxConcurrentCycles: 4,
+    })
     expect(runtime.delegations.investigation).toMatchObject({
       provider: 'isolated',
       allowedTools: ['fixture_search'],
@@ -61,5 +70,7 @@ describe('D_AI runtime configuration', () => {
     expect(() => buildRuntimeConfiguration({ maxDepth: 0 })).toThrow('maxDepth must be a positive safe integer')
     expect(() => buildRuntimeConfiguration({ maxMissionBytes: Number.MAX_SAFE_INTEGER + 1 })).toThrow('maxMissionBytes must be a positive safe integer')
     expect(() => buildRuntimeConfiguration({ directorSchedulerPollMs: 9 })).toThrow('directorSchedulerPollMs must be at least 10 ms')
+    expect(() => buildRuntimeConfiguration({ directorSchedulerMaxConcurrentCycles: 33 }))
+      .toThrow('directorSchedulerMaxConcurrentCycles must be at most 32')
   })
 })
