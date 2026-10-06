@@ -1,3 +1,7 @@
+import type { Agent } from '@deepseek-ai/dsh-agent'
+
+export type ToolOwnerResolver = (agent: Agent | undefined) => Agent
+
 export interface JsonToolResult {
   readonly json: string
 }
