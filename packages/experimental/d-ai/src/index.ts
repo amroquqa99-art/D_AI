@@ -52,6 +52,10 @@ import type { EvidenceStore, EvidenceStoreFact, EvidenceStoreState } from './evi
 import type { EvidenceEdge, EvidenceNode } from './evidence-graph.ts'
 import { executionFactSchema, executionProjection } from './execution-state.ts'
 import type { ExecutionFact, ExecutionLedger, ExecutionState, TaskCheckpoint, TaskLease } from './execution-state.ts'
+import { modelRegistryFactSchema, modelRegistryProjection } from './model-registry-state.ts'
+import type { ModelRegistry, ModelRegistryFact, ModelRegistryState, ModelRoutingPolicy } from './model-registry-state.ts'
+import { chooseModel as chooseModelInternal } from './model-router.ts'
+import type { ModelCapability, ModelProfile } from './model-router.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
@@ -109,6 +113,8 @@ export { evidenceStoreFactSchema, evidenceStoreProjection, projectEvidenceStoreF
 export type { EvidenceStore, EvidenceStoreFact, EvidenceStoreState } from './evidence-store-state.ts'
 export { executionFactSchema, executionProjection, projectExecutionFact, taskLeaseSchema, taskCheckpointSchema } from './execution-state.ts'
 export type { ExecutionFact, ExecutionLedger, ExecutionState, TaskCheckpoint, TaskLease } from './execution-state.ts'
+export { modelRegistryFactSchema, modelRegistryProjection, projectModelRegistryFact, durableModelProfileSchema, modelRoutingPolicySchema } from './model-registry-state.ts'
+export type { ModelRegistry, ModelRegistryFact, ModelRegistryState, ModelRoutingPolicy } from './model-registry-state.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
@@ -247,6 +253,7 @@ export class DAI extends Service {
     ctx.effect(() => ctx.sessionProjections.register(budgetProjection), 'dai.budgetProjection()')
     ctx.effect(() => ctx.sessionProjections.register(evidenceStoreProjection), 'dai.evidenceStoreProjection()')
     ctx.effect(() => ctx.sessionProjections.register(executionProjection), 'dai.executionProjection()')
+    ctx.effect(() => ctx.sessionProjections.register(modelRegistryProjection), 'dai.modelRegistryProjection()')
     ctx.effect(() => async () => { await Promise.all([...this.tails.values()]); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
   }
@@ -373,6 +380,25 @@ export class DAI extends Service {
     }
   }
 
+  /** Read the durable D_AI model registry and role routing policies. */
+  readModelRegistry(agent: Agent): ModelRegistryState {
+    this.authorize(agent)
+    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiModelRegistry')
+    if (state === undefined) fail('Model-registry projection is not mounted', 'D_AI_PROJECTION_MISSING')
+    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
+    return immutable(state)
+  }
+
+  private modelRegistry(agent: Agent): ModelRegistry {
+    const existing = this.readModelRegistry(agent).registries.find(item => item.ownerAgentId === agent.id)
+    return existing ?? {
+      ownerAgentId: agent.id,
+      revision: 0,
+      models: [],
+      policies: [],
+    }
+  }
+
   /** Read durable long-running task leases and checkpoints. */
   readExecution(agent: Agent): ExecutionState {
     this.authorize(agent)
@@ -492,6 +518,15 @@ export class DAI extends Service {
           leases: ledger.leases.length,
           activeLeases: ledger.leases.filter(lease => lease.releasedAt === undefined && Date.parse(lease.expiresAt) > now).length,
           checkpoints: ledger.checkpoints.length,
+        }
+      })(),
+      modelRegistry: (() => {
+        const registry = this.modelRegistry(agent)
+        return {
+          revision: registry.revision,
+          models: registry.models.length,
+          enabledModels: registry.models.filter(model => model.enabled).length,
+          policies: registry.policies.length,
         }
       })(),
     })
@@ -645,8 +680,105 @@ export class DAI extends Service {
     return immutable(fact.ledger)
   }
 
+  private async appendModelRegistry(agent: Agent, operation: ModelRegistryFact['operation'], registry: ModelRegistry): Promise<ModelRegistry> {
+    this.authorize(agent)
+    const fact = immutable(modelRegistryFactSchema.parse({ version: 1, operation, actorId: agent.id, registry }))
+    if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('model registry storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+    this.requireOpenTurn(agent)
+    agent.session.append('d_ai/model-registry-fact', fact)
+    await this.ctx.sessions.flush(agent.session)
+    return immutable(fact.registry)
+  }
 
 
+
+
+
+  /** Register or update one non-secret model capability/evaluation profile after human approval. */
+  async upsertModelProfile(
+    agent: Agent,
+    profile: ModelProfile,
+    signal?: AbortSignal,
+  ): Promise<ModelRegistry> {
+    this.authorize(agent)
+    const outcome = await this.ctx.approval.request({
+      agent,
+      toolName: 'd_ai_model_upsert',
+      reason: 'Change D_AI model registry profile: ' + profile.id,
+      ...(signal === undefined ? {} : { signal }),
+    })
+    if (outcome !== 'allowed-once') fail('human approval is required for model registry changes')
+
+    return this.transact(agent, async () => {
+      const current = this.modelRegistry(agent)
+      const existing = current.models.find(item => item.id === profile.id)
+      return this.appendModelRegistry(agent, 'UPSERT_MODEL', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        models: existing === undefined
+          ? [...current.models, profile]
+          : current.models.map(item => item.id === profile.id ? profile : item),
+        policies: [...current.policies],
+      })
+    })
+  }
+
+  /** Create or update one system/role routing policy after human approval. */
+  async setModelRoutingPolicy(
+    agent: Agent,
+    input: Omit<ModelRoutingPolicy, 'id' | 'updatedAt' | 'updatedBy'>,
+    signal?: AbortSignal,
+  ): Promise<ModelRegistry> {
+    this.authorize(agent)
+    const outcome = await this.ctx.approval.request({
+      agent,
+      toolName: 'd_ai_model_policy_set',
+      reason: 'Change model routing policy for ' + input.systemId + ':' + input.role,
+      ...(signal === undefined ? {} : { signal }),
+    })
+    if (outcome !== 'allowed-once') fail('human approval is required for model routing policy changes')
+
+    return this.transact(agent, async () => {
+      const current = this.modelRegistry(agent)
+      const existing = current.policies.find(policy => policy.systemId === input.systemId && policy.role === input.role)
+      const policy: ModelRoutingPolicy = {
+        ...input,
+        id: existing?.id ?? randomUUID(),
+        updatedAt: new Date().toISOString(),
+        updatedBy: agent.id,
+      }
+      return this.appendModelRegistry(agent, 'SET_POLICY', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        models: [...current.models],
+        policies: existing === undefined
+          ? [...current.policies, policy]
+          : current.policies.map(item => item.id === existing.id ? policy : item),
+      })
+    })
+  }
+
+  /** Route one system/role to the best enabled registered model meeting hard requirements. */
+  routeRegisteredModel(
+    agent: Agent,
+    systemId: CapabilityGrant['systemId'],
+    role: string,
+  ): ReturnType<typeof chooseModelInternal> {
+    this.authorize(agent)
+    const registry = this.modelRegistry(agent)
+    const policy = registry.policies.find(item => item.systemId === systemId && item.role === role)
+    if (policy === undefined) fail('no model routing policy exists for this system/role', 'D_AI_INVALID_INPUT')
+    try {
+      return immutable(chooseModelInternal(registry.models as readonly ModelProfile[], {
+        requiredCapabilities: policy.requiredCapabilities as readonly ModelCapability[],
+        minContextTokens: policy.minContextTokens,
+        localOnly: policy.localOnly,
+        ...(policy.weights === undefined ? {} : { weights: policy.weights }),
+      }))
+    } catch (error) {
+      fail(error instanceof Error ? error.message : String(error), 'D_AI_MODEL_ROUTE_FAILED')
+    }
+  }
 
   /** Claim the highest-priority runnable task and acquire a durable execution lease. */
   async claimNextRunnableTask(
@@ -2091,6 +2223,85 @@ export class DAI extends Service {
         const states = ['PENDING', 'READY', 'RUNNING', 'WAITING_FOR_HUMAN', 'WAITING_FOR_TOOL', 'BLOCKED_POLICY', 'BLOCKED_BUDGET', 'PAUSED', 'FAILED', 'COMPLETED', 'CANCELLED'] as const
         if (!states.includes(args.next_state as typeof states[number])) fail('invalid durable task state', 'D_AI_INVALID_INPUT')
         return encoded(this.transitionDurableTask(owner(exec.agent), args.task_id, args.next_state as TaskState))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_models_read', description: 'Read the durable non-secret D_AI model registry and system/role routing policies.',
+      parameters: {}, output,
+      execute: (_args, exec) => encoded(this.readModelRegistry(owner(exec.agent))) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_model_upsert', description: 'Register or update a model capability/evaluation profile after human approval. Provider API keys are not accepted or stored here.',
+      parameters: {
+        id: { type: 'string', required: true },
+        provider: { type: 'string', required: true },
+        location: { type: 'string', required: true },
+        capabilities: { type: 'string', required: true },
+        quality_score: { type: 'number', required: true },
+        reliability_score: { type: 'number', required: true },
+        latency_score: { type: 'number', required: true },
+        cost_score: { type: 'number', required: true },
+        privacy_score: { type: 'number', required: true },
+        max_context_tokens: { type: 'number', required: true },
+        enabled: { type: 'boolean', required: true },
+      }, output,
+      execute: (args, exec) => {
+        const locations = ['LOCAL', 'CLOUD'] as const
+        const capabilities = ['reasoning', 'research', 'coding', 'vision', 'long-context', 'tool-use', 'arabic'] as const
+        if (!locations.includes(args.location as typeof locations[number])) fail('invalid model location', 'D_AI_INVALID_INPUT')
+        const requested = args.capabilities.split(/[\n,]+/).map(value => value.trim()).filter(Boolean)
+        if (requested.length === 0 || requested.some(value => !capabilities.includes(value as typeof capabilities[number]))) {
+          fail('invalid model capability list', 'D_AI_INVALID_INPUT')
+        }
+        return encoded(this.upsertModelProfile(owner(exec.agent), {
+          id: args.id,
+          provider: args.provider,
+          location: args.location as ModelProfile['location'],
+          capabilities: requested as ModelCapability[],
+          qualityScore: args.quality_score,
+          reliabilityScore: args.reliability_score,
+          latencyScore: args.latency_score,
+          costScore: args.cost_score,
+          privacyScore: args.privacy_score,
+          maxContextTokens: args.max_context_tokens,
+          enabled: args.enabled,
+        }, exec.signal))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_model_policy_set', description: 'Create or update the routing requirements/weights for one D_AI system role after human approval.',
+      parameters: {
+        system_id: { type: 'string', required: true },
+        role: { type: 'string', required: true },
+        required_capabilities: { type: 'string', required: true },
+        min_context_tokens: { type: 'number', required: true },
+        local_only: { type: 'boolean', required: true },
+        weight_quality: { type: 'number' },
+        weight_reliability: { type: 'number' },
+        weight_latency: { type: 'number' },
+        weight_cost: { type: 'number' },
+        weight_privacy: { type: 'number' },
+      }, output,
+      execute: (args, exec) => {
+        if (!SYSTEMS.some(system => system.id === args.system_id)) fail('unknown D_AI system id', 'D_AI_INVALID_INPUT')
+        const allowed = ['reasoning', 'research', 'coding', 'vision', 'long-context', 'tool-use', 'arabic'] as const
+        const required = args.required_capabilities.split(/[\n,]+/).map(value => value.trim()).filter(Boolean)
+        if (required.some(value => !allowed.includes(value as typeof allowed[number]))) fail('invalid routing capability requirement', 'D_AI_INVALID_INPUT')
+        const weights = {
+          ...(args.weight_quality === undefined ? {} : { quality: args.weight_quality }),
+          ...(args.weight_reliability === undefined ? {} : { reliability: args.weight_reliability }),
+          ...(args.weight_latency === undefined ? {} : { latency: args.weight_latency }),
+          ...(args.weight_cost === undefined ? {} : { cost: args.weight_cost }),
+          ...(args.weight_privacy === undefined ? {} : { privacy: args.weight_privacy }),
+        }
+        return encoded(this.setModelRoutingPolicy(owner(exec.agent), {
+          systemId: args.system_id as ModelRoutingPolicy['systemId'],
+          role: args.role,
+          requiredCapabilities: required as ModelCapability[],
+          minContextTokens: args.min_context_tokens,
+          localOnly: args.local_only,
+          ...(Object.keys(weights).length === 0 ? {} : { weights }),
+        }, exec.signal))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_model_route', description: 'Route a D_AI system role to the highest-ranked enabled registered model that satisfies its hard capability/context/locality policy.',
+      parameters: { system_id: { type: 'string', required: true }, role: { type: 'string', required: true } }, output,
+      execute: (args, exec) => {
+        if (!SYSTEMS.some(system => system.id === args.system_id)) fail('unknown D_AI system id', 'D_AI_INVALID_INPUT')
+        return encoded(this.routeRegisteredModel(owner(exec.agent), args.system_id as CapabilityGrant['systemId'], args.role))
       } }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_execution_recover_expired', description: 'Recover tasks stranded by expired execution leases, respecting task retry budgets. Active leases are never touched.',
       parameters: {}, output,
