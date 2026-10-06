@@ -2,6 +2,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { encodeToolResult, jsonToolOutput } from './tool-support.ts'
+import type { ToolOwnerResolver } from './tool-support.ts'
 
 export interface ScientificToolRuntime {
   createScientific(agent: Agent, question: string, signal?: AbortSignal): Promise<unknown>
@@ -31,8 +32,6 @@ export interface ScientificToolRuntime {
   ): Promise<unknown>
   delegateScientific(agent: Agent, projectId: string, signal: AbortSignal): Promise<unknown>
 }
-
-export type ToolOwnerResolver = (agent: Agent | undefined) => Agent
 
 /** Register the Scientific Research tool surface without owning domain behavior. */
 export function registerScientificTools(
