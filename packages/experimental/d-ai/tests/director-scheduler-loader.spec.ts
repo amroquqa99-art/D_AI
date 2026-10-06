@@ -122,7 +122,7 @@ describe('D_AI unattended Director REAL composition', () => {
       await agent.whenIdle()
       expect(adapter.requests).toHaveLength(4)
 
-      scheduler = new DirectorScheduler(ctx, ctx.dai, { pollMs: 60000 })
+      scheduler = new DirectorScheduler(ctx, ctx.dai, { pollMs: 60000, maxConcurrentCycles: 1 })
       scheduler.scan(Date.now())
       await agent.whenIdle()
 
