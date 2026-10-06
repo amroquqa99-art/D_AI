@@ -22,20 +22,20 @@ export interface CyberToolRuntime {
       evidence: string
       remediation: string
     },
-  ): Promise<unknown>
+  ): Promise<CyberEngagement>
   recordCyberRemediation(
     agent: Agent,
     engagementId: string,
     findingId: string,
     remediationNote: string,
-  ): Promise<unknown>
+  ): Promise<CyberEngagement>
   recordCyberRetest(
     agent: Agent,
     engagementId: string,
     findingId: string,
     retestEvidence: string,
-  ): Promise<unknown>
-  delegateCybersecurity(agent: Agent, engagementId: string, signal: AbortSignal): Promise<unknown>
+  ): Promise<CyberEngagement>
+  delegateCybersecurity(agent: Agent, engagementId: string, signal: AbortSignal): Promise<CyberEngagement>
 }
 
 export function registerCyberTools(
