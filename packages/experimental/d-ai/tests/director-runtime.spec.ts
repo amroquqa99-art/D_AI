@@ -250,6 +250,130 @@ describe('D_AI durable Mission Director', () => {
     }
   }))
 
+  it('executes Director tasks one at a time with durable checkpoints and dependency-context reconstruction', async () => temporary(async root => {
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx, adapter } = await boot(root, script)
+    const agent = await ctx.agentLoop.create(SessionId('director-executor-owner'), { provider: 'mock', model: 'fixture' })
+    const objective = 'Research evidence first, then synthesize its implications'
+    const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+    const tasks = () => ctx.dai.readTaskLedger(agent).ledgers[0]!.tasks
+
+    script.push(
+      toolCallResponse('plan', 'd_ai_director_plan_create', {
+        objective,
+        primary_system: 'investigation',
+      }),
+      () => toolCallResponse('first', 'd_ai_director_task_add', {
+        plan_id: plan().id,
+        system_id: 'investigation',
+        title: 'Collect the primary evidence',
+        priority: 20,
+      }),
+      () => toolCallResponse('second', 'd_ai_director_task_add', {
+        plan_id: plan().id,
+        system_id: 'scientific-research',
+        title: 'Synthesize the verified evidence',
+        depends_on: tasks()[0]!.id,
+        priority: 10,
+      }),
+      () => toolCallResponse('execute-first', 'd_ai_director_execute_next', {
+        plan_id: plan().id,
+        ttl_ms: 600000,
+      }),
+      textResponse(JSON.stringify({
+        outcome: 'COMPLETED',
+        summary: 'Primary evidence collection completed and anchored.',
+        artifactRefs: ['artifact://fixture/primary-evidence.json'],
+      })),
+      () => toolCallResponse('execute-second', 'd_ai_director_execute_next', {
+        plan_id: plan().id,
+        ttl_ms: 600000,
+      }),
+      textResponse(JSON.stringify({
+        outcome: 'COMPLETED',
+        summary: 'Synthesis completed using the dependency checkpoint.',
+        artifactRefs: ['artifact://fixture/synthesis.json'],
+      })),
+      textResponse('Director execution completed'),
+    )
+
+    try {
+      agent.followup(createUserMessage({
+        content: [{ type: 'text', text: objective }],
+        source: { kind: 'user' },
+      }))
+      await agent.whenIdle()
+
+      const taskState = ctx.dai.readTaskLedger(agent).ledgers[0]!
+      const execution = ctx.dai.readExecution(agent).ledgers[0]!
+      expect(taskState.tasks.map(task => task.state)).toEqual(['COMPLETED', 'COMPLETED'])
+      expect(execution.checkpoints).toHaveLength(2)
+      expect(execution.checkpoints[0]).toMatchObject({
+        taskId: taskState.tasks[0]?.id,
+        summary: 'Primary evidence collection completed and anchored.',
+        artifactRefs: ['artifact://fixture/primary-evidence.json'],
+      })
+      expect(execution.checkpoints[1]).toMatchObject({
+        taskId: taskState.tasks[1]?.id,
+        summary: 'Synthesis completed using the dependency checkpoint.',
+      })
+      expect(execution.leases.every(lease => lease.releasedAt !== undefined)).toBe(true)
+      expect(ctx.dai.directorPlanView(agent, plan().id)).toMatchObject({ phase: 'COMPLETE' })
+
+      // The second child request is reconstructed from durable dependency state.
+      expect(JSON.stringify(adapter.requests)).toContain('Primary evidence collection completed and anchored.')
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  }), 20000)
+
+  it('stops a Director task at WAITING_FOR_HUMAN when real-world input is required', async () => temporary(async root => {
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx } = await boot(root, script)
+    const agent = await ctx.agentLoop.create(SessionId('director-human-owner'), { provider: 'mock', model: 'fixture' })
+    const objective = 'Evaluate a question that requires one physical measurement'
+    const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+
+    script.push(
+      toolCallResponse('plan', 'd_ai_director_plan_create', {
+        objective,
+        primary_system: 'scientific-research',
+      }),
+      () => toolCallResponse('task', 'd_ai_director_task_add', {
+        plan_id: plan().id,
+        system_id: 'scientific-research',
+        title: 'Obtain the required real-world measurement',
+      }),
+      () => toolCallResponse('execute', 'd_ai_director_execute_next', {
+        plan_id: plan().id,
+      }),
+      textResponse(JSON.stringify({
+        outcome: 'WAITING_FOR_HUMAN',
+        summary: 'The analysis reached the point where a physical measurement is required.',
+        artifactRefs: [],
+        nextNeed: 'Researcher must perform the specified measurement and return the raw observation.',
+      })),
+      textResponse('Human input requested'),
+    )
+
+    try {
+      agent.followup(createUserMessage({
+        content: [{ type: 'text', text: objective }],
+        source: { kind: 'user' },
+      }))
+      await agent.whenIdle()
+
+      const task = ctx.dai.readTaskLedger(agent).ledgers[0]!.tasks[0]!
+      const execution = ctx.dai.readExecution(agent).ledgers[0]!
+      expect(task.state).toBe('WAITING_FOR_HUMAN')
+      expect(execution.checkpoints[0]?.summary).toContain('Researcher must perform the specified measurement')
+      expect(execution.leases[0]?.releasedAt).toBeDefined()
+      expect(ctx.dai.directorPlanView(agent, plan().id)).toMatchObject({ phase: 'WAITING_FOR_HUMAN' })
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  }), 15000)
+
   it('does not let a model silently create an unrelated Director plan', async () => temporary(async root => {
     const { ctx } = await boot(root, [
       toolCallResponse('bad-plan', 'd_ai_director_plan_create', {
