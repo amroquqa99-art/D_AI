@@ -166,7 +166,7 @@ pnpm install --frozen-lockfile
 pnpm run gen-persistence-catalog
 pnpm run verify-persistence-catalog
 pnpm run build:native-system
-pnpm exec tsc --noEmit -p packages/experimental/d-ai/tsconfig.json
+pnpm exec tsc -b packages/experimental/d-ai/tsconfig.json --pretty false
 pnpm exec vitest run packages/experimental/d-ai/tests
 ```
 
