@@ -383,7 +383,7 @@ export class DAI extends Service {
   /** Read the deterministic scheduler admission set from the durable task ledger. */
   selectRunnableTasks(agent: Agent, maxTasks: number): ReturnType<typeof selectDurableRunnableTasks> {
     this.authorize(agent)
-    return immutable(selectDurableRunnableTasks(this.taskLedger(agent), maxTasks))
+    return immutable(selectDurableRunnableTasks(this.taskLedger(agent), maxTasks, this.budgetLedger(agent).profiles))
   }
 
   /** Read durable capability grants and audit records for the exact live owner Agent. */
