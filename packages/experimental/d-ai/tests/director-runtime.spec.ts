@@ -327,6 +327,122 @@ describe('D_AI durable Mission Director', () => {
     }
   }), 20000)
 
+  it('executes a bounded Director cycle across dependent tasks in one invocation', async () => temporary(async root => {
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx, adapter } = await boot(root, script)
+    const agent = await ctx.agentLoop.create(SessionId('director-cycle-owner'), { provider: 'mock', model: 'fixture' })
+    const objective = 'Collect evidence and then synthesize it in one bounded cycle'
+    const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+    const tasks = () => ctx.dai.readTaskLedger(agent).ledgers[0]!.tasks
+
+    script.push(
+      toolCallResponse('plan', 'd_ai_director_plan_create', {
+        objective,
+        primary_system: 'investigation',
+      }),
+      () => toolCallResponse('first', 'd_ai_director_task_add', {
+        plan_id: plan().id,
+        system_id: 'investigation',
+        title: 'Collect the primary evidence',
+        priority: 20,
+      }),
+      () => toolCallResponse('second', 'd_ai_director_task_add', {
+        plan_id: plan().id,
+        system_id: 'scientific-research',
+        title: 'Synthesize the evidence',
+        depends_on: tasks()[0]!.id,
+        priority: 10,
+      }),
+      () => toolCallResponse('cycle', 'd_ai_director_execute_cycle', {
+        plan_id: plan().id,
+        max_tasks: 4,
+        ttl_ms: 600000,
+      }),
+      textResponse(JSON.stringify({
+        outcome: 'COMPLETED',
+        summary: 'Primary evidence collected and anchored.',
+        artifactRefs: ['artifact://fixture/cycle-evidence.json'],
+      })),
+      textResponse(JSON.stringify({
+        outcome: 'COMPLETED',
+        summary: 'Evidence synthesis completed from the durable dependency checkpoint.',
+        artifactRefs: ['artifact://fixture/cycle-synthesis.json'],
+      })),
+      textResponse('Bounded cycle completed'),
+    )
+
+    try {
+      agent.followup(createUserMessage({
+        content: [{ type: 'text', text: objective }],
+        source: { kind: 'user' },
+      }))
+      await agent.whenIdle()
+
+      const taskState = ctx.dai.readTaskLedger(agent).ledgers[0]!
+      const execution = ctx.dai.readExecution(agent).ledgers[0]!
+      expect(taskState.tasks.map(task => task.state)).toEqual(['COMPLETED', 'COMPLETED'])
+      expect(execution.checkpoints).toHaveLength(2)
+      expect(execution.leases).toHaveLength(2)
+      expect(execution.leases.every(lease => lease.releasedAt !== undefined)).toBe(true)
+      expect(ctx.dai.directorPlanView(agent, plan().id)).toMatchObject({ phase: 'COMPLETE' })
+      expect(JSON.stringify(adapter.requests)).toContain('Primary evidence collected and anchored.')
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  }), 20000)
+
+  it('never exceeds the explicit Director cycle task limit', async () => temporary(async root => {
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx } = await boot(root, script)
+    const agent = await ctx.agentLoop.create(SessionId('director-cycle-limit-owner'), { provider: 'mock', model: 'fixture' })
+    const objective = 'Execute only one of two independent tasks'
+    const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+
+    script.push(
+      toolCallResponse('plan', 'd_ai_director_plan_create', {
+        objective,
+        primary_system: 'investigation',
+      }),
+      () => toolCallResponse('first', 'd_ai_director_task_add', {
+        plan_id: plan().id,
+        system_id: 'investigation',
+        title: 'Higher priority task',
+        priority: 20,
+      }),
+      () => toolCallResponse('second', 'd_ai_director_task_add', {
+        plan_id: plan().id,
+        system_id: 'investor',
+        title: 'Lower priority task',
+        priority: 10,
+      }),
+      () => toolCallResponse('cycle', 'd_ai_director_execute_cycle', {
+        plan_id: plan().id,
+        max_tasks: 1,
+      }),
+      textResponse(JSON.stringify({
+        outcome: 'COMPLETED',
+        summary: 'Only the first task was executed.',
+        artifactRefs: [],
+      })),
+      textResponse('Cycle stopped at configured limit'),
+    )
+
+    try {
+      agent.followup(createUserMessage({
+        content: [{ type: 'text', text: objective }],
+        source: { kind: 'user' },
+      }))
+      await agent.whenIdle()
+
+      const taskState = ctx.dai.readTaskLedger(agent).ledgers[0]!
+      expect(taskState.tasks.filter(task => task.state === 'COMPLETED')).toHaveLength(1)
+      expect(taskState.tasks.filter(task => task.state === 'PENDING')).toHaveLength(1)
+      expect(ctx.dai.directorPlanView(agent, plan().id).next.selected).toHaveLength(1)
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  }), 15000)
+
   it('stops a Director task at WAITING_FOR_HUMAN when real-world input is required', async () => temporary(async root => {
     const script: ConstructorParameters<typeof MockAdapter>[0] = []
     const { ctx } = await boot(root, script)
