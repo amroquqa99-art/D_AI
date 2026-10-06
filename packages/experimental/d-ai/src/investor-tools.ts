@@ -14,7 +14,7 @@ export interface InvestorToolRuntime {
     url: string,
     category: InvestorSource['category'],
     signal: AbortSignal,
-  ): Promise<unknown>
+  ): Promise<InvestorCase>
   addInvestmentThesis(
     agent: Agent,
     caseId: string,
@@ -24,8 +24,8 @@ export interface InvestorToolRuntime {
       rationale: string
       invalidationConditions: string
     },
-  ): Promise<unknown>
-  delegateInvestor(agent: Agent, caseId: string, signal: AbortSignal): Promise<unknown>
+  ): Promise<InvestorCase>
+  delegateInvestor(agent: Agent, caseId: string, signal: AbortSignal): Promise<InvestorCase>
 }
 
 export function registerInvestorTools(
