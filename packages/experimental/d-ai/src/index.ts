@@ -3,7 +3,6 @@ import { createHash, randomUUID } from 'node:crypto'
 import { Context, Service } from '@deepseek-ai/cordis'
 import { z as schema } from 'zod'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { HarnessError } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-user-approval'
 import { defineDomain, domainTable } from '@deepseek-ai/dsh-storage-domain'
 import type {} from '@deepseek-ai/dsh-web'
@@ -74,6 +73,8 @@ import { buildRuntimeConfiguration, configSchema } from './config.ts'
 import type { Config } from './config.ts'
 import { mountDaiProjections } from './runtime-projections.ts'
 import { registerDaiTools } from './runtime-tools.ts'
+import { DaiRuntimeKernel } from './runtime-kernel.ts'
+import { failDai } from './runtime-errors.ts'
 
 export * from './public-api.ts'
 
@@ -94,7 +95,7 @@ function immutable<T>(value: T): T {
   return copy
 }
 
-function fail(message: string, code = 'D_AI_POLICY_DENIED'): never { throw new HarnessError(message, code) }
+const fail = failDai
 
 /** Single-owner native service; raw Session history is authoritative, index is discoverability only. */
 export class DAI extends Service {
@@ -107,12 +108,13 @@ export class DAI extends Service {
   private readonly cyberDelegation: CyberDelegationConfig
   private readonly operationsDelegation: OperationsDelegationConfig
   private readonly innovationDelegation: InnovationDelegationConfig
-  private readonly tails = new Map<string, Promise<void>>()
+  private readonly kernel: DaiRuntimeKernel
   private readonly delegating = new Set<string>()
   private readonly index: ReturnType<Context['storageDomain']['open']>
 
   constructor(ctx: Context, config: Config = {}) {
     super(ctx, 'dai')
+    this.kernel = new DaiRuntimeKernel(ctx)
     const runtime = buildRuntimeConfiguration(config)
     this.limits = runtime.limits
     this.delegation = runtime.delegations.investigation
@@ -123,7 +125,7 @@ export class DAI extends Service {
     this.innovationDelegation = runtime.delegations.innovation
     this.index = ctx.storageDomain.open(indexSpec)
     mountDaiProjections(ctx)
-    ctx.effect(() => async () => { await Promise.all([...this.tails.values()]); await (await this.index).close() }, 'dai.index()')
+    ctx.effect(() => async () => { await this.kernel.drain(); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
   }
 
@@ -134,7 +136,7 @@ export class DAI extends Service {
   systems(): typeof SYSTEMS { return SYSTEMS }
 
   private authorize(agent: Agent): void {
-    if (this.ctx.agents.get(agent.id) !== agent || !this.ctx.agents.roots().includes(agent)) fail('operation requires the exact live owner root Agent')
+    this.kernel.authorizeOwner(agent)
   }
 
   /**
@@ -513,22 +515,12 @@ export class DAI extends Service {
     }
   }
 
-  private async transact<T>(agent: Agent, operation: () => Promise<T>): Promise<T> {
-    this.authorize(agent)
-    const prior = this.tails.get(agent.id) ?? Promise.resolve()
-    const run = prior.then(operation, operation)
-    const tail = run.then(() => undefined, () => undefined)
-    this.tails.set(agent.id, tail)
-    try { return await run } finally { if (this.tails.get(agent.id) === tail) this.tails.delete(agent.id) }
+  private transact<T>(agent: Agent, operation: () => Promise<T>): Promise<T> {
+    return this.kernel.transact(agent, operation)
   }
 
   private requireOpenTurn(agent: Agent): number {
-    const events = agent.session.snapshotEvents()
-    for (let index = events.length - 1; index >= 0; index -= 1) {
-      if (events[index]?.type === 'turn/end') break
-      if (events[index]?.type === 'turn/start') return index
-    }
-    return fail('D_AI mutations require an open native Agent turn', 'D_AI_OPEN_TURN_REQUIRED')
+    return this.kernel.requireOpenTurn(agent)
   }
 
   private async append(agent: Agent, operation: MissionFact['operation'], mission: Mission): Promise<Mission> {
