@@ -21,6 +21,7 @@ declare module '@deepseek-ai/dsh-llm' {
 
 export interface DirectorSchedulerConfig {
   readonly pollMs: number
+  readonly maxConcurrentCycles: number
 }
 
 export interface ScheduledDirectorCycleResult {
@@ -163,6 +164,11 @@ export class DirectorScheduler {
     if (!Number.isSafeInteger(config.pollMs) || config.pollMs < 10) {
       throw new TypeError('Director scheduler pollMs must be an integer of at least 10 ms')
     }
+    if (!Number.isSafeInteger(config.maxConcurrentCycles)
+      || config.maxConcurrentCycles < 1
+      || config.maxConcurrentCycles > 32) {
+      throw new TypeError('Director scheduler maxConcurrentCycles must be an integer from 1 to 32')
+    }
 
     this.removePreStep = ctx.on('agent/pre-step', async ({ agent, messages, signal }, next) => {
       const wakes = messages.filter(isDirectorSchedulerWake)
@@ -226,7 +232,15 @@ export class DirectorScheduler {
   scan(nowMs: number): void {
     if (!Number.isFinite(nowMs)) throw new TypeError('Director scheduler scan time must be finite')
 
-    for (const agent of this.ctx.agents.roots()) {
+    const roots = [...this.ctx.agents.roots()]
+    const queuedWakeCount = roots.reduce((count, agent) =>
+      count + [...agent.inbox.nextTurn, ...agent.inbox.nextStep]
+        .filter(isDirectorSchedulerWake).length, 0)
+    let remainingSlots = this.config.maxConcurrentCycles - this.active.size - queuedWakeCount
+    if (remainingSlots <= 0) return
+
+    for (const agent of roots) {
+      if (remainingSlots <= 0) return
       let state: DirectorScheduleState
       try {
         state = this.runtime.readDirectorSchedule(agent)
@@ -277,6 +291,7 @@ export class DirectorScheduler {
 
         try {
           agent.followup(createDirectorSchedulerWake(schedule))
+          remainingSlots -= 1
         } catch (error) {
           // Agent disposal or a concurrent lifecycle transition must not kill
           // the process-level scheduler loop. The next scan will reconsider
