@@ -10,9 +10,11 @@ describe('D_AI runtime configuration', () => {
       maxMissionBytes: 2000000,
       maxSources: 32,
     })
+    expect(runtime.scheduler).toEqual({ enabled: true, pollMs: 1000 })
     expect(runtime.delegations.investigation.allowedTools).toEqual(['web_search', 'web_fetch'])
     expect(runtime.delegations.scientific.allowedTools).toEqual(['web_search', 'web_fetch'])
     expect(runtime.delegations.cyber.allowedTools).toEqual([])
+    expect(runtime.scheduler).toEqual({ enabled: false, pollMs: 250 })
     expect(runtime.delegations.investigation).toMatchObject({
       provider: 'spawn',
       maxDepth: 3,
@@ -33,6 +35,8 @@ describe('D_AI runtime configuration', () => {
       cyberAssessmentModel: 'cyber-d',
       operationsAdversarialModel: 'ops-e',
       innovationCriticModel: 'innovation-f',
+      directorSchedulerEnabled: false,
+      directorSchedulerPollMs: 250,
     })
 
     expect(runtime.delegations.investigation).toMatchObject({
@@ -56,5 +60,6 @@ describe('D_AI runtime configuration', () => {
   it('rejects invalid resource bounds before service construction', () => {
     expect(() => buildRuntimeConfiguration({ maxDepth: 0 })).toThrow('maxDepth must be a positive safe integer')
     expect(() => buildRuntimeConfiguration({ maxMissionBytes: Number.MAX_SAFE_INTEGER + 1 })).toThrow('maxMissionBytes must be a positive safe integer')
+    expect(() => buildRuntimeConfiguration({ directorSchedulerPollMs: 9 })).toThrow('directorSchedulerPollMs must be at least 10 ms')
   })
 })
