@@ -38,23 +38,27 @@ Legend:
 
 ## Current CI blocker
 
-As of 2026-10-06, the latest GitHub Actions runs for this branch are failing **before a runner is allocated**: the job payload reports `runner_id: 0` and `steps: []`. This is an Actions execution/infrastructure blocker rather than an observed D_AI test assertion failure. New runtime work therefore remains marked **CI PENDING** until the gate can actually execute.
+As of 2026-10-06, the latest `D_AI v2 checks` run for the active head (`0075ee1…`, run `37457295066`) failed before executing any workflow step; job `112247906618` reports `steps: []`. Therefore no install, persistence generation, TypeScript build or D_AI test command ran for the current refactor checkpoint.
+
+This is recorded as a **CI execution blocker**, not as a D_AI test assertion failure and not as evidence that the new code passes. Everything changed after the last verified baseline remains **CI PENDING** until the gate executes normally.
 
 ## What is being worked on right now
 
 The active engineering path is:
 
-1. Finish the durable shared core integration: scheduler execution leases/checkpoints, automatic resource metering, and control-plane enforcement at every sensitive tool boundary.
-2. Regenerate the Harness persistence catalog for all new D_AI Session events.
-3. Pass the strict D_AI gate:
+1. Complete the behavior-preserving runtime decomposition defined in [ADR 0002](docs/ADRS/0002-runtime-decomposition.md): keep the composition root thin, isolate tool registrars by bounded context, then extract shared/domain application services only behind characterization tests.
+2. Restore an executable CI gate and run the full current branch validation. No maturity promotion happens while Actions is failing before steps.
+3. Finish the durable shared core integration: automatic worker/heartbeat scheduling, resource metering at sensitive execution boundaries, and policy enforcement throughout cross-system execution.
+4. Regenerate/verify the Harness persistence catalog for all D_AI Session events as part of the gate.
+5. Pass the strict D_AI gate:
    - native system addon build
    - persistence catalog generation/verification
    - TypeScript strict check
    - system registry tests
    - all D_AI package/integration tests
-4. Promote system registry statuses only after the gate is green.
-5. Continue from primitives to the long-running Mission Director/scheduler and full cross-system runtime.
-6. Build the Control Center/Admin UI after the control APIs and durable state are stable.
+6. Promote system registry statuses only after the gate is green.
+7. Continue the long-running Mission Director/scheduler and full cross-system runtime.
+8. Build the Control Center/Admin UI after the control APIs and durable state are stable.
 
 The CI workflow used for this branch is `.github/workflows/d-ai-v2-checks.yml`.
 
@@ -65,7 +69,12 @@ The main implementation is under:
 ```text
 packages/experimental/d-ai/
 ├── src/
-│   ├── index.ts
+│   ├── index.ts                  # runtime composition/service
+│   ├── public-api.ts             # package export surface
+│   ├── config.ts                 # deployment/runtime normalization
+│   ├── runtime-projections.ts    # persistent projection registry
+│   ├── tool-support.ts           # shared native-tool boundary helpers
+│   ├── *-tools.ts                # bounded-context tool registrars
 │   ├── systems.ts
 │   ├── state.ts
 │   ├── orchestration.ts
@@ -212,6 +221,12 @@ The current D_AI engineering work is source-first. A dedicated polished D_AI pro
 D_AI is under active development and is not yet a production-certified system. Review [SAFETY.md](SAFETY.md) before running it. High-impact external actions, sensitive institutional deployments, real-money actions, active security testing and physical experiments require explicit authorization/approval layers appropriate to the deployment.
 
 ## Development
+
+D_AI changes follow the repository engineering operating system:
+
+- [D_AI Engineering Working Agreement](docs/ENGINEERING_WORKING_AGREEMENT.md)
+- [ADR 0002 — incremental runtime decomposition](docs/ADRS/0002-runtime-decomposition.md)
+- [AGENTS.md](AGENTS.md)
 
 The upstream repository architecture and development notes remain useful while D_AI is being modified:
 
