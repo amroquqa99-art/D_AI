@@ -21,6 +21,7 @@ export type DaiProjectionKey =
   | 'daiEvidenceStore'
   | 'daiBudgets'
   | 'daiControlPlane'
+  | 'daiSideEffects'
 
 const projectionLabels: Readonly<Record<DaiProjectionKey, string>> = Object.freeze({
   dai: 'D_AI',
@@ -38,6 +39,7 @@ const projectionLabels: Readonly<Record<DaiProjectionKey, string>> = Object.free
   daiEvidenceStore: 'Evidence store',
   daiBudgets: 'Budget',
   daiControlPlane: 'Control plane',
+  daiSideEffects: 'Side-effect journal',
 })
 
 type DaiProjectionState = SessionProjectionStateMap[DaiProjectionKey]
