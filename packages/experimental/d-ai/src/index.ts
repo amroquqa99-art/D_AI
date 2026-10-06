@@ -41,6 +41,7 @@ import type { ControlPlane, ControlPlaneFact, ControlPlaneState } from './contro
 import { appendAuditRecord as appendAuditRecordInternal, createAuditChain as createAuditChainInternal } from './audit-log.ts'
 import { validateGrant as validateGrantInternal } from './capability-grants.ts'
 import type { CapabilityGrant } from './capability-grants.ts'
+import { transitionTask as transitionTaskInternal } from './task-dag.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
