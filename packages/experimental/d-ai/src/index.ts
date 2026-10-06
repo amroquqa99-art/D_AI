@@ -597,6 +597,155 @@ export class DAI extends Service {
     }
   }
 
+  /** Create an authorized defensive Cybersecurity engagement. */
+  async createCybersecurity(
+    agent: Agent,
+    objective: string,
+    authorization: CyberAuthorizationScope,
+    signal?: AbortSignal,
+  ): Promise<CyberEngagement> {
+    this.authorize(agent)
+    const boundary = this.requireOpenTurn(agent)
+    const explicit = agent.session.snapshotEvents().slice(boundary + 1).some(event =>
+      event.type === 'user/message' && event.data.source.kind === 'user'
+      && event.data.content.filter(block => block.type === 'text').map(block => block.text).join('\n').includes(objective.trim()))
+    if (!explicit) {
+      const outcome = await this.ctx.approval.request({
+        agent,
+        toolName: 'd_ai_cyber_create',
+        reason: 'Activate Cybersecurity engagement: ' + objective,
+        ...(signal === undefined ? {} : { signal }),
+      })
+      if (outcome !== 'allowed-once') fail('owner approval is required for this cybersecurity engagement')
+    }
+    if (objective.trim().length === 0 || authorization.targetDescription.trim().length === 0 || authorization.permittedActions.length === 0) {
+      fail('cybersecurity objective and explicit authorization scope are required', 'D_AI_INVALID_INPUT')
+    }
+    const issued = Date.parse(authorization.issuedAt)
+    const expires = authorization.expiresAt === undefined ? undefined : Date.parse(authorization.expiresAt)
+    if (!Number.isFinite(issued) || (expires !== undefined && (!Number.isFinite(expires) || expires <= issued))) {
+      fail('invalid cybersecurity authorization dates', 'D_AI_INVALID_INPUT')
+    }
+
+    return this.transact(agent, async () => this.appendCyber(agent, 'CREATE', {
+      id: randomUUID(),
+      system: 'cybersecurity',
+      objective,
+      ownerAgentId: agent.id,
+      authorization,
+      status: 'ACTIVE',
+      revision: 1,
+      createdAt: new Date().toISOString(),
+      findings: [],
+      delegations: [],
+    }))
+  }
+
+  /** Append a defensive finding with evidence and remediation. */
+  async addCyberFinding(
+    agent: Agent,
+    id: string,
+    input: { title: string; severity: CyberFinding['severity']; evidence: string; remediation: string },
+  ): Promise<CyberEngagement> {
+    if ([input.title, input.evidence, input.remediation].some(value => value.trim().length === 0)) {
+      fail('cyber finding title, evidence and remediation are required', 'D_AI_INVALID_INPUT')
+    }
+    return this.transact(agent, async () => {
+      const engagement = this.cyberEngagement(agent, id)
+      const finding: CyberFinding = {
+        id: randomUUID(),
+        title: input.title,
+        severity: input.severity,
+        evidence: input.evidence,
+        remediation: input.remediation,
+        status: 'OPEN',
+        actorId: agent.id,
+        createdAt: new Date().toISOString(),
+      }
+      return this.appendCyber(agent, 'ADD_FINDING', {
+        ...engagement,
+        status: 'WAITING_FOR_REMEDIATION',
+        revision: engagement.revision + 1,
+        findings: [...engagement.findings, finding],
+      })
+    })
+  }
+
+  /** Record remediation applied by the engineer or authorized operator. */
+  async recordCyberRemediation(agent: Agent, id: string, findingId: string, remediationNote: string): Promise<CyberEngagement> {
+    if (remediationNote.trim().length === 0) fail('remediation note is required', 'D_AI_INVALID_INPUT')
+    return this.transact(agent, async () => {
+      const engagement = this.cyberEngagement(agent, id)
+      const finding = engagement.findings.find(item => item.id === findingId)
+      if (finding === undefined) fail('unknown cyber finding', 'D_AI_INVALID_INPUT')
+      if (finding.status === 'RETEST_PASSED') fail('passed finding cannot be rewritten', 'D_AI_INVALID_INPUT')
+      const updated: CyberFinding = {
+        ...finding,
+        status: 'REMEDIATED',
+        remediationNote,
+        updatedAt: new Date().toISOString(),
+      }
+      return this.appendCyber(agent, 'RECORD_REMEDIATION', {
+        ...engagement,
+        status: 'ACTIVE',
+        revision: engagement.revision + 1,
+        findings: engagement.findings.map(item => item.id === findingId ? updated : item),
+      })
+    })
+  }
+
+  /** Record a safe authorized retest result after remediation. */
+  async recordCyberRetest(agent: Agent, id: string, findingId: string, retestEvidence: string): Promise<CyberEngagement> {
+    if (retestEvidence.trim().length === 0) fail('retest evidence is required', 'D_AI_INVALID_INPUT')
+    return this.transact(agent, async () => {
+      const engagement = this.cyberEngagement(agent, id)
+      const finding = engagement.findings.find(item => item.id === findingId)
+      if (finding === undefined) fail('unknown cyber finding', 'D_AI_INVALID_INPUT')
+      if (finding.status !== 'REMEDIATED') fail('cyber retest requires a remediated finding', 'D_AI_INVALID_INPUT')
+      const updated: CyberFinding = {
+        ...finding,
+        status: 'RETEST_PASSED',
+        retestEvidence,
+        updatedAt: new Date().toISOString(),
+      }
+      return this.appendCyber(agent, 'RETEST', {
+        ...engagement,
+        status: 'ACTIVE',
+        revision: engagement.revision + 1,
+        findings: engagement.findings.map(item => item.id === findingId ? updated : item),
+      })
+    })
+  }
+
+  /** Run independent authorized assessment and remediation-review workers. */
+  async delegateCybersecurity(agent: Agent, id: string, signal: AbortSignal): Promise<CyberEngagement> {
+    const engagement = this.cyberEngagement(agent, id)
+    const key = agent.id + ':cybersecurity'
+    if (this.delegating.has(key)) fail('a cybersecurity delegation is already running for this owner', 'D_AI_BUSY')
+    this.delegating.add(key)
+    try {
+      const result = await runCyberDelegates(
+        this.ctx,
+        agent,
+        engagement.objective,
+        JSON.stringify(engagement.authorization),
+        signal,
+        this.cyberDelegation,
+      )
+      signal.throwIfAborted()
+      return await this.transact(agent, async () => {
+        const current = this.cyberEngagement(agent, id)
+        return this.appendCyber(agent, 'DELEGATE', {
+          ...current,
+          revision: current.revision + 1,
+          delegations: [...current.delegations, result],
+        })
+      })
+    } finally {
+      this.delegating.delete(key)
+    }
+  }
+
   /**
    * Fetch and retain an immutable, bounded decoded source through the native web provider.
    * @param agent - exact mission owner root Agent.
