@@ -10,14 +10,16 @@ export interface ExecutionToolRuntime {
   recoverExpiredTaskLeases(agent: Agent): Promise<Readonly<{ recoveredTaskIds: readonly string[]; retryExhaustedTaskIds: readonly string[] }>>
   readExecution(agent: Agent): ExecutionState
   claimNextRunnableTask(agent: Agent, ttlMs: number): Promise<{ readonly task: MissionTask; readonly lease: TaskLease }>
-  renewTaskLease(agent: Agent, taskId: string, ttlMs: number): Promise<TaskLease>
+  renewTaskLease(agent: Agent, taskId: string, leaseId: string, fence: number, ttlMs: number): Promise<TaskLease>
   checkpointTask(
     agent: Agent,
     taskId: string,
+    leaseId: string,
+    fence: number,
     summary: string,
     artifactRefs: readonly string[],
   ): Promise<TaskCheckpoint>
-  releaseTaskLease(agent: Agent, taskId: string): Promise<TaskLease>
+  releaseTaskLease(agent: Agent, taskId: string, leaseId: string, fence: number): Promise<TaskLease>
 }
 
 export function registerExecutionTools(
@@ -55,22 +57,32 @@ export function registerExecutionTools(
 
   ctx.tools.register(defineTool({
     name: 'd_ai_task_renew_lease',
-    description: 'Extend the current executor lease for a long-running D_AI task.',
+    description: 'Extend one exact execution-lease generation. lease_id + fence prevent stale workers from renewing a newer executor lease.',
     parameters: {
       task_id: { type: 'string', required: true },
+      lease_id: { type: 'string', required: true },
+      fence: { type: 'number', required: true },
       ttl_ms: { type: 'number' },
     },
     output: jsonToolOutput,
     execute: (args, exec) => encodeToolResult(
-      runtime.renewTaskLease(owner(exec.agent), args.task_id, args.ttl_ms ?? 300000),
+      runtime.renewTaskLease(
+        owner(exec.agent),
+        args.task_id,
+        args.lease_id,
+        args.fence,
+        args.ttl_ms ?? 300000,
+      ),
     ),
   }))
 
   ctx.tools.register(defineTool({
     name: 'd_ai_task_checkpoint',
-    description: 'Persist a resumable checkpoint for a currently leased D_AI task.',
+    description: 'Persist a resumable checkpoint for one exact active lease generation. Stale lease fences are rejected.',
     parameters: {
       task_id: { type: 'string', required: true },
+      lease_id: { type: 'string', required: true },
+      fence: { type: 'number', required: true },
       summary: { type: 'string', required: true },
       artifact_refs: { type: 'string' },
     },
@@ -78,6 +90,8 @@ export function registerExecutionTools(
     execute: (args, exec) => encodeToolResult(runtime.checkpointTask(
       owner(exec.agent),
       args.task_id,
+      args.lease_id,
+      args.fence,
       args.summary,
       args.artifact_refs === undefined
         ? []
@@ -87,11 +101,15 @@ export function registerExecutionTools(
 
   ctx.tools.register(defineTool({
     name: 'd_ai_task_release_lease',
-    description: 'Release the current executor lease for a D_AI task. Task completion/failure state remains a separate explicit transition.',
-    parameters: { task_id: { type: 'string', required: true } },
+    description: 'Release one exact execution-lease generation. A stale worker cannot release a newer executor lease.',
+    parameters: {
+      task_id: { type: 'string', required: true },
+      lease_id: { type: 'string', required: true },
+      fence: { type: 'number', required: true },
+    },
     output: jsonToolOutput,
     execute: (args, exec) => encodeToolResult(
-      runtime.releaseTaskLease(owner(exec.agent), args.task_id),
+      runtime.releaseTaskLease(owner(exec.agent), args.task_id, args.lease_id, args.fence),
     ),
   }))
 }
