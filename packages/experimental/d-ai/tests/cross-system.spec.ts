@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { createAuditChain, verifyAuditChain } from '../src/audit-log.ts'
-import { authorizeCrossSystemHandoff } from '../src/cross-system.ts'
+import { CROSS_SYSTEM_TASK_EXECUTION_CAPABILITY, authorizeCrossSystemHandoff, deriveTaskHandoffSources } from '../src/cross-system.ts'
 import type { CapabilityGrant } from '../src/capability-grants.ts'
+import type { MissionTask } from '../src/task-dag.ts'
 
 const grant: CapabilityGrant = {
   id: 'g1',
@@ -16,7 +17,50 @@ const grant: CapabilityGrant = {
   reason: 'investigation needs financial analysis',
 }
 
+
+function task(
+  id: string,
+  systemId: MissionTask['systemId'],
+  dependsOn: readonly string[] = [],
+): MissionTask {
+  return {
+    id,
+    missionId: 'm1',
+    systemId,
+    title: id,
+    dependsOn,
+    state: 'PENDING',
+    priority: 0,
+    attempt: 0,
+    maxAttempts: 3,
+  }
+}
+
 describe('D_AI cross-system handoff', () => {
+
+  it('derives task handoff sources from durable dependency systems', () => {
+    expect(CROSS_SYSTEM_TASK_EXECUTION_CAPABILITY).toBe('runtime.task-execute')
+
+    expect(deriveTaskHandoffSources(
+      'investigation',
+      task('financial', 'investor'),
+      [],
+    )).toEqual(['investigation'])
+
+    const target = task('synthesis', 'investor', ['evidence', 'method', 'same-target'])
+    expect(deriveTaskHandoffSources('investigation', target, [
+      task('evidence', 'investigation'),
+      task('method', 'scientific-research'),
+      task('same-target', 'investor'),
+    ])).toEqual(['investigation', 'scientific-research'])
+
+    expect(() => deriveTaskHandoffSources(
+      'investigation',
+      task('broken', 'investor', ['missing']),
+      [],
+    )).toThrow('missing from durable task state')
+  })
+
   it('requires declared system collaboration plus an explicit capability grant', () => {
     const handoff = authorizeCrossSystemHandoff([grant], createAuditChain(), {
       id: 'x1',
