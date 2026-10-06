@@ -12,7 +12,7 @@ export interface ScientificToolRuntime {
     agent: Agent,
     projectId: string,
     input: { statement: string; rationale: string },
-  ): Promise<unknown>
+  ): Promise<ScientificProject>
   requestScientificExperiment(
     agent: Agent,
     projectId: string,
@@ -23,15 +23,15 @@ export interface ScientificToolRuntime {
       expectedEvidence: string
       budgetUsd?: number
     },
-  ): Promise<unknown>
+  ): Promise<ScientificProject>
   recordScientificResult(
     agent: Agent,
     projectId: string,
     experimentId: string,
     observation: string,
     artifactRef?: string,
-  ): Promise<unknown>
-  delegateScientific(agent: Agent, projectId: string, signal: AbortSignal): Promise<unknown>
+  ): Promise<ScientificProject>
+  delegateScientific(agent: Agent, projectId: string, signal: AbortSignal): Promise<ScientificProject>
 }
 
 /** Register the Scientific Research tool surface without owning domain behavior. */
