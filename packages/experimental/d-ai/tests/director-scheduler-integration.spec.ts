@@ -77,6 +77,8 @@ describe('D_AI unattended Mission Director', () => {
         enabled: true,
         interval_ms: 1000,
         max_tasks_per_cycle: 1,
+        max_consecutive_failures: 3,
+        max_consecutive_idle_cycles: 2,
         lease_ttl_ms: 60000,
         start_immediately: true,
       }),
@@ -105,6 +107,10 @@ describe('D_AI unattended Mission Director', () => {
         enabled: true,
         maxTasksPerCycle: 1,
         maxParallelTasks: 1,
+        maxConsecutiveFailures: 3,
+        maxConsecutiveIdleCycles: 2,
+        consecutiveFailures: 0,
+        consecutiveIdleCycles: 0,
         leaseTtlMs: 60000,
       })
 
