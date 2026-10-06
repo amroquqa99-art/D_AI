@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { selectDurableRunnableTasks } from '../src/runtime-scheduler.ts'
+import { budgetProfilesForTask, selectDurableRunnableTasks } from '../src/runtime-scheduler.ts'
 import type { DurableTaskLedger } from '../src/task-ledger-state.ts'
 
 function ledger(): DurableTaskLedger {
@@ -63,6 +63,35 @@ describe('D_AI durable scheduler admission', () => {
       { taskId: 'c', reason: 'dependency', details: [] },
       { taskId: 'd', reason: 'state', details: [] },
     ]))
+  })
+
+  it('selects task, mission and system budgets while excluding unrelated profiles', () => {
+    const task = ledger().tasks[1]!
+    const usage = {
+      tokens: 0,
+      moneyUsd: 0,
+      wallClockMs: 0,
+      humanAttentionMinutes: 0,
+      dataAccessCostUsd: 0,
+    }
+    const base = {
+      ownerAgentId: 'owner',
+      limits: { wallClockMs: 1000 },
+      usage,
+      createdAt: '2026-10-06T00:00:00Z',
+      updatedAt: '2026-10-06T00:00:00Z',
+      updatedBy: 'owner',
+    } as const
+
+    const matching = budgetProfilesForTask(task, [
+      { ...base, id: 'task', scope: 'TASK', scopeId: task.id },
+      { ...base, id: 'mission', scope: 'MISSION', scopeId: task.missionId },
+      { ...base, id: 'system', scope: 'SYSTEM', scopeId: task.systemId },
+      { ...base, id: 'other-system', scope: 'SYSTEM', scopeId: 'investor' },
+      { ...base, id: 'other-task', scope: 'TASK', scopeId: 'different-task' },
+    ])
+
+    expect(matching.map(profile => profile.id)).toEqual(['task', 'mission', 'system'])
   })
 
   it('blocks structurally runnable work when a matching persisted budget is exceeded', () => {
