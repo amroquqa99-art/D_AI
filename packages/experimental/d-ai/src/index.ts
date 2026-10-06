@@ -76,6 +76,7 @@ import { runDirectorPlanner } from './director-orchestration.ts'
 import type { DirectorPlanningResult } from './director-orchestration.ts'
 import { runDirectorTaskExecutor } from './director-executor.ts'
 import type { TaskExecutionResult } from './director-executor.ts'
+import { DirectorCycleExecutionError } from './director-runtime.ts'
 import type { DirectorCycleResult, DirectorPlanRuntimeView, DirectorTaskExecution } from './director-runtime.ts'
 import { selectDirectorParallelWave } from './director-parallelism.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
@@ -1112,17 +1113,31 @@ export class DAI extends Service {
     }
     this.directorCycles.add(key)
 
+    const executed: DirectorTaskExecution[] = []
+    let waves = 0
+    let peakParallelism = 0
+    const serializedByBudgetProfileIds = new Set<string>()
+
+    const snapshotResult = (): DirectorCycleResult => {
+      const finalView = this.directorPlanView(agent, planId, 1)
+      return immutableSnapshot({
+        planId,
+        executed,
+        phase: finalView.phase,
+        limitReached: executed.length === maxTasks && finalView.next.selected.length > 0,
+        next: finalView.next,
+        waves,
+        peakParallelism,
+        serializedByBudgetProfileIds: [...serializedByBudgetProfileIds].sort(),
+      })
+    }
+
     try {
       // Recovery must happen before scheduler admission. An expired lease
       // leaves its task in RUNNING, which is intentionally not runnable; if
       // admission ran first, an unattended wake could observe no work and
       // return without ever making the expired task eligible again.
       await this.recoverExpiredTaskLeases(agent)
-
-      const executed: DirectorTaskExecution[] = []
-      let waves = 0
-      let peakParallelism = 0
-      const serializedByBudgetProfileIds = new Set<string>()
 
       while (executed.length < maxTasks) {
         signal.throwIfAborted()
@@ -1165,25 +1180,28 @@ export class DAI extends Service {
 
         // All workers in the wave have settled before failure escapes, so the
         // cycle never abandons a child Agent or its lease/heartbeat cleanup.
-        if (failures.length === 1) throw failures[0]
-        if (failures.length > 1) {
-          throw new AggregateError(failures, 'D_AI Director parallel wave failed')
+        if (failures.length > 0) {
+          const cause = failures.length === 1
+            ? failures[0]
+            : new AggregateError(failures, 'D_AI Director parallel wave failed')
+          throw new DirectorCycleExecutionError(snapshotResult(), cause)
         }
 
         if (completedWave.some(result => result.execution.outcome === 'FAILED')) break
       }
 
-      const finalView = this.directorPlanView(agent, planId, 1)
-      return immutableSnapshot({
-        planId,
-        executed,
-        phase: finalView.phase,
-        limitReached: executed.length === maxTasks && finalView.next.selected.length > 0,
-        next: finalView.next,
-        waves,
-        peakParallelism,
-        serializedByBudgetProfileIds: [...serializedByBudgetProfileIds].sort(),
-      })
+      return snapshotResult()
+    } catch (error) {
+      if (error instanceof DirectorCycleExecutionError || executed.length === 0) throw error
+      // Cancellation or an invariant failure between waves can happen after
+      // earlier workers committed. Preserve those completed results too.
+      let partial: DirectorCycleResult
+      try {
+        partial = snapshotResult()
+      } catch {
+        throw error
+      }
+      throw new DirectorCycleExecutionError(partial, error)
     } finally {
       this.directorCycles.delete(key)
     }
@@ -1323,6 +1341,7 @@ export class DAI extends Service {
         schedule.maxParallelTasks,
       )
     } catch (error) {
+      if (error instanceof DirectorCycleExecutionError) cycle = error.partial
       failure = error
     }
 
