@@ -467,6 +467,38 @@ export class DAI extends Service {
       execute: (_args, exec) => { owner(exec.agent); return encoded(this.systems()) } }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_local_core_status', description: 'Read the governed Local Intelligence Core manifest. This reports architecture and status only; FOUNDATION does not imply a trained model exists.', parameters: {}, output,
       execute: (_args, exec) => { owner(exec.agent); return encoded(LOCAL_INTELLIGENCE_CORE) } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_scientific_create', description: 'Create an explicitly user-requested Scientific Research project. Do not activate a new independent research project without owner approval.',
+      parameters: { question: { type: 'string', required: true } }, output,
+      execute: (args, exec) => encoded(this.createScientific(owner(exec.agent), args.question, exec.signal)) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_scientific_read', description: 'Read durable Scientific Research projects, hypotheses, requested experiments, results and independent worker outputs.', parameters: {}, output,
+      execute: (_args, exec) => encoded(this.readScientific(owner(exec.agent))) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_scientific_add_hypothesis', description: 'Append a researcher hypothesis and rationale. The hypothesis remains OPEN and is not treated as a finding.',
+      parameters: { project_id: { type: 'string', required: true }, statement: { type: 'string', required: true }, rationale: { type: 'string', required: true } }, output,
+      execute: (args, exec) => encoded(this.addScientificHypothesis(owner(exec.agent), args.project_id, { statement: args.statement, rationale: args.rationale })) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_scientific_request_experiment', description: 'Turn an evidence gap into a concrete human/lab experiment request and move the project to WAITING_FOR_HUMAN.',
+      parameters: {
+        project_id: { type: 'string', required: true },
+        title: { type: 'string', required: true },
+        objective: { type: 'string', required: true },
+        protocol: { type: 'string', required: true },
+        expected_evidence: { type: 'string', required: true },
+        budget_usd: { type: 'number' },
+      }, output,
+      execute: (args, exec) => encoded(this.requestScientificExperiment(owner(exec.agent), args.project_id, {
+        title: args.title, objective: args.objective, protocol: args.protocol, expectedEvidence: args.expected_evidence,
+        ...(args.budget_usd === undefined ? {} : { budgetUsd: args.budget_usd }),
+      })) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_scientific_record_result', description: 'Record the real observation returned by the human/lab for a previously requested experiment.',
+      parameters: {
+        project_id: { type: 'string', required: true },
+        experiment_id: { type: 'string', required: true },
+        observation: { type: 'string', required: true },
+        artifact_ref: { type: 'string' },
+      }, output,
+      execute: (args, exec) => encoded(this.recordScientificResult(owner(exec.agent), args.project_id, args.experiment_id, args.observation, args.artifact_ref)) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_scientific_delegate', description: 'Run fresh independent literature and methodology Agents for the approved Scientific Research question.',
+      parameters: { project_id: { type: 'string', required: true } }, output, timeoutMs: this.scientificDelegation.timeoutMs * 2 + 10000,
+      execute: (args, exec) => encoded(this.delegateScientific(owner(exec.agent), args.project_id, exec.signal)) }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_mission_create', description: 'Create an explicitly user-requested investigative mission. Never activate a new independent mission proposed by a model without owner approval.',
       parameters: { objective: { type: 'string', required: true } }, output,
       execute: (args, exec) => encoded(this.create(owner(exec.agent), args.objective, exec.signal)) }))
