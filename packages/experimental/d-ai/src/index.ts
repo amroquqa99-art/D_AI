@@ -561,7 +561,7 @@ export class DAI extends Service {
 
   private async appendExecutionLedger(agent: Agent, operation: ExecutionFact['operation'], ledger: ExecutionLedger): Promise<ExecutionLedger> {
     this.authorize(agent)
-    const fact = immutableSnapshot(executionFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
+    const fact = immutableSnapshot(executionFactSchema.parse({ version: 2, operation, actorId: agent.id, ledger }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('execution ledger storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/execution-fact', fact)
