@@ -14,6 +14,10 @@ import { LOCAL_INTELLIGENCE_CORE } from './systems.ts'
 import type { Mission, MissionFact, EvidenceClaim, MissionState } from './state.ts'
 import { runInvestigationDelegates } from './orchestration.ts'
 import type { InvestigationDelegationConfig } from './orchestration.ts'
+import { scientificFactSchema, scientificProjection } from './scientific-state.ts'
+import type { ScientificExperiment, ScientificFact, ScientificHypothesis, ScientificProject, ScientificState } from './scientific-state.ts'
+import { runScientificDelegates } from './scientific-orchestration.ts'
+import type { ScientificDelegationConfig } from './scientific-orchestration.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
 export { getSystemManifest, listSystemManifests, LOCAL_INTELLIGENCE_CORE } from './systems.ts'
@@ -38,6 +42,10 @@ export { authorizeCrossSystemHandoff } from './cross-system.ts'
 export type { CrossSystemRequest, CrossSystemHandoff } from './cross-system.ts'
 export { evaluateModelPromotion, createModelReleasePointer } from './model-evaluation.ts'
 export type { ModelEvaluationMetrics, ModelEvaluationResult, PromotionPolicy, ModelPromotionDecision, ModelReleasePointer } from './model-evaluation.ts'
+export { scientificFactSchema, scientificProjection, projectScientificFact } from './scientific-state.ts'
+export type { ScientificExperiment, ScientificFact, ScientificHypothesis, ScientificProject, ScientificState } from './scientific-state.ts'
+export { runScientificDelegates } from './scientific-orchestration.ts'
+export type { ScientificDelegationConfig, ScientificDelegates, ScientificWorkerOutput } from './scientific-orchestration.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
@@ -52,6 +60,8 @@ export interface Config {
   maxSources?: number
   researchModel?: string
   verificationModel?: string
+  literatureModel?: string
+  methodologyModel?: string
   allowedTools?: string[]
   maxResultBytes?: number
 }
@@ -83,11 +93,12 @@ export class DAI extends Service {
     maxOutputTokens: z.number().step(1).min(1).default(4096), maxRequestsPerChild: z.number().step(1).min(1).default(8),
     timeoutMs: z.number().step(1).min(1).default(120000), maxSourceBytes: z.number().step(1).min(1).default(200000),
     maxMissionBytes: z.number().step(1).min(1).default(2000000), maxSources: z.number().step(1).min(1).default(32),
-    researchModel: z.string(), verificationModel: z.string(),
+    researchModel: z.string(), verificationModel: z.string(), literatureModel: z.string(), methodologyModel: z.string(),
     allowedTools: z.array(z.string()).default(['web_search', 'web_fetch']), maxResultBytes: z.number().step(1).min(1).default(65536),
   })
   private readonly limits: { maxSourceBytes: number; maxMissionBytes: number; maxSources: number }
   private readonly delegation: InvestigationDelegationConfig
+  private readonly scientificDelegation: ScientificDelegationConfig
   private readonly tails = new Map<string, Promise<void>>()
   private readonly delegating = new Set<string>()
   private readonly index: ReturnType<Context['storageDomain']['open']>
@@ -103,12 +114,21 @@ export class DAI extends Service {
       ...(config.researchModel === undefined ? {} : { researchModel: config.researchModel }),
       ...(config.verificationModel === undefined ? {} : { verificationModel: config.verificationModel }),
     }
+    this.scientificDelegation = {
+      provider: config.subagentProvider ?? 'spawn', maxDepth: config.maxDepth ?? 3,
+      allowedTools: config.allowedTools ?? ['web_search', 'web_fetch'], maxResultBytes: config.maxResultBytes ?? 65536,
+      maxOutputTokens: config.maxOutputTokens ?? 4096, maxRequestsPerChild: config.maxRequestsPerChild ?? 8,
+      timeoutMs: config.timeoutMs ?? 120000,
+      ...(config.literatureModel === undefined ? {} : { literatureModel: config.literatureModel }),
+      ...(config.methodologyModel === undefined ? {} : { methodologyModel: config.methodologyModel }),
+    }
     for (const [key, value] of Object.entries({ ...this.limits, maxDepth: this.delegation.maxDepth,
       maxOutputTokens: this.delegation.maxOutputTokens, maxRequestsPerChild: this.delegation.maxRequestsPerChild, timeoutMs: this.delegation.timeoutMs })) {
       if (!Number.isSafeInteger(value) || value < 1) throw new TypeError(`${key} must be a positive safe integer`)
     }
     this.index = ctx.storageDomain.open(indexSpec)
     ctx.effect(() => ctx.sessionProjections.register(missionProjection), 'dai.projection()')
+    ctx.effect(() => ctx.sessionProjections.register(scientificProjection), 'dai.scientificProjection()')
     ctx.effect(() => async () => { await Promise.all([...this.tails.values()]); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
   }
