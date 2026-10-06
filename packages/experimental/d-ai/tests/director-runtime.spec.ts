@@ -129,7 +129,7 @@ describe('D_AI durable Mission Director', () => {
       expect(expectedTasks.ledgers[0]?.tasks[1]?.state).toBe('PENDING')
       expect(view).toMatchObject({ phase: 'EXECUTING' })
 
-      const next = (view.next as { selected: Array<{ id: string }> }).selected
+      const next = (view['next'] as { selected: Array<{ id: string }> }).selected
       expect(next.map(item => item.id)).toEqual([expectedTasks.ledgers[0]!.tasks[1]!.id])
       await ctx.sessions.flush(agent.session)
     } finally {
