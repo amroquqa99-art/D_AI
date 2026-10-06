@@ -1067,9 +1067,9 @@ export class DAI extends Service {
   }
 
   /**
-   * Execute a bounded batch of runnable tasks for one active Director plan.
-   * The cycle is request-bound: it never becomes an unattended background
-   * daemon and never exceeds maxTasks without a new explicit invocation.
+   * Execute one bounded batch of runnable tasks for an active Director plan.
+   * The cycle itself is native-turn bound and never exceeds maxTasks; the
+   * unattended scheduler may open later turns and invoke additional cycles.
    */
   async executeDirectorCycle(
     agent: Agent,
@@ -1249,10 +1249,15 @@ export class DAI extends Service {
     }
 
     const finalView = this.directorPlanView(agent, schedule.planId, 1)
+    const taskFailed = cycle?.executed.some(item => item.execution.outcome === 'FAILED') ?? false
     const receipt: DirectorScheduleCycle = failure === undefined
       ? {
           attemptedAt,
-          outcome: (cycle?.executed.length ?? 0) > 0 ? 'EXECUTED' : 'IDLE',
+          outcome: taskFailed
+            ? 'TASK_FAILED'
+            : (cycle?.executed.length ?? 0) > 0
+              ? 'EXECUTED'
+              : 'IDLE',
           executedTasks: cycle?.executed.length ?? 0,
           phase: finalView.phase,
         }
