@@ -10,6 +10,7 @@ import { defineDomain, domainTable } from '@deepseek-ai/dsh-storage-domain'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-web'
 import { factSchema, missionProjection, SYSTEMS } from './state.ts'
+import { LOCAL_INTELLIGENCE_CORE } from './systems.ts'
 import type { Mission, MissionFact, EvidenceClaim, MissionState } from './state.ts'
 import { runInvestigationDelegates } from './orchestration.ts'
 import type { InvestigationDelegationConfig } from './orchestration.ts'
@@ -274,7 +275,11 @@ export class DAI extends Service {
       return agent
     }
     const output = { schema: { type: 'object' as const, additionalProperties: false, properties: { json: { type: 'string' as const, required: true as const } } }, render: (_args: unknown, value: { json: string }) => [{ type: 'text' as const, text: value.json }] }
-    const encoded = async (value: Promise<Mission | MissionState> | MissionState): Promise<{ json: string }> => ({ json: JSON.stringify(await value) })
+    const encoded = async (value: unknown | Promise<unknown>): Promise<{ json: string }> => ({ json: JSON.stringify(await value) })
+    this.ctx.tools.register(defineTool({ name: 'd_ai_systems_list', description: 'Read the authoritative D_AI first-class system registry and truthful execution status. Contract-only systems are not working runtime slices.', parameters: {}, output,
+      execute: (_args, exec) => { owner(exec.agent); return encoded(this.systems()) } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_local_core_status', description: 'Read the governed Local Intelligence Core manifest. This reports architecture and status only; FOUNDATION does not imply a trained model exists.', parameters: {}, output,
+      execute: (_args, exec) => { owner(exec.agent); return encoded(LOCAL_INTELLIGENCE_CORE) } }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_mission_create', description: 'Create an explicitly user-requested investigative mission. Never activate a new independent mission proposed by a model without owner approval.',
       parameters: { objective: { type: 'string', required: true } }, output,
       execute: (args, exec) => encoded(this.create(owner(exec.agent), args.objective, exec.signal)) }))
