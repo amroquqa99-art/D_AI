@@ -67,6 +67,7 @@ export interface InvestorState {
 
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
+    /** Complete post-change Investor case fact retaining captured source provenance, explicit theses and independent fundamental/risk review state. */
     'd_ai/investor-fact': InvestorFact
   }
 }
