@@ -67,7 +67,7 @@ export function createReservedSideEffect(
     requestDigest: input.requestDigest,
     state: 'RESERVED',
     createdAt: at,
-    artifactRefs: Object.freeze([]),
+    artifactRefs: [],
   })
 }
 
@@ -79,10 +79,14 @@ export function rebindReservedSideEffect(
   if (record.state !== 'RESERVED') {
     throw new Error('only RESERVED side effects can be rebound')
   }
-  if (leaseId.trim().length === 0 || !Number.isSafeInteger(fence) || fence < 1) {
-    throw new TypeError('invalid side-effect lease fence')
+  if (
+    leaseId.trim().length === 0
+    || !Number.isSafeInteger(fence)
+    || fence <= record.fence
+    || leaseId === record.leaseId
+  ) {
+    throw new TypeError('side-effect rebind requires a newer lease fence')
   }
-  if (record.leaseId === leaseId && record.fence === fence) return record
 
   return Object.freeze({
     ...record,
@@ -120,7 +124,7 @@ export function commitSideEffectRecord(
     state: 'COMMITTED',
     committedAt: at,
     resultDigest,
-    artifactRefs: Object.freeze([...artifactRefs]),
+    artifactRefs: [...artifactRefs],
   })
 }
 
@@ -194,7 +198,7 @@ export function reconcileUnknownSideEffect(
       state: 'COMMITTED',
       committedAt: input.at,
       resultDigest: input.resultDigest,
-      artifactRefs: Object.freeze([...artifactRefs]),
+      artifactRefs: [...artifactRefs],
       resolution,
     })
   }
