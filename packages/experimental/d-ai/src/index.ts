@@ -430,7 +430,13 @@ export class DAI extends Service {
           scheduleRevision: schedules.revision,
           schedules: schedules.schedules.length,
           enabledSchedules: schedules.schedules.filter(schedule => schedule.enabled).length,
-          failedLastCycles: schedules.schedules.filter(schedule => schedule.lastCycle?.outcome === 'FAILED').length,
+          failedLastCycles: schedules.schedules.filter(schedule =>
+            schedule.lastCycle?.outcome === 'FAILED'
+            || schedule.lastCycle?.outcome === 'TASK_FAILED').length,
+          taskFailedLastCycles: schedules.schedules.filter(schedule =>
+            schedule.lastCycle?.outcome === 'TASK_FAILED').length,
+          schedulerFailedLastCycles: schedules.schedules.filter(schedule =>
+            schedule.lastCycle?.outcome === 'FAILED').length,
         }
       })(),
       tasks: {
