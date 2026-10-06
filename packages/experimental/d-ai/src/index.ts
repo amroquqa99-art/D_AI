@@ -1442,6 +1442,60 @@ export class DAI extends Service {
     this.ctx.tools.register(defineTool({ name: 'd_ai_operations_delegate', description: 'Run fresh independent fusion and adversarial-analysis Agents for the approved case. No external action is executed.',
       parameters: { case_id: { type: 'string', required: true } }, output, timeoutMs: this.operationsDelegation.timeoutMs * 2 + 10000,
       execute: (args, exec) => encoded(this.delegateOperations(owner(exec.agent), args.case_id, exec.signal)) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_innovation_create', description: 'Create a user-requested Innovation & Discovery project for a hard scientific or technical problem.',
+      parameters: { problem: { type: 'string', required: true } }, output,
+      execute: (args, exec) => encoded(this.createInnovation(owner(exec.agent), args.problem, exec.signal)) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_innovation_read', description: 'Read Innovation & Discovery projects, candidates, experiment requests/results and independent explorer/critic outputs.', parameters: {}, output,
+      execute: (_args, exec) => encoded(this.readInnovation(owner(exec.agent))) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_innovation_add_candidate', description: 'Append a testable candidate mechanism with a falsification test. Generated candidates are not discoveries.',
+      parameters: {
+        project_id: { type: 'string', required: true },
+        title: { type: 'string', required: true },
+        description: { type: 'string', required: true },
+        mechanism: { type: 'string', required: true },
+        falsification_test: { type: 'string', required: true },
+        novelty_status: { type: 'string' },
+      }, output,
+      execute: (args, exec) => {
+        const statuses = ['UNKNOWN', 'KNOWN_VARIANT', 'POTENTIALLY_NOVEL'] as const
+        if (args.novelty_status !== undefined && !statuses.includes(args.novelty_status as typeof statuses[number])) {
+          fail('invalid innovation novelty status', 'D_AI_INVALID_INPUT')
+        }
+        return encoded(this.addInnovationCandidate(owner(exec.agent), args.project_id, {
+          title: args.title,
+          description: args.description,
+          mechanism: args.mechanism,
+          falsificationTest: args.falsification_test,
+          ...(args.novelty_status === undefined ? {} : { noveltyStatus: args.novelty_status as InnovationCandidate['noveltyStatus'] }),
+        }))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_innovation_request_experiment', description: 'Turn an unresolved candidate into a real experiment request with explicit success and failure criteria.',
+      parameters: {
+        project_id: { type: 'string', required: true },
+        title: { type: 'string', required: true },
+        objective: { type: 'string', required: true },
+        protocol: { type: 'string', required: true },
+        success_criteria: { type: 'string', required: true },
+        failure_criteria: { type: 'string', required: true },
+      }, output,
+      execute: (args, exec) => encoded(this.requestInnovationExperiment(owner(exec.agent), args.project_id, {
+        title: args.title,
+        objective: args.objective,
+        protocol: args.protocol,
+        successCriteria: args.success_criteria,
+        failureCriteria: args.failure_criteria,
+      })) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_innovation_record_result', description: 'Record a real experiment observation. Recording a result does not automatically verify the candidate.',
+      parameters: {
+        project_id: { type: 'string', required: true },
+        experiment_id: { type: 'string', required: true },
+        observation: { type: 'string', required: true },
+        artifact_ref: { type: 'string' },
+      }, output,
+      execute: (args, exec) => encoded(this.recordInnovationResult(owner(exec.agent), args.project_id, args.experiment_id, args.observation, args.artifact_ref)) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_innovation_delegate', description: 'Run fresh independent explorer and critic Agents over the approved hard problem.',
+      parameters: { project_id: { type: 'string', required: true } }, output, timeoutMs: this.innovationDelegation.timeoutMs * 2 + 10000,
+      execute: (args, exec) => encoded(this.delegateInnovation(owner(exec.agent), args.project_id, exec.signal)) }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_mission_create', description: 'Create an explicitly user-requested investigative mission. Never activate a new independent mission proposed by a model without owner approval.',
       parameters: { objective: { type: 'string', required: true } }, output,
       execute: (args, exec) => encoded(this.create(owner(exec.agent), args.objective, exec.signal)) }))
