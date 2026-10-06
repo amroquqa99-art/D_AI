@@ -30,6 +30,8 @@ export interface Config {
   innovationCriticModel?: string
   allowedTools?: string[]
   maxResultBytes?: number
+  directorSchedulerEnabled?: boolean
+  directorSchedulerPollMs?: number
 }
 
 export interface DAILimits {
@@ -47,9 +49,15 @@ export interface DelegationConfiguration {
   readonly innovation: InnovationDelegationConfig
 }
 
+export interface DirectorSchedulerConfiguration {
+  readonly enabled: boolean
+  readonly pollMs: number
+}
+
 export interface RuntimeConfiguration {
   readonly limits: DAILimits
   readonly delegations: DelegationConfiguration
+  readonly scheduler: DirectorSchedulerConfiguration
 }
 
 /**
@@ -79,6 +87,8 @@ export const configSchema: z<Config> = z.object({
   innovationCriticModel: z.string(),
   allowedTools: z.array(z.string()).default(['web_search', 'web_fetch']),
   maxResultBytes: z.number().step(1).min(1).default(65536),
+  directorSchedulerEnabled: z.boolean().default(true),
+  directorSchedulerPollMs: z.number().step(1).min(10).default(1000),
 })
 
 function positiveSafeInteger(name: string, value: number): number {
@@ -153,8 +163,15 @@ export function buildRuntimeConfiguration(config: Config = {}): RuntimeConfigura
     ...(config.innovationCriticModel === undefined ? {} : { criticModel: config.innovationCriticModel }),
   }
 
+  const scheduler: DirectorSchedulerConfiguration = {
+    enabled: config.directorSchedulerEnabled ?? true,
+    pollMs: positiveSafeInteger('directorSchedulerPollMs', config.directorSchedulerPollMs ?? 1000),
+  }
+  if (scheduler.pollMs < 10) throw new TypeError('directorSchedulerPollMs must be at least 10 ms')
+
   return Object.freeze({
     limits: Object.freeze(limits),
+    scheduler: Object.freeze(scheduler),
     delegations: Object.freeze({
       investigation: Object.freeze(investigation),
       scientific: Object.freeze(scientific),
