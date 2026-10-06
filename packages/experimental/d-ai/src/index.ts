@@ -1872,6 +1872,15 @@ export class DAI extends Service {
       const current = this.sideEffectLedger(agent)
       const record = current.records.find(item => item.idempotencyKey === idempotencyKey)
       if (record === undefined) fail('unknown side-effect idempotency key', 'D_AI_INVALID_INPUT')
+      if (record.state === 'COMMITTED') {
+        if (
+          record.resultDigest !== resultDigest
+          || JSON.stringify(record.artifactRefs) !== JSON.stringify([...artifactRefs])
+        ) {
+          fail('committed idempotency key conflicts with a different result', 'D_AI_IDEMPOTENCY_CONFLICT')
+        }
+        return immutableSnapshot(record)
+      }
       this.assertActiveSideEffectLease(agent, {
         taskId: record.taskId,
         missionId: record.missionId,
@@ -1916,6 +1925,9 @@ export class DAI extends Service {
       const current = this.sideEffectLedger(agent)
       const record = current.records.find(item => item.idempotencyKey === idempotencyKey)
       if (record === undefined) fail('unknown side-effect idempotency key', 'D_AI_INVALID_INPUT')
+      if (record.state === 'COMMITTED' || record.state === 'OUTCOME_UNKNOWN') {
+        return immutableSnapshot(record)
+      }
 
       let unknown: SideEffectRecord
       try {
