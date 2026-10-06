@@ -158,6 +158,7 @@ describe('D_AI native missions (fixture model and fixture public source)', () =>
         'd_ai_cyber_record_remediation',
         'd_ai_cyber_record_retest',
         'd_ai_delegate',
+        'd_ai_director_execute_cycle',
         'd_ai_director_execute_next',
         'd_ai_director_generate_tasks',
         'd_ai_director_plan_create',
@@ -221,7 +222,7 @@ describe('D_AI native missions (fixture model and fixture public source)', () =>
       ].sort()
 
       expect(actual).toEqual(expected)
-      expect(new Set(actual).size).toBe(74)
+      expect(new Set(actual).size).toBe(75)
     } finally { await ctx.fiber.dispose() }
   }))
 
