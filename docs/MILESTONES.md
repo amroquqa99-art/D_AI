@@ -11,8 +11,8 @@ The owner-approved acceptance sequence below controls implementation order. Stat
 | P2 Actual delegated execution | Manager, child, grandchild; independent provider calls and handoff | Blocked on configured model and runtime integration |
 | P3 Durable scheduling | DAG, bounds, leases/fencing, retries, restart and 1,000-task checks | Not accepted |
 | P4 Shared intelligence | Evidence lifecycle, scoped memory, audited cross-system sharing | Not accepted |
-| P5 Domain slices | Investigation, scientific research, innovation, finance, authorized cyber | Not accepted |
-| P6 Model lab foundation | Registry/lineage plus real baseline evaluation and stored results | Not accepted |
+| P5 Domain slices | Investigation, Scientific Research, Investor, Cybersecurity, Operations & Intelligence, Innovation & Discovery | In progress; Investigation is integrated, five domain contracts are registered foundations |
+| P6 Local Intelligence Core foundation | Governed dataset pipeline, model registry/lineage, local inference, baseline evaluation, controlled training/adapter experiment and rollback | Foundation registered; runtime/evaluation path not accepted |
 | P7 UI/security hardening | Mission panels, Arabic/English RTL, enforced policy and audit | Not accepted; limited locale foundation |
 | P8 Delivery verification | Integrated checks, fresh-checkout operations, backup/recovery | Not accepted |
 
@@ -22,4 +22,4 @@ A milestone cannot pass using fixtures as proof of an external model or source c
 
 ## Domain sequence
 
-Investigative Research is first, followed by Scientific Research, Scientific Innovation, Financial Intelligence and authorized Cybersecurity. The AI Model Engineering and Research Laboratory starts with meaningful registration/schema interfaces and a minimal real evaluation path. None of these entries is a completed domain system at this checkpoint.
+Investigation is first and already has an integrated native slice. Next come Scientific Research, Investor, Cybersecurity, Operations & Intelligence, and Innovation & Discovery, ordered by shared-runtime dependencies rather than by marketing priority. The Local Intelligence Core develops in parallel as a governed platform capability with meaningful model/data/evaluation primitives. Contract registration alone never counts as a completed domain.
