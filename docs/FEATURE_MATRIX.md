@@ -14,7 +14,7 @@
 | Bidi layout isolation | Frontend engineer | Locale client CSS | FOUNDATION | Full shell RTL, keyboard and accessibility QA |
 | D_AI profile and mission workspace | Integrator/frontend | Native package and overlay in packages/experimental/d-ai | FOUNDATION | No accepted D_AI mission UI/startup; overlay launch still pending |
 | Investigative manager and real child tree | Orchestration engineer | packages/experimental/d-ai/src/index.ts, orchestration.ts; native tests | INTEGRATED | Fixture models only; durable scheduler and live provider pending |
-| Durable mission/task scheduling | Orchestration engineer | Native session extension required | NOT_STARTED | DAG, concurrency, leases/fencing and process recovery tests |
+| Durable mission/task scheduling | Orchestration engineer | packages/experimental/d-ai/src/task-dag.ts + task-dag.spec.ts | FOUNDATION | Pure DAG/state transitions exist; session persistence, scheduler, leases/fencing and crash recovery still required |
 | Evidence/claim verification | Evidence engineer | packages/experimental/d-ai/src/index.ts, state.ts; native tests | INTEGRATED | Verification authority and live source/provider acceptance pending |
 | Scoped tool/cross-system gateway | Tooling/security | orchestration toolFilter, owner/turn checks, negative tests | FOUNDATION | Full owner control panel and temporary/permanent grants pending |
 | Provider router/resource budgets | AI/ML engineer | Upstream LLM adapters available | NOT_STARTED | D_AI policy, metrics and live evaluation |
@@ -23,7 +23,7 @@
 | Investor | Domain engineer | v2 system registry + product specification | FOUNDATION | Sourced analysis, valuation, thesis tracking and backtest safeguards |
 | Cybersecurity | Security/domain engineer | v2 system registry + product specification | FOUNDATION | Full scope/grant service and isolated authorized test slice |
 | Operations & Intelligence | Domain engineer | v2 system registry + product specification | FOUNDATION | Case workspace, fusion graph, timeline, intelligence gaps and options analysis |
-| Local Intelligence Core | AI/ML engineer | v2 system registry/core manifest + product specification | FOUNDATION | Dataset governance, model registry, baseline eval and controlled training/adapters |
+| Local Intelligence Core | AI/ML engineer | systems.ts + training-governance.ts + governance tests | FOUNDATION | Eligibility/lineage policy exists; model registry, dataset store, baseline eval and controlled training/adapters remain |
 | Collaborative rooms/scoped memory | Systems engineer | Native persisted domain integration required | NOT_STARTED | Two-system sharing and permission evidence |
 | Backup/export/import and Arch handoff | Integrator/QA | Operations and test report | NOT_STARTED | Fresh-checkout and restore verification |
 
