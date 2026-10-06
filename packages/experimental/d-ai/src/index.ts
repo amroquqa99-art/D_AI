@@ -64,6 +64,9 @@ import { modelLifecycleFactSchema, modelLifecycleProjection } from './model-life
 import type { GovernedModelEvaluation, GovernedPromotion, ModelLifecycleFact, ModelLifecycleLedger, ModelLifecycleState } from './model-lifecycle-state.ts'
 import { createModelReleasePointer as createModelReleasePointerInternal, evaluateModelPromotion as evaluateModelPromotionInternal } from './model-evaluation.ts'
 import type { ModelEvaluationResult, PromotionPolicy } from './model-evaluation.ts'
+import { directorFactSchema, directorProjection } from './director-state.ts'
+import type { DirectorFact, DirectorLedger, DirectorPlan, DirectorState } from './director-state.ts'
+import type { MissionPhase } from './mission-director.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
@@ -127,6 +130,8 @@ export { trainingFactSchema, trainingProjection, projectTrainingFact, trainingCa
 export type { GovernedDataset, GovernedTrainingCandidate, TrainingFact, TrainingLedger, TrainingState } from './training-state.ts'
 export { modelLifecycleFactSchema, modelLifecycleProjection, projectModelLifecycleFact, governedModelEvaluationSchema, governedPromotionSchema } from './model-lifecycle-state.ts'
 export type { GovernedModelEvaluation, GovernedPromotion, ModelLifecycleFact, ModelLifecycleLedger, ModelLifecycleState } from './model-lifecycle-state.ts'
+export { directorFactSchema, directorProjection, projectDirectorFact, directorPlanSchema } from './director-state.ts'
+export type { DirectorFact, DirectorLedger, DirectorPlan, DirectorState } from './director-state.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
@@ -268,6 +273,7 @@ export class DAI extends Service {
     ctx.effect(() => ctx.sessionProjections.register(modelRegistryProjection), 'dai.modelRegistryProjection()')
     ctx.effect(() => ctx.sessionProjections.register(trainingProjection), 'dai.trainingProjection()')
     ctx.effect(() => ctx.sessionProjections.register(modelLifecycleProjection), 'dai.modelLifecycleProjection()')
+    ctx.effect(() => ctx.sessionProjections.register(directorProjection), 'dai.directorProjection()')
     ctx.effect(() => async () => { await Promise.all([...this.tails.values()]); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
   }
@@ -392,6 +398,30 @@ export class DAI extends Service {
       revision: 0,
       tasks: [],
     }
+  }
+
+  /** Read durable cross-system Mission Director plans. */
+  readDirector(agent: Agent): DirectorState {
+    this.authorize(agent)
+    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiDirector')
+    if (state === undefined) fail('Mission Director projection is not mounted', 'D_AI_PROJECTION_MISSING')
+    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
+    return immutable(state)
+  }
+
+  private directorLedger(agent: Agent): DirectorLedger {
+    const existing = this.readDirector(agent).ledgers.find(item => item.ownerAgentId === agent.id)
+    return existing ?? {
+      ownerAgentId: agent.id,
+      revision: 0,
+      plans: [],
+    }
+  }
+
+  private directorPlan(agent: Agent, id: string): DirectorPlan {
+    const plan = this.directorLedger(agent).plans.find(item => item.id === id)
+    if (plan === undefined) fail('unknown Mission Director plan', 'D_AI_INVALID_INPUT')
+    return plan
   }
 
   /** Read governed Local Intelligence Core evaluation/promotion lifecycle. */
@@ -781,6 +811,17 @@ export class DAI extends Service {
     await this.ctx.sessions.flush(agent.session)
     return immutable(fact.ledger)
   }
+
+  private async appendDirectorLedger(agent: Agent, operation: DirectorFact['operation'], ledger: DirectorLedger): Promise<DirectorLedger> {
+    this.authorize(agent)
+    const fact = immutable(directorFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
+    if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('Mission Director ledger storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+    this.requireOpenTurn(agent)
+    agent.session.append('d_ai/director-fact', fact)
+    await this.ctx.sessions.flush(agent.session)
+    return immutable(fact.ledger)
+  }
+
 
 
 
