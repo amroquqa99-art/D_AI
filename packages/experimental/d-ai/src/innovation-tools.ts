@@ -18,7 +18,7 @@ export interface InnovationToolRuntime {
       falsificationTest: string
       noveltyStatus?: InnovationCandidate['noveltyStatus']
     },
-  ): Promise<unknown>
+  ): Promise<InnovationProject>
   requestInnovationExperiment(
     agent: Agent,
     projectId: string,
@@ -29,15 +29,15 @@ export interface InnovationToolRuntime {
       successCriteria: string
       failureCriteria: string
     },
-  ): Promise<unknown>
+  ): Promise<InnovationProject>
   recordInnovationResult(
     agent: Agent,
     projectId: string,
     experimentId: string,
     observation: string,
     artifactRef?: string,
-  ): Promise<unknown>
-  delegateInnovation(agent: Agent, projectId: string, signal: AbortSignal): Promise<unknown>
+  ): Promise<InnovationProject>
+  delegateInnovation(agent: Agent, projectId: string, signal: AbortSignal): Promise<InnovationProject>
 }
 
 export function registerInnovationTools(
