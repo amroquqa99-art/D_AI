@@ -1416,7 +1416,7 @@ export class DAI extends Service {
     }
     const output = { schema: { type: 'object' as const, additionalProperties: false, properties: { json: { type: 'string' as const, required: true as const } } }, render: (_args: unknown, value: { json: string }) => [{ type: 'text' as const, text: value.json }] }
     const encoded = async (value: unknown | Promise<unknown>): Promise<{ json: string }> => ({ json: JSON.stringify(await value) })
-    this.ctx.tools.register(defineTool({ name: 'd_ai_systems_list', description: 'Read the authoritative D_AI first-class system registry and truthful execution status. Contract-only systems are not working runtime slices.', parameters: {}, output,
+    this.ctx.tools.register(defineTool({ name: 'd_ai_systems_list', description: 'Read the authoritative D_AI first-class system registry and truthful execution/readiness status. PARTIAL means a native slice exists but is not yet fully production-complete.', parameters: {}, output,
       execute: (_args, exec) => { owner(exec.agent); return encoded(this.systems()) } }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_local_core_status', description: 'Read the governed Local Intelligence Core manifest. This reports architecture and status only; FOUNDATION does not imply a trained model exists.', parameters: {}, output,
       execute: (_args, exec) => { owner(exec.agent); return encoded(LOCAL_INTELLIGENCE_CORE) } }))
