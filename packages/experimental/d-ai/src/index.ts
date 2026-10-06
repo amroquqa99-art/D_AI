@@ -43,6 +43,7 @@ import { validateGrant as validateGrantInternal } from './capability-grants.ts'
 import type { CapabilityGrant } from './capability-grants.ts'
 import { transitionTask as transitionTaskInternal } from './task-dag.ts'
 import { authorizeCrossSystemHandoff as authorizeCrossSystemHandoffInternal } from './cross-system.ts'
+import { selectDurableRunnableTasks } from './runtime-scheduler.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
@@ -92,6 +93,8 @@ export { taskLedgerFactSchema, taskLedgerProjection, projectTaskLedgerFact } fro
 export type { DurableTaskLedger, TaskLedgerFact, TaskLedgerState } from './task-ledger-state.ts'
 export { controlPlaneFactSchema, controlPlaneProjection, projectControlPlaneFact } from './control-plane-state.ts'
 export type { ControlPlane, ControlPlaneFact, ControlPlaneState } from './control-plane-state.ts'
+export { selectDurableRunnableTasks } from './runtime-scheduler.ts'
+export type { SchedulerSelection } from './runtime-scheduler.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
@@ -351,6 +354,12 @@ export class DAI extends Service {
       revision: 0,
       tasks: [],
     }
+  }
+
+  /** Read the deterministic scheduler admission set from the durable task ledger. */
+  selectRunnableTasks(agent: Agent, maxTasks: number): ReturnType<typeof selectDurableRunnableTasks> {
+    this.authorize(agent)
+    return immutable(selectDurableRunnableTasks(this.taskLedger(agent), maxTasks))
   }
 
   /** Read durable capability grants and audit records for the exact live owner Agent. */
@@ -1513,6 +1522,13 @@ export class DAI extends Service {
         const states = ['PENDING', 'READY', 'RUNNING', 'WAITING_FOR_HUMAN', 'WAITING_FOR_TOOL', 'BLOCKED_POLICY', 'BLOCKED_BUDGET', 'PAUSED', 'FAILED', 'COMPLETED', 'CANCELLED'] as const
         if (!states.includes(args.next_state as typeof states[number])) fail('invalid durable task state', 'D_AI_INVALID_INPUT')
         return encoded(this.transitionDurableTask(owner(exec.agent), args.task_id, args.next_state as TaskState))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_scheduler_next', description: 'Read the next runnable tasks from the durable D_AI DAG without mutating or executing them. Dependencies and blocked states are respected.',
+      parameters: { max_tasks: { type: 'number' } }, output,
+      execute: (args, exec) => {
+        const maxTasks = args.max_tasks ?? 1
+        if (!Number.isSafeInteger(maxTasks) || maxTasks < 1 || maxTasks > 64) fail('max_tasks must be an integer from 1 to 64', 'D_AI_INVALID_INPUT')
+        return encoded(this.selectRunnableTasks(owner(exec.agent), maxTasks))
       } }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_control_read', description: 'Read the durable D_AI capability grants and append-only audit chain for the owner.', parameters: {}, output,
       execute: (_args, exec) => encoded(this.readControlPlane(owner(exec.agent))) }))
