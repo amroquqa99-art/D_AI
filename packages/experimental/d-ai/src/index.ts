@@ -411,6 +411,58 @@ export class DAI extends Service {
     return immutable(selectDurableRunnableTasks(this.taskLedger(agent), maxTasks, this.budgetLedger(agent).profiles))
   }
 
+  /** Build one read-only platform snapshot for control-center/dashboard consumers. */
+  platformSnapshot(agent: Agent): Readonly<Record<string, unknown>> {
+    this.authorize(agent)
+    const missions = this.read(agent)
+    const scientific = this.readScientific(agent)
+    const investor = this.readInvestor(agent)
+    const cyber = this.readCybersecurity(agent)
+    const operations = this.readOperations(agent)
+    const innovation = this.readInnovation(agent)
+    const taskLedger = this.taskLedger(agent)
+    const control = this.controlPlane(agent)
+    const budgets = this.budgetLedger(agent)
+    const evidence = this.evidenceStore(agent)
+
+    const taskStates: Record<string, number> = {}
+    for (const task of taskLedger.tasks) taskStates[task.state] = (taskStates[task.state] ?? 0) + 1
+
+    return immutable({
+      generatedAt: new Date().toISOString(),
+      systems: SYSTEMS,
+      localIntelligenceCore: LOCAL_INTELLIGENCE_CORE,
+      domains: {
+        investigation: missions.missions.length,
+        scientificResearch: scientific.projects.length,
+        investor: investor.cases.length,
+        cybersecurity: cyber.engagements.length,
+        operationsIntelligence: operations.cases.length,
+        innovationDiscovery: innovation.projects.length,
+      },
+      tasks: {
+        revision: taskLedger.revision,
+        total: taskLedger.tasks.length,
+        byState: taskStates,
+      },
+      controlPlane: {
+        revision: control.revision,
+        grants: control.grants.length,
+        auditRecords: control.auditRecords.length,
+        auditHeadHash: control.auditHeadHash,
+      },
+      budgets: {
+        revision: budgets.revision,
+        profiles: budgets.profiles.length,
+      },
+      evidenceGraph: {
+        revision: evidence.revision,
+        nodes: evidence.nodes.length,
+        edges: evidence.edges.length,
+      },
+    })
+  }
+
   /** Read durable capability grants and audit records for the exact live owner Agent. */
   readControlPlane(agent: Agent): ControlPlaneState {
     this.authorize(agent)
@@ -1706,6 +1758,8 @@ export class DAI extends Service {
     }
     const output = { schema: { type: 'object' as const, additionalProperties: false, properties: { json: { type: 'string' as const, required: true as const } } }, render: (_args: unknown, value: { json: string }) => [{ type: 'text' as const, text: value.json }] }
     const encoded = async (value: unknown | Promise<unknown>): Promise<{ json: string }> => ({ json: JSON.stringify(await value) })
+    this.ctx.tools.register(defineTool({ name: 'd_ai_platform_snapshot', description: 'Read a consolidated D_AI control-center snapshot: domain counts, task states, grants/audit, budgets, evidence graph and system readiness.', parameters: {}, output,
+      execute: (_args, exec) => encoded(this.platformSnapshot(owner(exec.agent))) }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_systems_list', description: 'Read the authoritative D_AI first-class system registry and truthful execution/readiness status. PARTIAL means a native slice exists but is not yet fully production-complete.', parameters: {}, output,
       execute: (_args, exec) => { owner(exec.agent); return encoded(this.systems()) } }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_local_core_status', description: 'Read the governed Local Intelligence Core manifest. This reports architecture and status only; FOUNDATION does not imply a trained model exists.', parameters: {}, output,
