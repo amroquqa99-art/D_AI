@@ -1,18 +1,20 @@
 # @deepseek-ai/dsh-experimental-d-ai
 
-Native D_AI platform foundation over the original Harness Agent, Session, subagent, tools, web and storage services. The investigation slice executes today; all six approved domain systems are registered as first-class contracts with explicit execution truth. Activate explicitly through a D_AI profile overlay; this package does not change shipped upstream profiles.
+Native D_AI platform over the original Harness Agent, Session, subagent, tools, web and storage services. All six approved domain slices have runtime implementations; current native integration acceptance remains pending. Activate explicitly through a D_AI profile overlay; this package does not change shipped upstream profiles. [The verification report](../../../docs/TEST_REPORT.md) separates current local evidence from historical runtime evidence.
 
 ## Use this package
 
 Mount `dsh-experimental-d-ai` after the base Harness services and a configured `storage-domain` backend. Configure `subagentProvider` (default `spawn`) and register `web_search` and `web_fetch` for its default worker allow list. A local or permitted cloud model must be configured on the owner Agent before real execution.
 
-The five native tools create/read missions, capture decoded public HTTP(S) sources, append exact-source-anchored observations/counterclaims, and run fresh research and independently researching verifier Agents. Mutation requires an open native Agent turn so its facts survive released-session replay. Only the exact live owner root identity can access its missions. A creation objective must exactly match an admitted direct human message or receive an audited native one-shot owner approval. Missing approval answerers fail closed.
+The five investigation tools create/read missions, capture decoded public HTTP(S) sources, append exact-source-anchored observations/counterclaims, and run fresh research and independently researching verifier Agents. Additional registrars expose the other domain workflows and shared platform controls. Mutation requires an open native Agent turn so its facts survive released-session replay. Only the exact live owner root identity can access its missions. A creation objective must exactly match an admitted direct human message or receive an audited native one-shot owner approval. Missing approval answerers fail closed.
 
 Raw `d_ai/fact` events contain complete mission state and rebuild the `dai` Session projection. The storage-domain index is discoverability only; the Session log is authoritative. Captured sources retain retrieval URLs/status/time, truncation and SHA256 of UTF-8 decoded captured content, never a purported original HTTP-byte archive. Counterclaims retain original claims and source records. Delegated assessments remain unverified model output.
 
 ## Verification
 
 `pnpm exec vitest run packages/experimental/d-ai/tests` exercises native Loader composition, AgentLoop tools, actual native child loops, configured model separation, worker bounds, source/ownership policy, append-only replay, and JSONL restart. The model adapter and public web provider are explicitly scripted fixtures. This proves internal integration, not live model or internet research.
+
+Focused local unit/projection validation currently passes 86 tests across 21 files. The lease-heartbeat suite verifies cancellation before worker startup, renewal failure during cleanup, parent cancellation during cleanup and quiescent teardown. A result is returned only after worker and renewal settle; cancellation does not roll back already committed task facts or external effects. The full native package gate remains pending.
 
 ## Model Experience
 
@@ -32,6 +34,6 @@ Tool registration changes the assembled tool prefix once at activation. Subseque
 
 ## Known Limitations and Deferred Work
 
-Only the investigation slice executes. Scientific Research, Investor, Cybersecurity, Operations & Intelligence, and Innovation & Discovery are registered foundations. The Local Intelligence Core is a separate governed platform component, not a seventh domain. A distinct durable system-manager tree, continuable grandchildren, task DAG leases/retries, cross-system grants, experimental laboratory execution, original binary artifacts, and claim verification authority remain future milestones. Child runs are sequential one-shot native Agents; this is not a durable scheduler. Selecting worker model IDs remains on the owner Agent provider. Resource limits are bounds rather than measured money/VRAM reservations.
+The Local Intelligence Core is a separate governed platform component, not a seventh domain, and has no trained or activated D_AI model. Durable task ledgers, fenced leases/checkpoints, budgets, grants, model routing and bounded Director cycles exist. A persistent unattended scheduler, full native acceptance, provider health/secrets/telemetry, original binary artifact storage, a complete system-manager hierarchy and the Control Center UI remain unfinished. Real wall-clock usage is measured; automatic token/money/data/human-attention metering and VRAM reservations remain incomplete.
 
 The index is not reconciled automatically after a Session-success/index-failure. A failed Session flush rejects the mutation but native pending in-memory Session events remain visible until retry or restart; no cross-store transaction or rollback is promised. Events emitted inside an interrupted turn retain native Harness recovery semantics. Process-crash fault injection and live-provider acceptance remain unverified.

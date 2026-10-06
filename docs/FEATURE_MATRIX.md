@@ -13,7 +13,7 @@ This matrix separates **implementation maturity** from **verification state**. A
 - `VERIFIED` — the appropriate executable acceptance checks have passed for the relevant current code.
 - `LIVE_VERIFIED` — required real-provider/browser/environment proof also exists.
 
-Verification is tracked separately because the current branch CI runner is failing before workflow steps execute.
+Verification is tracked separately because the current branch CI runner is failing before workflow steps execute. Focused local checks now pass 86 tests in 21 files; this evidence does not replace native integration/build acceptance.
 
 ## Current checkpoint
 
@@ -29,7 +29,7 @@ Verification is tracked separately because the current branch CI runner is faili
 | Innovation & Discovery | candidates, mechanisms, falsification tests, experiment handoff/results, explorer/critic | INTEGRATED | CI_PENDING | Prior-art connectors, deterministic math/simulation integrations |
 | Task DAG / Task Ledger | durable typed task graph, transitions, retry accounting, replay | INTEGRATED | CI_PENDING | 1000-task bounded-concurrency/fairness acceptance |
 | Mission Director | durable plans, planner agent, task creation/view/status, single-task executor | INTEGRATED | CI_PENDING | unattended worker loop, long-horizon scheduling, saturation/stagnation policy |
-| Durable execution | fenced leases, heartbeat renewal, checkpoint lineage, release/recovery and deterministic v1→v2 replay migration | INTEGRATED | CI_PENDING | unattended worker pool, live stress/recovery proof |
+| Durable execution | fenced leases, heartbeat renewal, checkpoint lineage, release/recovery and deterministic v1→v2 replay migration; heartbeat cancellation/cleanup regressions fixed | INTEGRATED | LOCAL_UNIT_PASS / CI_PENDING | unattended worker pool, native integration acceptance, live stress/recovery proof |
 | External side-effect idempotency | durable reservation/dispatch/commit/unknown/reconcile journal + fenced connector gateway; no production mutable connector | INTEGRATED | CI_PENDING | connector-level adoption, live idempotency/reconciliation acceptance and provider-specific semantics |
 | Resource budgets / VoI | durable scoped limits/usage, budget-aware scheduler, VoI primitives | INTEGRATED | CI_PENDING | automatic metering on every relevant model/tool/data boundary |
 | Capability control plane | scoped grants/denies, native approval, audit hash chain | INTEGRATED | CI_PENDING | institutional ABAC/admin UI and organization/multi-user model |
@@ -48,13 +48,13 @@ Verification is tracked separately because the current branch CI runner is faili
 
 ## Current verification blocker
 
-Latest observed D_AI v2 workflow on head `166c998fc58975b93aaa3e4cb8d89a4f3513e7ed`:
-- run `37478292392`
-- job `112319449248`
+Latest inspected D_AI v2 workflow:
+- run `37478707169`
+- job `112320880392`
 - conclusion `failure`
 - `steps: []`
 
-No checkout/install/build/typecheck/test command executed in that job. Current integrated rows therefore remain **CI_PENDING** rather than VERIFIED.
+No checkout/install/build/typecheck/test command executed in that job. Current integrated rows therefore retain **CI_PENDING** for native acceptance. Local unit/projection checks have a separate receipt in [TEST_REPORT.md](TEST_REPORT.md).
 
 ## Current architecture-hardening work
 

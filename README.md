@@ -39,9 +39,15 @@ Legend:
 
 ## Current CI blocker
 
-As of 2026-10-06, the latest `D_AI v2 checks` run for head `166c998fc58975b93aaa3e4cb8d89a4f3513e7ed` is run `37478292392`, job `112319449248`. The job concluded `failure` with **no workflow steps** (`steps=[]`), so checkout/install/persistence generation/build/typecheck/tests did not execute.
+As of 2026-10-06, the latest inspected `D_AI v2 checks` run is [37478707169](https://github.com/amroquqa99-art/D_AI/actions/runs/37478707169), job `112320880392`. The job concluded `failure` with **no workflow steps**, so checkout/install/persistence generation/build/typecheck/tests did not execute. The precise runner rejection reason remains unavailable through the connected API.
 
-This remains an Actions execution/infrastructure blocker, not evidence that the current source passes or fails its code gate. All post-baseline work remains **CI PENDING** until a runner executes the required commands.
+The complete native integration/build gate remains **CI PENDING**. Focused local verification is recorded separately below and does not establish full runtime readiness.
+
+## Latest local engineering checkpoint
+
+The lease heartbeat now preserves renewal failures that settle during cleanup, prevents cancelled work from reporting success, checks cancellation before deferred worker startup, retains arbitrary rejection values and supports short lease intervals. Cleanup still waits for both the worker and renewal to settle.
+
+Local verification on 2026-10-06 passed **86 tests across 21 D_AI test files**, including ten lease-heartbeat cases, plus strict TypeScript checks for the changed helper and its tests. Five regression cases failed against the previous helper before the fix. Exact scope, runner configuration and remaining checks are in [TEST_REPORT.md](docs/TEST_REPORT.md). The persistent unattended scheduler remains unfinished.
 
 ## What is being worked on right now
 

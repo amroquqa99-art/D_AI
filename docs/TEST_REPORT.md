@@ -8,11 +8,9 @@ This document separates **historical verified evidence** from the **current bran
 
 - Branch: `dai/v2-core-foundation`
 - Pull request: #15 (draft)
-- Current checkpoint head when this report was updated: `166c998fc58975b93aaa3e4cb8d89a4f3513e7ed`
-- Latest D_AI check observed before this documentation commit:
-  - workflow run `37478292392`
-  - head `166c998fc58975b93aaa3e4cb8d89a4f3513e7ed`
-  - job `112319449248`
+- Latest D_AI check inspected before this documentation update:
+  - workflow run `37478707169`
+  - job `112320880392`
   - conclusion: FAILURE
   - executed steps: **none** (`steps: []`)
 
@@ -24,8 +22,39 @@ Therefore:
 
 - it is **not** evidence of a D_AI assertion/test failure;
 - it is **not** evidence that current branch code passes;
-- every change since the last verified baseline remains **CI PENDING**;
+- complete native runtime/build acceptance remains **CI PENDING**, while focused local evidence is recorded below;
 - maturity/status must not be promoted on the basis of source presence alone.
+
+## Focused local verification — 2026-10-06
+
+Source was materialized from the active branch through the authenticated repository connector. The verification environment uses Node `24.19.0`, Vitest `4.1.8`, TypeScript `6.0.3`, Zod `4.4.3` and Node types `22.20.0`. These verification dependencies were installed separately with exact versions; this was not a frozen-lockfile workspace installation.
+
+The isolated Vitest configuration uses forked workers, an ES2024/Bundler transform configuration, and source aliases to the repository's actual vendored Schemastery/Cosmokit implementations. No D_AI logic or assertions were replaced. The original monorepo Vitest configuration, native addon, Loader/AgentLoop integration and full project-reference build were not exercised.
+
+| Executed check | Result |
+|---|---|
+| Lease-heartbeat regression suite against the previous helper | 5 FAIL / 5 PASS; five defects reproduced before the fix |
+| Lease-heartbeat regression suite against the fixed helper | PASS; 10 tests |
+| Focused D_AI unit/projection suite | PASS; 21 files, 86 tests |
+| Strict TypeScript check of `src/lease-heartbeat.ts` | PASS |
+| Strict TypeScript check of `tests/lease-heartbeat.spec.ts` and its helper import | PASS; dependency declarations use the repository's `skipLibCheck` policy |
+| `git diff --check` | PASS |
+
+The selected specs are `architecture`, `audit-log`, `capability-grants`, `config`, `cross-system`, `durable-core`, `evidence-graph`, `execution-fencing`, `execution-state`, `lease-heartbeat`, `mission-director`, `model-evaluation`, `model-router`, `resource-value`, `runtime-scheduler`, `side-effect-gateway`, `side-effect-runtime`, `side-effect-state`, `systems`, `task-dag` and `training-governance`, each under `packages/experimental/d-ai/tests/` with the `.spec.ts` suffix.
+
+Exact local commands, run from the materialized D_AI source directory:
+
+```sh
+../verification/node_modules/.bin/vitest run --config ../verification/vitest.config.mts packages/experimental/d-ai/tests/lease-heartbeat.spec.ts
+../verification/node_modules/.bin/vitest run --config ../verification/vitest.config.mts $(cat ../verification/pure-tests.txt)
+../verification/node_modules/.bin/tsc --noEmit --strict --noUncheckedIndexedAccess --exactOptionalPropertyTypes --target ES2024 --module NodeNext --moduleResolution NodeNext --types node packages/experimental/d-ai/src/lease-heartbeat.ts
+../verification/node_modules/.bin/tsc --noEmit --strict --noUncheckedIndexedAccess --exactOptionalPropertyTypes --skipLibCheck --allowImportingTsExtensions --target ES2024 --module NodeNext --moduleResolution NodeNext --types node packages/experimental/d-ai/tests/lease-heartbeat.spec.ts
+git diff --check
+```
+
+The renewal/cleanup races use promise barriers and observed abort signals rather than fixed sleeps. The old helper incorrectly returned success when renewal failed or the caller cancelled during cleanup, invoked work cancelled before deferred startup, lost an `undefined` rejection, and rejected valid short leases because of its default renewal interval. The fix preserves those failures and still waits for both worker and renewal quiescence.
+
+These receipts verify the tested helpers and deterministic projection logic. They do not verify native Session persistence, real-provider execution, arbitrary tool recovery, a persistent unattended scheduler, or a production release. The next acceptance task is the complete gate below, followed by restart-safe unattended scheduling within the native turn/ownership model. No Session schemas, tool schemas, grants or public exports changed in this repair.
 
 ## Last verified baseline — 2026-10-04
 
@@ -78,7 +107,7 @@ The active branch now contains substantially more runtime code than the verified
 
 ### Characterization added during decomposition
 
-The branch now includes an integration characterization test that expects exactly **75 unique `d_ai_*` native tools**, including the bounded `d_ai_director_execute_cycle` surface. Additional source tests cover lease-heartbeat failure/renewal behavior, Director execution-cycle limits, cross-system policy blocking, task/mission/system wall-clock metering, shared budget-scope selection and exact budget exhaustion. New source tests also cover monotonic lease fences, stale-executor rejection, execution v1→v2 migration, side-effect journal lifecycle, idempotent replay suppression, uncertain-dispatch reconciliation and durable side-effect replay after restart. These tests exist in source but have **not run successfully on the current checkpoint because Actions does not reach test execution**.
+The branch includes an integration characterization test that expects exactly **75 unique `d_ai_*` native tools**, including the bounded `d_ai_director_execute_cycle` surface. Native integration tests cover Director cycles, cross-system policy blocking, scoped wall-clock metering and Session restart. Those integration tests remain pending. The focused local receipt above covers unit/projection tests for heartbeat behavior, budget admission, monotonic lease fences, execution v1→v2 normalization, side-effect journal lifecycle and replay suppression; it does not replace native integration evidence.
 
 ## Current required gate
 
