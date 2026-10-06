@@ -216,7 +216,8 @@ function assertTransition(
       operation === 'REBIND'
       && before.state === 'RESERVED'
       && after.state === 'RESERVED'
-      && (before.leaseId !== after.leaseId || before.fence !== after.fence)
+      && before.leaseId !== after.leaseId
+      && after.fence > before.fence
     )
     || (operation === 'MARK_DISPATCHED' && before.state === 'RESERVED' && after.state === 'DISPATCHED')
     || (operation === 'COMMIT' && before.state === 'DISPATCHED' && after.state === 'COMMITTED')
