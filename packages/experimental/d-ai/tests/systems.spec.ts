@@ -34,7 +34,7 @@ describe('D_AI v2 system registry', () => {
 
   it('treats the Local Intelligence Core as a governed platform component, not a seventh domain', () => {
     expect(listSystemManifests()).toHaveLength(6)
-    expect(SYSTEMS.some(system => system.id === (LOCAL_INTELLIGENCE_CORE.id as never))).toBe(false)
+    expect(SYSTEMS.map(system => String(system.id))).not.toContain(LOCAL_INTELLIGENCE_CORE.id)
     expect(LOCAL_INTELLIGENCE_CORE.dataPolicy).toBe('explicit-eligibility-only')
     expect(LOCAL_INTELLIGENCE_CORE.stages).toContain('holdout-evaluation')
     expect(LOCAL_INTELLIGENCE_CORE.requiredControls).toContain('rollback')
