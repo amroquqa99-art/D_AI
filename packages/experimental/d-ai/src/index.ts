@@ -875,12 +875,15 @@ export class DAI extends Service {
     planId: string,
     signal: AbortSignal,
     ttlMs = 600000,
+    requiredTaskId?: string,
   ): Promise<Readonly<{ task: MissionTask; execution: TaskExecutionResult }>> {
     const plan = this.directorPlan(agent, planId)
     if (plan.status !== 'ACTIVE') fail('Mission Director execution requires an active plan', 'D_AI_INVALID_TRANSITION')
 
     await this.recoverExpiredTaskLeases(agent)
-    const claimed = await this.claimNextRunnableTask(agent, ttlMs, plan.id)
+    const claimed = requiredTaskId === undefined
+      ? await this.claimNextRunnableTask(agent, ttlMs, plan.id)
+      : await this.claimDirectorTask(agent, plan.id, requiredTaskId, ttlMs)
     const startedAt = performance.now()
 
     let execution: TaskExecutionResult | undefined
