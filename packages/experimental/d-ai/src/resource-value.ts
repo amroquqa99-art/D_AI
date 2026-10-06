@@ -58,7 +58,7 @@ export function checkBudget(budget: ResourceBudget, usage: ResourceUsage): Budge
     nonNegative(label, limit)
     const left = limit - used
     ;(remaining as Record<string, number>)[key] = Math.max(0, left)
-    if (left < 0) reasons.push(`${label}-exceeded`)
+    if (left <= 0) reasons.push(`${label}-exceeded`)
   }
 
   evaluate(budget.tokenLimit, usage.tokens, 'tokenLimit', 'token-limit')
