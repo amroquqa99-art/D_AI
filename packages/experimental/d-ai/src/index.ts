@@ -19,6 +19,8 @@ export { getSystemManifest, listSystemManifests, LOCAL_INTELLIGENCE_CORE } from 
 export type { SystemManifest, SystemId, SystemCapabilityStatus, SystemRiskClass, LocalIntelligenceCoreManifest } from './systems.ts'
 export { buildTaskGraph, runnableTasks, transitionTask, taskIsTerminal } from './task-dag.ts'
 export type { MissionTask, TaskGraph, TaskState } from './task-dag.ts'
+export { evaluateTrainingEligibility, buildDatasetLineage } from './training-governance.ts'
+export type { TrainingDataCandidate, EligibilityResult, EligibilityDecision, DataSensitivity, DatasetLineage } from './training-governance.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
