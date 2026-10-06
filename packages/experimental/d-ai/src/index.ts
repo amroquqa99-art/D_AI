@@ -44,6 +44,9 @@ import type { CapabilityGrant } from './capability-grants.ts'
 import { transitionTask as transitionTaskInternal } from './task-dag.ts'
 import { authorizeCrossSystemHandoff as authorizeCrossSystemHandoffInternal } from './cross-system.ts'
 import { selectDurableRunnableTasks } from './runtime-scheduler.ts'
+import { budgetFactSchema, budgetProjection } from './budget-state.ts'
+import type { BudgetFact, BudgetLedger, BudgetProfile, BudgetState } from './budget-state.ts'
+import type { ResourceBudget, ResourceUsage } from './resource-value.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
@@ -95,6 +98,8 @@ export { controlPlaneFactSchema, controlPlaneProjection, projectControlPlaneFact
 export type { ControlPlane, ControlPlaneFact, ControlPlaneState } from './control-plane-state.ts'
 export { selectDurableRunnableTasks } from './runtime-scheduler.ts'
 export type { SchedulerSelection } from './runtime-scheduler.ts'
+export { budgetFactSchema, budgetProjection, projectBudgetFact, budgetProfileSchema, resourceBudgetSchema, resourceUsageSchema } from './budget-state.ts'
+export type { BudgetFact, BudgetLedger, BudgetProfile, BudgetState } from './budget-state.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
@@ -230,6 +235,7 @@ export class DAI extends Service {
     ctx.effect(() => ctx.sessionProjections.register(innovationProjection), 'dai.innovationProjection()')
     ctx.effect(() => ctx.sessionProjections.register(taskLedgerProjection), 'dai.taskLedgerProjection()')
     ctx.effect(() => ctx.sessionProjections.register(controlPlaneProjection), 'dai.controlPlaneProjection()')
+    ctx.effect(() => ctx.sessionProjections.register(budgetProjection), 'dai.budgetProjection()')
     ctx.effect(() => async () => { await Promise.all([...this.tails.values()]); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
   }
@@ -356,6 +362,24 @@ export class DAI extends Service {
     }
   }
 
+  /** Read durable scoped resource budgets and accumulated usage. */
+  readBudgets(agent: Agent): BudgetState {
+    this.authorize(agent)
+    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiBudgets')
+    if (state === undefined) fail('Budget projection is not mounted', 'D_AI_PROJECTION_MISSING')
+    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
+    return immutable(state)
+  }
+
+  private budgetLedger(agent: Agent): BudgetLedger {
+    const existing = this.readBudgets(agent).ledgers.find(item => item.ownerAgentId === agent.id)
+    return existing ?? {
+      ownerAgentId: agent.id,
+      revision: 0,
+      profiles: [],
+    }
+  }
+
   /** Read the deterministic scheduler admission set from the durable task ledger. */
   selectRunnableTasks(agent: Agent, maxTasks: number): ReturnType<typeof selectDurableRunnableTasks> {
     this.authorize(agent)
@@ -478,6 +502,113 @@ export class DAI extends Service {
     agent.session.append('d_ai/control-plane-fact', fact)
     await this.ctx.sessions.flush(agent.session)
     return immutable(fact.control)
+  }
+
+  private async appendBudgetLedger(agent: Agent, operation: BudgetFact['operation'], ledger: BudgetLedger): Promise<BudgetLedger> {
+    this.authorize(agent)
+    const fact = immutable(budgetFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
+    if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('budget ledger storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+    this.requireOpenTurn(agent)
+    agent.session.append('d_ai/budget-fact', fact)
+    await this.ctx.sessions.flush(agent.session)
+    return immutable(fact.ledger)
+  }
+
+
+  /**
+   * Create or update one scoped resource budget after native human approval.
+   * Accumulated usage is preserved when limits change.
+   */
+  async setResourceBudget(
+    agent: Agent,
+    input: { scope: BudgetProfile['scope']; scopeId: string; limits: ResourceBudget },
+    signal?: AbortSignal,
+  ): Promise<BudgetLedger> {
+    this.authorize(agent)
+    if (input.scopeId.trim().length === 0 || Object.keys(input.limits).length === 0) {
+      fail('budget scope id and at least one resource limit are required', 'D_AI_INVALID_INPUT')
+    }
+
+    const outcome = await this.ctx.approval.request({
+      agent,
+      toolName: 'd_ai_budget_set',
+      reason: 'Change D_AI resource budget for ' + input.scope + ':' + input.scopeId,
+      ...(signal === undefined ? {} : { signal }),
+    })
+    if (outcome !== 'allowed-once') fail('human approval is required for budget changes')
+
+    return this.transact(agent, async () => {
+      const current = this.budgetLedger(agent)
+      const now = new Date().toISOString()
+      const existing = current.profiles.find(profile => profile.scope === input.scope && profile.scopeId === input.scopeId)
+      const zeroUsage: ResourceUsage = {
+        tokens: 0,
+        moneyUsd: 0,
+        wallClockMs: 0,
+        humanAttentionMinutes: 0,
+        dataAccessCostUsd: 0,
+      }
+      const profile: BudgetProfile = existing === undefined ? {
+        id: randomUUID(),
+        ownerAgentId: agent.id,
+        scope: input.scope,
+        scopeId: input.scopeId,
+        limits: input.limits,
+        usage: zeroUsage,
+        createdAt: now,
+        updatedAt: now,
+        updatedBy: agent.id,
+      } : {
+        ...existing,
+        limits: input.limits,
+        updatedAt: now,
+        updatedBy: agent.id,
+      }
+
+      return this.appendBudgetLedger(agent, 'SET_BUDGET', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        profiles: existing === undefined
+          ? [...current.profiles, profile]
+          : current.profiles.map(item => item.id === existing.id ? profile : item),
+      })
+    })
+  }
+
+  /**
+   * Runtime-only accounting seam. Tool/model code should not call this
+   * directly; instrumentation records measured deltas here.
+   */
+  async recordResourceUsage(
+    agent: Agent,
+    profileId: string,
+    delta: ResourceUsage,
+  ): Promise<BudgetLedger> {
+    for (const [name, value] of Object.entries(delta)) {
+      if (!Number.isFinite(value) || value < 0) fail('invalid resource usage delta: ' + name, 'D_AI_INVALID_INPUT')
+    }
+    return this.transact(agent, async () => {
+      const current = this.budgetLedger(agent)
+      const existing = current.profiles.find(profile => profile.id === profileId)
+      if (existing === undefined) fail('unknown budget profile', 'D_AI_INVALID_INPUT')
+      const next: BudgetProfile = {
+        ...existing,
+        usage: {
+          tokens: existing.usage.tokens + delta.tokens,
+          moneyUsd: existing.usage.moneyUsd + delta.moneyUsd,
+          wallClockMs: existing.usage.wallClockMs + delta.wallClockMs,
+          humanAttentionMinutes: existing.usage.humanAttentionMinutes + delta.humanAttentionMinutes,
+          dataAccessCostUsd: existing.usage.dataAccessCostUsd + delta.dataAccessCostUsd,
+        },
+        updatedAt: new Date().toISOString(),
+        updatedBy: agent.id,
+      }
+      return this.appendBudgetLedger(agent, 'ADD_USAGE', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        profiles: current.profiles.map(item => item.id === existing.id ? next : item),
+      })
+    })
   }
 
   /** Append new shared tasks to the durable owner ledger. */
@@ -1522,6 +1653,35 @@ export class DAI extends Service {
         const states = ['PENDING', 'READY', 'RUNNING', 'WAITING_FOR_HUMAN', 'WAITING_FOR_TOOL', 'BLOCKED_POLICY', 'BLOCKED_BUDGET', 'PAUSED', 'FAILED', 'COMPLETED', 'CANCELLED'] as const
         if (!states.includes(args.next_state as typeof states[number])) fail('invalid durable task state', 'D_AI_INVALID_INPUT')
         return encoded(this.transitionDurableTask(owner(exec.agent), args.task_id, args.next_state as TaskState))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_budget_read', description: 'Read durable D_AI resource budgets and measured usage. Budget changes require human approval.',
+      parameters: {}, output,
+      execute: (_args, exec) => encoded(this.readBudgets(owner(exec.agent))) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_budget_set', description: 'Create or update a scoped D_AI resource budget after human approval. At least one limit must be supplied.',
+      parameters: {
+        scope: { type: 'string', required: true },
+        scope_id: { type: 'string', required: true },
+        token_limit: { type: 'number' },
+        money_limit_usd: { type: 'number' },
+        wall_clock_ms: { type: 'number' },
+        human_attention_minutes: { type: 'number' },
+        data_access_cost_usd: { type: 'number' },
+      }, output,
+      execute: (args, exec) => {
+        const scopes = ['SYSTEM', 'PROJECT', 'MISSION', 'TASK'] as const
+        if (!scopes.includes(args.scope as typeof scopes[number])) fail('invalid resource budget scope', 'D_AI_INVALID_INPUT')
+        const limits: ResourceBudget = {
+          ...(args.token_limit === undefined ? {} : { tokenLimit: args.token_limit }),
+          ...(args.money_limit_usd === undefined ? {} : { moneyLimitUsd: args.money_limit_usd }),
+          ...(args.wall_clock_ms === undefined ? {} : { wallClockMs: args.wall_clock_ms }),
+          ...(args.human_attention_minutes === undefined ? {} : { humanAttentionMinutes: args.human_attention_minutes }),
+          ...(args.data_access_cost_usd === undefined ? {} : { dataAccessCostUsd: args.data_access_cost_usd }),
+        }
+        return encoded(this.setResourceBudget(owner(exec.agent), {
+          scope: args.scope as BudgetProfile['scope'],
+          scopeId: args.scope_id,
+          limits,
+        }, exec.signal))
       } }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_scheduler_next', description: 'Read the next runnable tasks from the durable D_AI DAG without mutating or executing them. Dependencies and blocked states are respected.',
       parameters: { max_tasks: { type: 'number' } }, output,
