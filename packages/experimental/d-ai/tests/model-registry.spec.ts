@@ -13,6 +13,7 @@ import * as JsonStorage from '@deepseek-ai/dsh-storage-json'
 import * as DomainStorage from '@deepseek-ai/dsh-storage-domain'
 import WebRuntime from '@deepseek-ai/dsh-web'
 import Subagents from '@deepseek-ai/dsh-subagent'
+import * as Spawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import Approval, { type ApprovalOutcome } from '@deepseek-ai/dsh-user-approval'
 import { describe, expect, it } from 'vitest'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
@@ -29,6 +30,7 @@ async function boot(root: string, script: ConstructorParameters<typeof MockAdapt
   await ctx.plugin(DomainStorage, { backend: 'json' })
   await ctx.plugin(WebRuntime)
   await ctx.plugin(Subagents)
+  await ctx.plugin(Spawn, { providerName: 'spawn' })
   await ctx.plugin(Approval, { policy: 'ask' })
   await ctx.plugin(DAI, { allowedTools: [] })
   const adapter = new MockAdapter(script)
@@ -122,6 +124,64 @@ describe('D_AI durable model registry', () => {
       await handle.dispose()
     } finally {
       await second.ctx.fiber.dispose()
+    }
+  }), 15000)
+
+  it('injects persisted provider/model routes into native investigation workers', async () => temporary(async root => {
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx, adapter } = await boot(root, script)
+    ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
+    const agent = await ctx.agentLoop.create(SessionId('routed-owner'), { provider: 'mock', model: 'fixture' })
+    const objective = 'Investigate fixture question with routed workers'
+    const mission = () => ctx.dai.read(agent).missions[0]!
+
+    script.push(
+      toolCallResponse('model', 'd_ai_model_upsert', {
+        id: 'routed-child',
+        provider: 'mock',
+        location: 'LOCAL',
+        capabilities: 'reasoning,research,tool-use',
+        quality_score: 0.9,
+        reliability_score: 0.9,
+        latency_score: 0.9,
+        cost_score: 0.9,
+        privacy_score: 1,
+        max_context_tokens: 64000,
+        enabled: true,
+      }),
+      toolCallResponse('research-policy', 'd_ai_model_policy_set', {
+        system_id: 'investigation',
+        role: 'research',
+        required_capabilities: 'reasoning,research,tool-use',
+        min_context_tokens: 16000,
+        local_only: true,
+      }),
+      toolCallResponse('verification-policy', 'd_ai_model_policy_set', {
+        system_id: 'investigation',
+        role: 'verification',
+        required_capabilities: 'reasoning,research,tool-use',
+        min_context_tokens: 16000,
+        local_only: true,
+      }),
+      toolCallResponse('mission', 'd_ai_mission_create', { objective }),
+      () => toolCallResponse('delegate', 'd_ai_delegate', { mission_id: mission().id }),
+      textResponse('Routed research worker output.'),
+      textResponse('Routed verification worker output.'),
+      textResponse('Routed workers completed'),
+    )
+
+    try {
+      agent.followup(createUserMessage({
+        content: [{ type: 'text', text: objective }],
+        source: { kind: 'user' },
+      }))
+      await agent.whenIdle()
+
+      const routedRequests = adapter.requests.filter(request => request.model === 'routed-child')
+      expect(routedRequests).toHaveLength(2)
+      expect(ctx.dai.read(agent).missions[0]?.delegations).toHaveLength(1)
+    } finally {
+      await ctx.fiber.dispose()
     }
   }), 15000)
 
