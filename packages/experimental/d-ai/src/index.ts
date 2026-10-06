@@ -69,7 +69,7 @@ import { directorFactSchema } from './director-state.ts'
 import type { DirectorFact, DirectorLedger, DirectorPlan, DirectorState } from './director-state.ts'
 import { directorScheduleFactSchema } from './director-schedule-state.ts'
 import type { DirectorSchedule, DirectorScheduleCycle, DirectorScheduleFact, DirectorScheduleLedger, DirectorScheduleState } from './director-schedule-state.ts'
-import { DirectorScheduler } from './director-scheduler.ts'
+import { DirectorScheduler, isCurrentDirectorScheduleWake } from './director-scheduler.ts'
 import type { ScheduledDirectorCycleResult } from './director-scheduler.ts'
 import { deriveMissionPhase } from './mission-director.ts'
 import { runDirectorPlanner } from './director-orchestration.ts'
@@ -1225,10 +1225,8 @@ export class DAI extends Service {
     // A queued wake is a capability token for one exact durable due time.
     // Reconfiguration or disablement invalidates the old token rather than
     // letting stale background work execute under new settings.
-    if (!schedule.enabled
-      || plan.status !== 'ACTIVE'
-      || schedule.nextWakeAt !== expectedDueAt
-      || Date.parse(schedule.nextWakeAt) > Date.parse(attemptedAt)) {
+    if (plan.status !== 'ACTIVE'
+      || !isCurrentDirectorScheduleWake(schedule, expectedDueAt, Date.parse(attemptedAt))) {
       return immutableSnapshot({
         scheduleId,
         planId: schedule.planId,
