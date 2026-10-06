@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-experimental-d-ai",
-  "description": "Native D_AI investigative missions and evidence over Harness services",
+  "description": "Native D_AI multi-system platform foundation with integrated investigation runtime",
   "version": "0.2.1-alpha.1",
   "type": "module",
   "main": "lib/index.js",
