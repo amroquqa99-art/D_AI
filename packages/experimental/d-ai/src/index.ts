@@ -122,7 +122,6 @@ export class DAI extends Service {
   private readonly projections: DaiProjectionReader
   private readonly delegating = new Set<string>()
   private readonly directorCycles = new Set<string>()
-  private readonly scheduler?: DirectorScheduler
   private readonly index: ReturnType<Context['storageDomain']['open']>
 
   constructor(ctx: Context, config: Config = {}) {
@@ -143,8 +142,7 @@ export class DAI extends Service {
     this.registerTools()
     if (runtime.scheduler.enabled) {
       const scheduler = new DirectorScheduler(ctx, this, { pollMs: runtime.scheduler.pollMs })
-      this.scheduler = scheduler
-      ctx.effect(() => () => scheduler.dispose(), 'dai.directorScheduler()')
+      ctx.effect(() => async () => scheduler.dispose(), 'dai.directorScheduler()')
     }
   }
 
