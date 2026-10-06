@@ -1090,10 +1090,20 @@ export class DAI extends Service {
     signal: AbortSignal,
     maxTasks = 4,
     ttlMs = 600000,
+    maxParallelTasks = 1,
   ): Promise<DirectorCycleResult> {
     this.authorize(agent)
     if (!Number.isSafeInteger(maxTasks) || maxTasks < 1 || maxTasks > 8) {
       fail('Director cycle maxTasks must be an integer from 1 to 8', 'D_AI_INVALID_INPUT')
+    }
+    if (!Number.isSafeInteger(maxParallelTasks)
+      || maxParallelTasks < 1
+      || maxParallelTasks > 8
+      || maxParallelTasks > maxTasks) {
+      fail(
+        'Director cycle maxParallelTasks must be an integer from 1 to maxTasks',
+        'D_AI_INVALID_INPUT',
+      )
     }
 
     const key = agent.id + ':' + planId
@@ -1110,17 +1120,57 @@ export class DAI extends Service {
       await this.recoverExpiredTaskLeases(agent)
 
       const executed: DirectorTaskExecution[] = []
+      let waves = 0
+      let peakParallelism = 0
+      const serializedByBudgetProfileIds = new Set<string>()
 
       while (executed.length < maxTasks) {
         signal.throwIfAborted()
 
-        const view = this.directorPlanView(agent, planId, 1)
+        const remaining = maxTasks - executed.length
+        const candidateLimit = Math.min(maxParallelTasks, remaining)
+        const view = this.directorPlanView(agent, planId, candidateLimit)
         if (view.plan.status !== 'ACTIVE' || view.next.selected.length === 0) break
 
-        const result = await this.executeNextDirectorTask(agent, planId, signal, ttlMs)
-        executed.push(result)
+        const wave = selectDirectorParallelWave(
+          view.next.selected,
+          this.budgetLedger(agent).profiles,
+          candidateLimit,
+        )
+        if (wave.tasks.length === 0) break
+        for (const id of wave.serializedByBudgetProfileIds) {
+          serializedByBudgetProfileIds.add(id)
+        }
 
-        if (result.execution.outcome === 'FAILED') break
+        waves += 1
+        peakParallelism = Math.max(peakParallelism, wave.tasks.length)
+
+        const settled = await Promise.allSettled(
+          wave.tasks.map(task => this.executeNextDirectorTask(
+            agent,
+            planId,
+            signal,
+            ttlMs,
+            task.id,
+          )),
+        )
+
+        const failures: unknown[] = []
+        const completedWave: DirectorTaskExecution[] = []
+        for (const result of settled) {
+          if (result.status === 'fulfilled') completedWave.push(result.value)
+          else failures.push(result.reason)
+        }
+        executed.push(...completedWave)
+
+        // All workers in the wave have settled before failure escapes, so the
+        // cycle never abandons a child Agent or its lease/heartbeat cleanup.
+        if (failures.length === 1) throw failures[0]
+        if (failures.length > 1) {
+          throw new AggregateError(failures, 'D_AI Director parallel wave failed')
+        }
+
+        if (completedWave.some(result => result.execution.outcome === 'FAILED')) break
       }
 
       const finalView = this.directorPlanView(agent, planId, 1)
@@ -1130,6 +1180,9 @@ export class DAI extends Service {
         phase: finalView.phase,
         limitReached: executed.length === maxTasks && finalView.next.selected.length > 0,
         next: finalView.next,
+        waves,
+        peakParallelism,
+        serializedByBudgetProfileIds: [...serializedByBudgetProfileIds].sort(),
       })
     } finally {
       this.directorCycles.delete(key)
