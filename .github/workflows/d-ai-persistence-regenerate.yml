@@ -1,0 +1,46 @@
+name: D_AI regenerate persistence catalog
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/d-ai-persistence-regenerate.yml'
+
+concurrency:
+  group: d-ai-persistence-regenerate
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: dai/v2-core-foundation
+          fetch-depth: 1
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Regenerate persistence catalog
+        run: pnpm run gen:persistence-catalog
+      - name: Verify generated catalog
+        run: pnpm run verify-persistence-catalog
+      - name: Commit generated catalog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/core/session/src/known-event-types.ts docs/persistence-catalog.md docs/persistence-catalog.zh.md docs/persistence-catalog.i18n.yaml docs/persistence-schema.json
+          if git diff --cached --quiet; then
+            echo "No generated changes"
+          else
+            git commit -m "chore: regenerate persistence catalog for scientific events"
+            git push origin HEAD:dai/v2-core-foundation
+          fi
