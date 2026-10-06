@@ -15,7 +15,7 @@ function event(data: unknown): SessionEvent {
     data,
     id: 'event-1',
     timestamp: '2026-10-06T10:00:00.000Z',
-  } as SessionEvent
+  } as unknown as SessionEvent
 }
 
 function reserveFact() {

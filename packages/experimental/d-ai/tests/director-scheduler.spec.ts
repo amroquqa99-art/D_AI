@@ -90,6 +90,19 @@ function execution(
 }
 
 describe('D_AI unattended Director scheduler admission', () => {
+  it('stops waking a plan when its durable failure or idle limit is reached', () => {
+    const now = Date.parse('2026-10-07T00:00:02.000Z')
+    expect(shouldWakeDirectorSchedule(
+      schedule({ maxConsecutiveFailures: 2, consecutiveFailures: 2 }), planView(), execution(), now,
+    )).toBe(false)
+    expect(shouldWakeDirectorSchedule(
+      schedule({ maxConsecutiveIdleCycles: 3, consecutiveIdleCycles: 3 }), planView(), execution(), now,
+    )).toBe(false)
+    expect(shouldWakeDirectorSchedule(
+      schedule({ maxConsecutiveFailures: 2, consecutiveFailures: 1 }), planView(), execution(), now,
+    )).toBe(true)
+  })
+
   it('bounds active plus queued unattended work to the configured capacity', () => {
     expect(directorSchedulerRemainingSlots(1, 0, 0)).toBe(1)
     expect(directorSchedulerRemainingSlots(4, 2, 1)).toBe(1)
@@ -98,19 +111,15 @@ describe('D_AI unattended Director scheduler admission', () => {
     expect(() => directorSchedulerRemainingSlots(4, -1, 0)).toThrow('activeCount')
   })
 
-  it('creates a typed, model-empty scheduler wake message', () => {
+  it('encodes a typed scheduler wake using the existing Harness schedule source', () => {
     const wake = createDirectorSchedulerWake(schedule())
 
     expect(wake.role).toBe('user')
-    expect(wake.content).toEqual([])
-    expect(wake.source).toEqual({
-      kind: 'd-ai-scheduler',
-      form: 'notice',
-      summary: 'D_AI unattended Director schedule wake',
-      scheduleId: 'schedule-1',
-      planId: 'plan-1',
-      dueAt: '2026-10-07T00:00:01.000Z',
-    })
+    expect(wake.source).toEqual({ kind: 'schedule', form: 'notice', summary: 'D_AI Director schedule wake' })
+    expect(wake.content).toHaveLength(1)
+    expect(wake.content[0]?.type).toBe('text')
+    if (wake.content[0]?.type !== 'text') throw new Error('missing typed wake content')
+    expect(JSON.parse(wake.content[0].text)).toEqual({ protocol: 'd_ai.director-wake.v1', scheduleId: 'schedule-1', planId: 'plan-1', dueAt: '2026-10-07T00:00:01.000Z' })
   })
 
   it('orders never-run and least-recently-attempted schedules before newer work', () => {
@@ -269,7 +278,7 @@ describe('D_AI unattended Director scheduler admission', () => {
       nextTurn: [wake],
       nextStep: [] as UserMessage[],
     }
-    const agent = { inbox } as Pick<Agent, 'inbox'> as Agent
+    const agent = { inbox } as unknown as Agent
 
     expect(hasPendingDirectorSchedulerWake(agent, 'schedule-1')).toBe(true)
     expect(hasPendingDirectorSchedulerWake(agent, 'other')).toBe(false)

@@ -8,11 +8,11 @@ function grant(overrides: Partial<CapabilityGrant> = {}): CapabilityGrant {
     systemId: overrides.systemId ?? 'investigation',
     capability: overrides.capability ?? 'web.fetch',
     scope: overrides.scope ?? 'GLOBAL',
-    scopeId: overrides.scopeId,
+    ...(overrides.scopeId === undefined ? {} : { scopeId: overrides.scopeId }),
     decision: overrides.decision ?? 'ALLOW',
     issuedBy: overrides.issuedBy ?? 'owner',
     issuedAt: overrides.issuedAt ?? '2026-10-06T00:00:00Z',
-    expiresAt: overrides.expiresAt,
+    ...(overrides.expiresAt === undefined ? {} : { expiresAt: overrides.expiresAt }),
     reason: overrides.reason ?? 'approved',
   }
 }

@@ -29,7 +29,7 @@ export interface EvidenceNode {
   readonly label: string
   readonly createdAt: string
   readonly provenance: readonly string[]
-  readonly confidence?: number
+  readonly confidence?: number | undefined
 }
 
 export interface EvidenceEdge {

@@ -104,7 +104,7 @@ describe('D_AI runtime architecture boundaries', () => {
 
     const cycle = index.slice(start, end)
     const recovery = cycle.indexOf('await this.recoverExpiredTaskLeases(agent)')
-    const admission = cycle.indexOf('this.directorPlanView(agent, planId, 1)')
+    const admission = cycle.indexOf('this.directorPlanView(agent, planId, candidateLimit)')
 
     expect(recovery).toBeGreaterThanOrEqual(0)
     expect(admission).toBeGreaterThan(recovery)

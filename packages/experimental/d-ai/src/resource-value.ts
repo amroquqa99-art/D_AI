@@ -1,11 +1,11 @@
 /** Shared resource budgeting and Value-of-Information primitives for D_AI. */
 
 export interface ResourceBudget {
-  readonly tokenLimit?: number
-  readonly moneyLimitUsd?: number
-  readonly wallClockMs?: number
-  readonly humanAttentionMinutes?: number
-  readonly dataAccessCostUsd?: number
+  readonly tokenLimit?: number | undefined
+  readonly moneyLimitUsd?: number | undefined
+  readonly wallClockMs?: number | undefined
+  readonly humanAttentionMinutes?: number | undefined
+  readonly dataAccessCostUsd?: number | undefined
 }
 
 export interface ResourceUsage {

@@ -42,10 +42,15 @@ class ParallelProbeAdapter extends LlmAdapter {
   }
 
   private isDirectorChild(options: GenerateOptions): boolean {
-    const serialized = JSON.stringify(options.messages)
-    return serialized.includes('"outputContract"')
-      && serialized.includes('"task"')
-      && serialized.includes('COMPLETED | WAITING_FOR_HUMAN | WAITING_FOR_TOOL | FAILED')
+    return options.messages.some(message => message.content.some(block => {
+      if (block.type !== 'text') return false
+      try {
+        const prompt = JSON.parse(block.text)
+        return prompt?.task !== undefined
+          && prompt?.outputContract?.outcome
+            === 'COMPLETED | WAITING_FOR_HUMAN | WAITING_FOR_TOOL | FAILED'
+      } catch { return false }
+    }))
   }
 
   private async awaitPeer(signal?: AbortSignal): Promise<void> {

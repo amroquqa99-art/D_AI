@@ -320,7 +320,7 @@ export function registerTasksDirectorTools(
 
   ctx.tools.register(defineTool({
     name: 'd_ai_director_schedule_set',
-    description: 'Enable, update or disable unattended execution for one Mission Director plan. Optional consecutive scheduler-failure/idle thresholds stop future wakes; 0 disables a threshold, and resetting stagnation counters is an explicit human-approved schedule change.'
+    description: 'Enable, update or disable unattended execution for one Mission Director plan. Consecutive failure/idle limits stop future wakes; 0 disables a limit. Resetting counters requires human approval.',
     parameters: {
       plan_id: { type: 'string', required: true },
       enabled: { type: 'boolean', required: true },

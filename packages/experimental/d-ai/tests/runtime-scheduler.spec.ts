@@ -56,6 +56,27 @@ function ledger(): DurableTaskLedger {
 }
 
 describe('D_AI durable scheduler admission', () => {
+  it('admits a bounded deterministic batch from 1000 tasks while preserving human and dependency blocks', () => {
+    const tasks = Array.from({ length: 1000 }, (_, index) => ({
+      ...ledger().tasks[1]!,
+      id: 'task-' + String(index).padStart(4, '0'),
+      dependsOn: index % 2 === 0 ? [] : ['task-' + String(index - 1).padStart(4, '0')],
+      state: index === 0 ? 'WAITING_FOR_HUMAN' as const : 'PENDING' as const,
+      priority: index,
+    }))
+    const state = { ownerAgentId: 'owner', revision: 1000, tasks }
+    const selected = selectDurableRunnableTasks(state, 8)
+    expect(selected.selected.map(task => task.id)).toEqual([
+      'task-0998', 'task-0996', 'task-0994', 'task-0992',
+      'task-0990', 'task-0988', 'task-0986', 'task-0984',
+    ])
+    expect(selected.blocked).toHaveLength(501)
+    expect(selected.blocked).toContainEqual({ taskId: 'task-0000', reason: 'state', details: [] })
+    expect(selected.blocked).toContainEqual({ taskId: 'task-0001', reason: 'dependency', details: [] })
+    expect(selectDurableRunnableTasks({ ...state, tasks: [...tasks].reverse() }, 8)).toEqual(selected)
+    expect(state.tasks[0]?.state).toBe('WAITING_FOR_HUMAN')
+  })
+
   it('selects only dependency-satisfied runnable tasks and reports blocked reasons', () => {
     const result = selectDurableRunnableTasks(ledger(), 4)
     expect(result.selected.map(task => task.id)).toEqual(['b'])

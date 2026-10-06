@@ -1,0 +1,311 @@
+{
+  "formatVersion": 2,
+  "roots": [
+    {
+      "key": "event:d_ai/director-schedule-fact",
+      "kind": "event",
+      "event": "d_ai/director-schedule-fact",
+      "surface": false,
+      "digest": "49c229a42802308e3c91764816c186c3945a1cdfb1184be7bc9d57be3a18dee7",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 24,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 25,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ledger",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 23,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "schedules",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "array",
+            "element": 6
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "consecutiveFailures",
+                "type": 4,
+                "optional": true
+              },
+              {
+                "name": "consecutiveIdleCycles",
+                "type": 4,
+                "optional": true
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "enabled",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "intervalMs",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "lastCycle",
+                "type": 8,
+                "optional": true
+              },
+              {
+                "name": "leaseTtlMs",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "maxConsecutiveFailures",
+                "type": 4,
+                "optional": true
+              },
+              {
+                "name": "maxConsecutiveIdleCycles",
+                "type": 4,
+                "optional": true
+              },
+              {
+                "name": "maxParallelTasks",
+                "type": 4,
+                "optional": true
+              },
+              {
+                "name": "maxTasksPerCycle",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "nextWakeAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "planId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "updatedAt",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attemptedAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "error",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "executedTasks",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "outcome",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "phase",
+                "type": 13,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              10,
+              11,
+              12
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "EXECUTED"
+          },
+          {
+            "kind": "literal",
+            "value": "FAILED"
+          },
+          {
+            "kind": "literal",
+            "value": "IDLE"
+          },
+          {
+            "kind": "union",
+            "types": [
+              14,
+              15,
+              16,
+              17,
+              18,
+              19
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "BLOCKED"
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETE"
+          },
+          {
+            "kind": "literal",
+            "value": "EXECUTING"
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "literal",
+            "value": "PLANNING"
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_HUMAN"
+          },
+          {
+            "kind": "union",
+            "types": [
+              21,
+              22
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "UPSERT"
+          },
+          {
+            "kind": "literal",
+            "value": "RECORD_CYCLE"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/director-schedule-fact"
+          }
+        ]
+      }
+    }
+  ],
+  "types": []
+}
