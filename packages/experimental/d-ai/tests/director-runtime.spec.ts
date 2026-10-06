@@ -413,6 +413,86 @@ describe('D_AI durable Mission Director', () => {
     }
   }), 20000)
 
+  it('meters Director wall-clock usage into task, mission and system budgets atomically', async () => temporary(async root => {
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx } = await boot(root, script)
+    ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
+
+    const agent = await ctx.agentLoop.create(SessionId('director-budget-owner'), { provider: 'mock', model: 'fixture' })
+    const objective = 'Execute one bounded investigation task under measured budgets'
+    const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+    const task = () => ctx.dai.readTaskLedger(agent).ledgers[0]!.tasks[0]!
+
+    script.push(
+      toolCallResponse('plan', 'd_ai_director_plan_create', {
+        objective,
+        primary_system: 'investigation',
+      }),
+      () => toolCallResponse('task', 'd_ai_director_task_add', {
+        plan_id: plan().id,
+        system_id: 'investigation',
+        title: 'Execute the measured task',
+      }),
+      () => toolCallResponse('task-budget', 'd_ai_budget_set', {
+        scope: 'TASK',
+        scope_id: task().id,
+        wall_clock_ms: 600000,
+      }),
+      () => toolCallResponse('mission-budget', 'd_ai_budget_set', {
+        scope: 'MISSION',
+        scope_id: plan().id,
+        wall_clock_ms: 600000,
+      }),
+      toolCallResponse('system-budget', 'd_ai_budget_set', {
+        scope: 'SYSTEM',
+        scope_id: 'investigation',
+        wall_clock_ms: 600000,
+      }),
+      toolCallResponse('unrelated-budget', 'd_ai_budget_set', {
+        scope: 'SYSTEM',
+        scope_id: 'investor',
+        wall_clock_ms: 600000,
+      }),
+      () => toolCallResponse('execute', 'd_ai_director_execute_next', {
+        plan_id: plan().id,
+        ttl_ms: 600000,
+      }),
+      textResponse(JSON.stringify({
+        outcome: 'COMPLETED',
+        summary: 'Measured task completed.',
+        artifactRefs: [],
+      })),
+      textResponse('Measured execution completed'),
+    )
+
+    try {
+      agent.followup(createUserMessage({
+        content: [{ type: 'text', text: objective }],
+        source: { kind: 'user' },
+      }))
+      await agent.whenIdle()
+
+      const budget = ctx.dai.readBudgets(agent).ledgers[0]!
+      const taskProfile = budget.profiles.find(profile => profile.scope === 'TASK')!
+      const missionProfile = budget.profiles.find(profile => profile.scope === 'MISSION')!
+      const systemProfile = budget.profiles.find(profile =>
+        profile.scope === 'SYSTEM' && profile.scopeId === 'investigation')!
+      const unrelated = budget.profiles.find(profile =>
+        profile.scope === 'SYSTEM' && profile.scopeId === 'investor')!
+
+      expect(budget.revision).toBe(5)
+      expect(taskProfile.usage.wallClockMs).toBeGreaterThan(0)
+      expect(missionProfile.usage.wallClockMs).toBe(taskProfile.usage.wallClockMs)
+      expect(systemProfile.usage.wallClockMs).toBe(taskProfile.usage.wallClockMs)
+      expect(unrelated.usage.wallClockMs).toBe(0)
+      expect(taskProfile.usage.tokens).toBe(0)
+      expect(taskProfile.usage.moneyUsd).toBe(0)
+      expect(ctx.dai.readTaskLedger(agent).ledgers[0]?.tasks[0]?.state).toBe('COMPLETED')
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  }), 20000)
+
   it('never exceeds the explicit Director cycle task limit', async () => temporary(async root => {
     const script: ConstructorParameters<typeof MockAdapter>[0] = []
     const { ctx } = await boot(root, script)
