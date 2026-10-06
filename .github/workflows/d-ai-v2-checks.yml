@@ -30,6 +30,8 @@ jobs:
           cache: pnpm
       - name: Install
         run: pnpm install --frozen-lockfile
+      - name: Build Harness native system addon
+        run: pnpm run build:native-system
       - name: D_AI registry tests
         run: pnpm exec vitest run packages/experimental/d-ai/tests/systems.spec.ts
       - name: D_AI package tests
