@@ -4,6 +4,7 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
 
 const identity = z.string().min(1).max(240)
+const operationSchema = z.enum(['ACQUIRE_LEASE', 'RENEW_LEASE', 'RELEASE_LEASE', 'CHECKPOINT'])
 
 export const taskLeaseSchema = z.object({
   id: identity,
@@ -39,13 +40,47 @@ export type TaskCheckpoint = z.infer<typeof taskCheckpointSchema>
 export type ExecutionLedger = z.infer<typeof executionLedgerSchema>
 
 export const executionFactSchema = z.object({
-  version: z.literal(1),
-  operation: z.enum(['ACQUIRE_LEASE', 'RENEW_LEASE', 'RELEASE_LEASE', 'CHECKPOINT']),
+  version: z.literal(2),
+  operation: operationSchema,
   actorId: identity,
   ledger: executionLedgerSchema,
 }).strict()
 
 export type ExecutionFact = z.infer<typeof executionFactSchema>
+
+const legacyTaskLeaseSchema = z.object({
+  id: identity,
+  taskId: identity,
+  missionId: identity,
+  holderId: identity,
+  acquiredAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+  releasedAt: z.string().datetime().optional(),
+}).strict()
+
+const legacyTaskCheckpointSchema = z.object({
+  id: identity,
+  taskId: identity,
+  sequence: z.number().int().positive(),
+  at: z.string().datetime(),
+  summary: z.string().min(1).max(24000),
+  artifactRefs: z.array(z.string().min(1).max(4000)),
+}).strict()
+
+const legacyExecutionFactSchema = z.object({
+  version: z.literal(1),
+  operation: operationSchema,
+  actorId: identity,
+  ledger: z.object({
+    ownerAgentId: identity,
+    revision: z.number().int().nonnegative(),
+    leases: z.array(legacyTaskLeaseSchema),
+    checkpoints: z.array(legacyTaskCheckpointSchema),
+  }).strict(),
+}).strict()
+
+type LegacyExecutionFact = z.infer<typeof legacyExecutionFactSchema>
+
 export interface ExecutionState {
   readonly ledgers: readonly ExecutionLedger[]
   readonly failure?: string | undefined
@@ -53,8 +88,8 @@ export interface ExecutionState {
 
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
-    /** Complete post-change D_AI execution fact retaining task leases and checkpoints so long-running work can resume deterministically after restart. */
-    'd_ai/execution-fact': ExecutionFact
+    /** Complete post-change D_AI execution fact retaining fenced task leases and checkpoint lineage so long-running work can resume deterministically after restart. Version 1 events are migrated during replay. */
+    'd_ai/execution-fact': ExecutionFact | LegacyExecutionFact
   }
 }
 declare module '@deepseek-ai/dsh-session-projection/types' {
@@ -76,6 +111,63 @@ function assertLeaseTimes(lease: TaskLease): void {
   }
 }
 
+function checkpointMatchesLease(
+  checkpoint: Pick<TaskCheckpoint, 'taskId' | 'at'>,
+  lease: TaskLease,
+): boolean {
+  if (lease.taskId !== checkpoint.taskId) return false
+  const checkpointAt = Date.parse(checkpoint.at)
+  return checkpointAt >= Date.parse(lease.acquiredAt)
+    && checkpointAt <= Date.parse(lease.expiresAt)
+    && (lease.releasedAt === undefined || checkpointAt <= Date.parse(lease.releasedAt))
+}
+
+function migrateLegacyExecutionFact(fact: LegacyExecutionFact): ExecutionFact {
+  const taskFence = new Map<string, number>()
+  const leases: TaskLease[] = fact.ledger.leases.map((legacy) => {
+    const fence = (taskFence.get(legacy.taskId) ?? 0) + 1
+    taskFence.set(legacy.taskId, fence)
+    return {
+      ...legacy,
+      fence,
+    }
+  })
+
+  const checkpoints: TaskCheckpoint[] = fact.ledger.checkpoints.map((legacy) => {
+    const candidates = leases.filter(lease => checkpointMatchesLease(legacy, lease))
+    if (candidates.length !== 1) {
+      throw new Error(
+        'legacy checkpoint cannot be mapped to exactly one task lease generation',
+      )
+    }
+    const lease = candidates[0]!
+    return {
+      ...legacy,
+      leaseId: lease.id,
+      fence: lease.fence,
+    }
+  })
+
+  return executionFactSchema.parse({
+    version: 2,
+    operation: fact.operation,
+    actorId: fact.actorId,
+    ledger: {
+      ownerAgentId: fact.ledger.ownerAgentId,
+      revision: fact.ledger.revision,
+      leases,
+      checkpoints,
+    },
+  })
+}
+
+/** Parse current execution facts or deterministically migrate persisted v1 facts. */
+export function normalizeExecutionFact(data: unknown): ExecutionFact {
+  const current = executionFactSchema.safeParse(data)
+  if (current.success) return current.data
+  return migrateLegacyExecutionFact(legacyExecutionFactSchema.parse(data))
+}
+
 function assertCheckpointLeaseIntegrity(ledger: ExecutionLedger): void {
   for (const checkpoint of ledger.checkpoints) {
     const lease = ledger.leases.find(item =>
@@ -83,13 +175,7 @@ function assertCheckpointLeaseIntegrity(ledger: ExecutionLedger): void {
       && item.taskId === checkpoint.taskId
       && item.fence === checkpoint.fence)
     if (lease === undefined) throw new Error('task checkpoint references unknown lease fence')
-
-    const checkpointAt = Date.parse(checkpoint.at)
-    if (
-      checkpointAt < Date.parse(lease.acquiredAt)
-      || checkpointAt > Date.parse(lease.expiresAt)
-      || (lease.releasedAt !== undefined && checkpointAt > Date.parse(lease.releasedAt))
-    ) {
+    if (!checkpointMatchesLease(checkpoint, lease)) {
       throw new Error('task checkpoint falls outside its lease lifetime')
     }
   }
@@ -107,7 +193,7 @@ function changedIndexes<T>(before: readonly T[], after: readonly T[]): number[] 
 export function projectExecutionFact(state: ExecutionState, event: SessionEvent): ExecutionState {
   if (state.failure !== undefined || event.type !== 'd_ai/execution-fact') return state
   try {
-    const fact = executionFactSchema.parse(event.data)
+    const fact = normalizeExecutionFact(event.data)
     if (fact.actorId !== fact.ledger.ownerAgentId) throw new Error('execution fact actor does not own ledger')
     if (new Set(fact.ledger.leases.map(lease => lease.id)).size !== fact.ledger.leases.length) throw new Error('duplicate task lease identity')
     if (new Set(fact.ledger.checkpoints.map(checkpoint => checkpoint.id)).size !== fact.ledger.checkpoints.length) throw new Error('duplicate task checkpoint identity')
@@ -185,7 +271,7 @@ export function projectExecutionFact(state: ExecutionState, event: SessionEvent)
 
 export const executionProjection = {
   key: 'daiExecution',
-  stateVersion: 1,
+  stateVersion: 2,
   stateSchema,
   init: () => ({ ledgers: [] }),
   apply: projectExecutionFact,
