@@ -1,12 +1,13 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { Mission, MissionState } from './state.ts'
 import { encodeToolResult, jsonToolOutput } from './tool-support.ts'
 import type { ToolOwnerResolver } from './tool-support.ts'
 
 export interface InvestigationToolRuntime {
-  create(agent: Agent, objective: string, signal?: AbortSignal): Promise<unknown>
-  read(agent: Agent): unknown
+  create(agent: Agent, objective: string, signal?: AbortSignal): Promise<Mission>
+  read(agent: Agent): MissionState
   capture(agent: Agent, missionId: string, url: string, signal: AbortSignal): Promise<unknown>
   addClaim(
     agent: Agent,
