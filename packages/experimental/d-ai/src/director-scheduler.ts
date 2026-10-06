@@ -73,6 +73,30 @@ export function hasPendingDirectorSchedulerWake(
     message.source.kind === 'd-ai-scheduler' && message.source.scheduleId === scheduleId)
 }
 
+/**
+ * Order schedules for one owner without using creation order as hidden
+ * priority. Never-run schedules come first; otherwise the least recently
+ * attempted schedule wins, then the oldest due time and stable identity.
+ */
+export function orderDirectorSchedulesForFairness(
+  schedules: readonly DirectorSchedule[],
+): readonly DirectorSchedule[] {
+  return Object.freeze([...schedules].sort((left, right) => {
+    const leftAttempt = left.lastCycle === undefined
+      ? Number.NEGATIVE_INFINITY
+      : Date.parse(left.lastCycle.attemptedAt)
+    const rightAttempt = right.lastCycle === undefined
+      ? Number.NEGATIVE_INFINITY
+      : Date.parse(right.lastCycle.attemptedAt)
+    if (leftAttempt !== rightAttempt) return leftAttempt - rightAttempt
+
+    const due = Date.parse(left.nextWakeAt) - Date.parse(right.nextWakeAt)
+    if (due !== 0) return due
+
+    return left.id.localeCompare(right.id)
+  }))
+}
+
 function hasExpiredPlanLease(
   execution: ExecutionState,
   plan: DirectorPlanRuntimeView,
@@ -219,7 +243,7 @@ export class DirectorScheduler {
       const ledger = state.ledgers.find(item => item.ownerAgentId === agent.id)
       if (ledger === undefined) continue
 
-      for (const schedule of ledger.schedules) {
+      for (const schedule of orderDirectorSchedulesForFairness(ledger.schedules)) {
         const key = scheduleKey(agent.id, schedule.id)
         if (this.active.has(key)
           || hasPendingDirectorSchedulerWake(agent, schedule.id)) {
