@@ -27,7 +27,7 @@ export class DaiRuntimeKernel {
       if (events[index]?.type === 'turn/end') break
       if (events[index]?.type === 'turn/start') return index
     }
-    return failDai('D_AI mutations require an open native Agent turn')
+    return failDai('D_AI mutations require an open native Agent turn', 'D_AI_OPEN_TURN_REQUIRED')
   }
 
   async transact<T>(agent: Agent, operation: () => Promise<T>): Promise<T> {
