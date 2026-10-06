@@ -52,6 +52,7 @@ export interface TasksDirectorToolRuntime {
     signal: AbortSignal,
     maxTasks?: number,
     ttlMs?: number,
+    maxParallelTasks?: number,
   ): Promise<DirectorCycleResult>
   setDirectorPlanStatus(
     agent: Agent,
@@ -257,6 +258,7 @@ export function registerTasksDirectorTools(
     parameters: {
       plan_id: { type: 'string', required: true },
       max_tasks: { type: 'number' },
+      max_parallel_tasks: { type: 'number' },
       ttl_ms: { type: 'number' },
     },
     output: jsonToolOutput,
@@ -266,12 +268,19 @@ export function registerTasksDirectorTools(
       if (!Number.isSafeInteger(maxTasks) || maxTasks < 1 || maxTasks > 8) {
         rejectInvalidInput('max_tasks must be an integer from 1 to 8')
       }
+      const maxParallelTasks = args.max_parallel_tasks ?? 1
+      if (!Number.isSafeInteger(maxParallelTasks)
+        || maxParallelTasks < 1
+        || maxParallelTasks > maxTasks) {
+        rejectInvalidInput('max_parallel_tasks must be an integer from 1 to max_tasks')
+      }
       return encodeToolResult(runtime.executeDirectorCycle(
         owner(exec.agent),
         args.plan_id,
         exec.signal,
         maxTasks,
         args.ttl_ms ?? 600000,
+        maxParallelTasks,
       ))
     },
   }))
