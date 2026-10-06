@@ -239,6 +239,20 @@ export type {
 } from './execution-state.ts'
 
 export {
+  sideEffectFactSchema,
+  sideEffectLedgerSchema,
+  sideEffectProjection,
+  sideEffectRecordSchema,
+  projectSideEffectFact,
+} from './side-effect-state.ts'
+export type {
+  SideEffectFact,
+  SideEffectLedger,
+  SideEffectRecord,
+  SideEffectState,
+} from './side-effect-state.ts'
+
+export {
   modelRegistryFactSchema,
   modelRegistryProjection,
   projectModelRegistryFact,
