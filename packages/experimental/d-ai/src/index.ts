@@ -67,6 +67,8 @@ import type { ModelEvaluationResult, PromotionPolicy } from './model-evaluation.
 import { directorFactSchema, directorProjection } from './director-state.ts'
 import type { DirectorFact, DirectorLedger, DirectorPlan, DirectorState } from './director-state.ts'
 import type { MissionPhase } from './mission-director.ts'
+import { runDirectorPlanner } from './director-orchestration.ts'
+import type { DirectorPlanningResult } from './director-orchestration.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
@@ -132,6 +134,8 @@ export { modelLifecycleFactSchema, modelLifecycleProjection, projectModelLifecyc
 export type { GovernedModelEvaluation, GovernedPromotion, ModelLifecycleFact, ModelLifecycleLedger, ModelLifecycleState } from './model-lifecycle-state.ts'
 export { directorFactSchema, directorProjection, projectDirectorFact, directorPlanSchema } from './director-state.ts'
 export type { DirectorFact, DirectorLedger, DirectorPlan, DirectorState } from './director-state.ts'
+export { runDirectorPlanner } from './director-orchestration.ts'
+export type { DirectorPlanningConfig, DirectorPlanningResult } from './director-orchestration.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
@@ -925,6 +929,43 @@ export class DAI extends Service {
       attempt: 0,
       maxAttempts,
     }])
+  }
+
+  /**
+   * Run one isolated planner Agent for an empty approved Director plan, validate
+   * its proposed DAG in runtime code, then append all tasks atomically to the
+   * durable Task Ledger.
+   */
+  async generateDirectorTasks(
+    agent: Agent,
+    planId: string,
+    signal: AbortSignal,
+  ): Promise<Readonly<{ planning: DirectorPlanningResult; ledger: DurableTaskLedger }>> {
+    const plan = this.directorPlan(agent, planId)
+    if (plan.status !== 'ACTIVE') fail('Mission Director planner requires an active plan', 'D_AI_INVALID_TRANSITION')
+    const existing = this.taskLedger(agent).tasks.filter(task => task.missionId === plan.id)
+    if (existing.length > 0) fail('initial Mission Director planner requires a plan with no existing tasks', 'D_AI_INVALID_TRANSITION')
+
+    const route = this.optionalRoutedModel(agent, plan.primarySystem, 'mission-director')
+    const planning = await runDirectorPlanner(
+      this.ctx,
+      agent,
+      plan,
+      SYSTEMS,
+      signal,
+      {
+        subagentProvider: this.delegation.provider,
+        maxDepth: this.delegation.maxDepth,
+        maxOutputTokens: this.delegation.maxOutputTokens,
+        maxRequests: this.delegation.maxRequestsPerChild,
+        timeoutMs: this.delegation.timeoutMs,
+        maxResultBytes: this.delegation.maxResultBytes,
+        ...(route === undefined ? {} : { model: route.id, llmProvider: route.provider }),
+      },
+    )
+    signal.throwIfAborted()
+    const ledger = await this.addDurableTasks(agent, planning.tasks)
+    return immutable({ planning, ledger })
   }
 
   /** Change explicit plan lifecycle state after human approval. */
@@ -2848,6 +2889,9 @@ export class DAI extends Service {
           ...(args.max_attempts === undefined ? {} : { maxAttempts: args.max_attempts }),
         }))
       } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_director_generate_tasks', description: 'Run an isolated Mission Director planner Agent for an empty approved plan. The planner has no tools; its proposed DAG is validated before durable task creation.',
+      parameters: { plan_id: { type: 'string', required: true } }, output, timeoutMs: this.delegation.timeoutMs + 10000,
+      execute: (args, exec) => encoded(this.generateDirectorTasks(owner(exec.agent), args.plan_id, exec.signal)) }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_director_plan_view', description: 'Read one Mission Director plan with derived phase, authoritative tasks and budget-aware next runnable work.',
       parameters: { plan_id: { type: 'string', required: true }, max_tasks: { type: 'number' } }, output,
       execute: (args, exec) => {
