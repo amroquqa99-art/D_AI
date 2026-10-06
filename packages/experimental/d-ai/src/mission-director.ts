@@ -5,6 +5,26 @@ import { getSystemManifest, type SystemId } from './systems.ts'
 
 export type MissionPhase = 'PLANNING' | 'EXECUTING' | 'WAITING_FOR_HUMAN' | 'BLOCKED' | 'PAUSED' | 'COMPLETE'
 
+
+export type DirectorPlanStatus = 'ACTIVE' | 'PAUSED' | 'COMPLETE'
+
+/** Derive the visible mission phase from durable plan/task state only. */
+export function deriveMissionPhase(
+  planStatus: DirectorPlanStatus,
+  tasks: readonly MissionTask[],
+): MissionPhase {
+  if (planStatus === 'PAUSED') return 'PAUSED'
+  if (planStatus === 'COMPLETE') return 'COMPLETE'
+  if (tasks.length === 0) return 'PLANNING'
+  if (tasks.every(task => task.state === 'COMPLETED' || task.state === 'CANCELLED')) return 'COMPLETE'
+  if (tasks.some(task => task.state === 'WAITING_FOR_HUMAN')) return 'WAITING_FOR_HUMAN'
+  if (tasks.some(task =>
+    task.state === 'BLOCKED_POLICY'
+    || task.state === 'BLOCKED_BUDGET'
+    || task.state === 'FAILED')) return 'BLOCKED'
+  return 'EXECUTING'
+}
+
 export interface MissionPlan {
   readonly id: string
   readonly objective: string
