@@ -144,6 +144,13 @@ describe('D_AI durable shared core', () => {
           dataAccessCostUsd: 0,
         },
       })
+
+      expect(ctx.dai.platformSnapshot(agent)).toMatchObject({
+        tasks: { total: 1, byState: { RUNNING: 1 } },
+        controlPlane: { grants: 1, auditRecords: 2 },
+        budgets: { profiles: 1 },
+        evidenceGraph: { nodes: 0, edges: 0 },
+      })
       await ctx.sessions.flush(agent.session)
     } finally {
       await ctx.fiber.dispose()
