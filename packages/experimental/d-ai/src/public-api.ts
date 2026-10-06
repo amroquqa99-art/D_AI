@@ -226,6 +226,7 @@ export type {
 export {
   executionFactSchema,
   executionProjection,
+  normalizeExecutionFact,
   projectExecutionFact,
   taskLeaseSchema,
   taskCheckpointSchema,
@@ -251,6 +252,17 @@ export type {
   SideEffectRecord,
   SideEffectState,
 } from './side-effect-state.ts'
+
+export {
+  runFencedSideEffect,
+  SideEffectReplayBlockedError,
+} from './side-effect-gateway.ts'
+export type {
+  SideEffectDispatchResult,
+  SideEffectGatewayResult,
+  SideEffectGatewayRuntime,
+} from './side-effect-gateway.ts'
+export type { SideEffectReservationInput } from './side-effect-runtime.ts'
 
 export {
   modelRegistryFactSchema,
