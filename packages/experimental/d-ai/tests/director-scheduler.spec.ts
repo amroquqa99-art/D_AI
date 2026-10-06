@@ -3,6 +3,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { UserMessage } from '@deepseek-ai/dsh-llm'
 import {
   createDirectorSchedulerWake,
+  directorSchedulerRemainingSlots,
   hasPendingDirectorSchedulerWake,
   isCurrentDirectorScheduleWake,
   orderDirectorSchedulesForFairness,
@@ -84,6 +85,14 @@ function execution(
 }
 
 describe('D_AI unattended Director scheduler admission', () => {
+  it('bounds active plus queued unattended work to the configured capacity', () => {
+    expect(directorSchedulerRemainingSlots(1, 0, 0)).toBe(1)
+    expect(directorSchedulerRemainingSlots(4, 2, 1)).toBe(1)
+    expect(directorSchedulerRemainingSlots(4, 3, 2)).toBe(0)
+    expect(() => directorSchedulerRemainingSlots(0, 0, 0)).toThrow('maxConcurrentCycles')
+    expect(() => directorSchedulerRemainingSlots(4, -1, 0)).toThrow('activeCount')
+  })
+
   it('creates a typed, model-empty scheduler wake message', () => {
     const wake = createDirectorSchedulerWake(schedule())
 
