@@ -3,19 +3,19 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { UserMessage } from '@deepseek-ai/dsh-llm'
+import type { ContextFormed, UserMessage } from '@deepseek-ai/dsh-llm'
 import type { DirectorPlanRuntimeView } from './director-runtime.ts'
 import type { DirectorSchedule, DirectorScheduleState } from './director-schedule-state.ts'
 import type { ExecutionState } from './execution-state.ts'
 
-declare module '@deepseek-ai/dsh-llm/message' {
+declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
     'd-ai-scheduler': {
       readonly kind: 'd-ai-scheduler'
       readonly scheduleId: string
       readonly planId: string
       readonly dueAt: string
-    }
+    } & ContextFormed
   }
 }
 
@@ -56,6 +56,8 @@ export function createDirectorSchedulerWake(
     content: [],
     source: {
       kind: 'd-ai-scheduler',
+      form: 'notice',
+      summary: 'D_AI unattended Director schedule wake',
       scheduleId: schedule.id,
       planId: schedule.planId,
       dueAt: schedule.nextWakeAt,
