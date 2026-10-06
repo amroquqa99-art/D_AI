@@ -52,10 +52,19 @@ export async function withLeaseHeartbeat<T>(
 
   const operation = Promise.resolve().then(() => work(combined))
 
+  let result: T | undefined
+  let failure: unknown
   try {
-    return await Promise.race([operation, heartbeat])
+    result = await Promise.race([operation, heartbeat])
+  } catch (error) {
+    failure = error
   } finally {
     controller.abort(new Error('leased operation completed'))
-    await heartbeat.catch(() => undefined)
+    // Do not return while an aborted worker is still unwinding. This keeps
+    // lease ownership and actual execution lifetime aligned.
+    await Promise.allSettled([operation, heartbeat])
   }
+
+  if (failure !== undefined) throw failure
+  return result as T
 }
