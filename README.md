@@ -31,8 +31,8 @@ Legend:
 | Cross-system handoff | **IMPLEMENTED / CI PENDING** | Persisted grant-backed authorization and durable audit records exist for declared system-to-system handoffs. Automatic target-task execution/routing is still incomplete. |
 | Model Router | **IMPLEMENTED / CI PENDING** | Durable non-secret Model Profiles and per-system/role Routing Policies persist, route by hard capability/context/locality constraints plus weighted ranking, and automatically inject the selected provider/model into native worker roles across all six domains. Provider-secret storage and live telemetry are still incomplete. |
 | Resource budgets + VoI | **IMPLEMENTED / CI PENDING** | Durable scoped budget profiles now store token, money, wall-clock, human-attention and data-access limits plus measured usage; VoI ranking primitives exist. Full automatic metering/enforcement across every tool call is still incomplete. |
-| Training governance | **FOUNDATION** | Explicit eligibility, dataset lineage, sensitive-data exclusion rules, evaluation/promotion and rollback primitives. |
-| Local Intelligence Core | **FOUNDATION ONLY** | Architecture, governance, dataset/promotion gates and model-release pointers exist. **There is no claim that a D_AI local model has already been trained.** |
+| Training governance | **IMPLEMENTED / CI PENDING** | Governed training-artifact metadata now persists with deterministic eligibility decisions; raw training content is referenced by artifact ID rather than embedded, and versioned datasets require eligible training candidates plus an independent holdout. Actual training jobs are not implemented yet. |
+| Local Intelligence Core | **FOUNDATION ONLY** | Architecture, governed candidate/dataset pipeline, promotion gates and model-release pointers exist. **No D_AI local model has been trained or promoted yet.** Training execution and real model artifacts are still missing. |
 | Control Center read API | **IMPLEMENTED / CI PENDING** | A consolidated platform snapshot now exposes domain counts, task states, control-plane grants/audit, budgets, evidence-graph size and execution lease/checkpoint health for future dashboards. |
 | Admin / Control Center UI | **NOT BUILT** | Runtime control APIs are being built first; full GUI for users, grants, systems, models, budgets and audit is still pending. |
 
@@ -95,6 +95,7 @@ packages/experimental/d-ai/
 │   ├── model-router.ts
 │   ├── model-registry-state.ts
 │   ├── training-governance.ts
+│   ├── training-state.ts
 │   └── model-evaluation.ts
 └── tests/
 ```
@@ -141,7 +142,7 @@ Current implemented foundation includes:
 
 Still required before it can be called a working D_AI model:
 
-- real governed dataset pipeline
+- raw-artifact storage/redaction/materialization pipeline behind the governed metadata/lineage layer
 - local training/fine-tuning jobs
 - benchmark/evaluation harness wired to model artifacts
 - live model registry
