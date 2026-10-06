@@ -323,6 +323,7 @@ export {
   projectDirectorScheduleFact,
   directorScheduleSchema,
   directorScheduleCycleSchema,
+  directorScheduleStagnationReason,
 } from './director-schedule-state.ts'
 export type {
   DirectorSchedule,
@@ -330,6 +331,7 @@ export type {
   DirectorScheduleFact,
   DirectorScheduleLedger,
   DirectorScheduleState,
+  DirectorScheduleStagnationReason,
 } from './director-schedule-state.ts'
 export {
   DirectorScheduler,
