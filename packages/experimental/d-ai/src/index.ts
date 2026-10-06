@@ -244,6 +244,148 @@ export class DAI extends Service {
     })
   }
 
+  /** Create a user-requested Scientific Research project. */
+  async createScientific(agent: Agent, question: string, signal?: AbortSignal): Promise<ScientificProject> {
+    this.authorize(agent)
+    const boundary = this.requireOpenTurn(agent)
+    const explicit = agent.session.snapshotEvents().slice(boundary + 1).some(event =>
+      event.type === 'user/message' && event.data.source.kind === 'user'
+      && event.data.content.filter(block => block.type === 'text').map(block => block.text).join('\n').trim() === question.trim())
+    if (!explicit) {
+      const outcome = await this.ctx.approval.request({
+        agent,
+        toolName: 'd_ai_scientific_create',
+        reason: 'Activate independent Scientific Research project: ' + question,
+        ...(signal === undefined ? {} : { signal }),
+      })
+      if (outcome !== 'allowed-once') fail('owner approval is required for this independent scientific project')
+    }
+    if (question.trim().length === 0) fail('scientific question must contain text', 'D_AI_INVALID_INPUT')
+    return this.transact(agent, async () => this.appendScientific(agent, 'CREATE', {
+      id: randomUUID(),
+      system: 'scientific-research',
+      question,
+      ownerAgentId: agent.id,
+      status: 'ACTIVE',
+      revision: 1,
+      createdAt: new Date().toISOString(),
+      hypotheses: [],
+      experiments: [],
+      delegations: [],
+    }))
+  }
+
+  /** Append a researcher hypothesis without promoting it to a finding. */
+  async addScientificHypothesis(
+    agent: Agent,
+    id: string,
+    input: { statement: string; rationale: string },
+  ): Promise<ScientificProject> {
+    if (input.statement.trim().length === 0 || input.rationale.trim().length === 0) fail('hypothesis statement and rationale are required', 'D_AI_INVALID_INPUT')
+    return this.transact(agent, async () => {
+      const project = this.scientificProject(agent, id)
+      const hypothesis: ScientificHypothesis = {
+        id: randomUUID(),
+        statement: input.statement,
+        rationale: input.rationale,
+        state: 'OPEN',
+        actorId: agent.id,
+        createdAt: new Date().toISOString(),
+      }
+      return this.appendScientific(agent, 'ADD_HYPOTHESIS', {
+        ...project,
+        revision: project.revision + 1,
+        hypotheses: [...project.hypotheses, hypothesis],
+      })
+    })
+  }
+
+  /** Convert a knowledge gap into an explicit real-world experiment request. */
+  async requestScientificExperiment(
+    agent: Agent,
+    id: string,
+    input: { title: string; objective: string; protocol: string; expectedEvidence: string; budgetUsd?: number },
+  ): Promise<ScientificProject> {
+    if ([input.title, input.objective, input.protocol, input.expectedEvidence].some(value => value.trim().length === 0)) {
+      fail('experiment title, objective, protocol and expected evidence are required', 'D_AI_INVALID_INPUT')
+    }
+    if (input.budgetUsd !== undefined && (!Number.isFinite(input.budgetUsd) || input.budgetUsd < 0)) {
+      fail('experiment budget must be a non-negative finite number', 'D_AI_INVALID_INPUT')
+    }
+    return this.transact(agent, async () => {
+      const project = this.scientificProject(agent, id)
+      const experiment: ScientificExperiment = {
+        id: randomUUID(),
+        title: input.title,
+        objective: input.objective,
+        protocol: input.protocol,
+        expectedEvidence: input.expectedEvidence,
+        ...(input.budgetUsd === undefined ? {} : { budgetUsd: input.budgetUsd }),
+        status: 'WAITING_FOR_HUMAN',
+        actorId: agent.id,
+        createdAt: new Date().toISOString(),
+      }
+      return this.appendScientific(agent, 'REQUEST_EXPERIMENT', {
+        ...project,
+        status: 'WAITING_FOR_HUMAN',
+        revision: project.revision + 1,
+        experiments: [...project.experiments, experiment],
+      })
+    })
+  }
+
+  /** Record human/lab observation against the exact requested experiment. */
+  async recordScientificResult(
+    agent: Agent,
+    id: string,
+    experimentId: string,
+    observation: string,
+    artifactRef?: string,
+  ): Promise<ScientificProject> {
+    if (observation.trim().length === 0) fail('scientific observation is required', 'D_AI_INVALID_INPUT')
+    return this.transact(agent, async () => {
+      const project = this.scientificProject(agent, id)
+      const experiment = project.experiments.find(item => item.id === experimentId)
+      if (experiment === undefined) fail('unknown scientific experiment', 'D_AI_INVALID_INPUT')
+      if (experiment.status === 'RESULT_RECORDED') fail('scientific experiment result is already recorded', 'D_AI_INVALID_INPUT')
+      const updated: ScientificExperiment = {
+        ...experiment,
+        status: 'RESULT_RECORDED',
+        observation,
+        ...(artifactRef === undefined ? {} : { artifactRef }),
+        completedAt: new Date().toISOString(),
+      }
+      return this.appendScientific(agent, 'RECORD_RESULT', {
+        ...project,
+        status: 'ACTIVE',
+        revision: project.revision + 1,
+        experiments: project.experiments.map(item => item.id === experimentId ? updated : item),
+      })
+    })
+  }
+
+  /** Run independent literature and methodology workers for the Scientific Research project. */
+  async delegateScientific(agent: Agent, id: string, signal: AbortSignal): Promise<ScientificProject> {
+    const project = this.scientificProject(agent, id)
+    const key = agent.id + ':scientific'
+    if (this.delegating.has(key)) fail('a scientific delegation is already running for this owner', 'D_AI_BUSY')
+    this.delegating.add(key)
+    try {
+      const result = await runScientificDelegates(this.ctx, agent, project.question, signal, this.scientificDelegation)
+      signal.throwIfAborted()
+      return await this.transact(agent, async () => {
+        const current = this.scientificProject(agent, id)
+        return this.appendScientific(agent, 'DELEGATE', {
+          ...current,
+          revision: current.revision + 1,
+          delegations: [...current.delegations, result],
+        })
+      })
+    } finally {
+      this.delegating.delete(key)
+    }
+  }
+
   /**
    * Fetch and retain an immutable, bounded decoded source through the native web provider.
    * @param agent - exact mission owner root Agent.
