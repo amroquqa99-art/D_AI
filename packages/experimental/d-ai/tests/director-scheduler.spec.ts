@@ -90,6 +90,8 @@ describe('D_AI unattended Director scheduler admission', () => {
     expect(wake.content).toEqual([])
     expect(wake.source).toEqual({
       kind: 'd-ai-scheduler',
+      form: 'notice',
+      summary: 'D_AI unattended Director schedule wake',
       scheduleId: 'schedule-1',
       planId: 'plan-1',
       dueAt: '2026-10-07T00:00:01.000Z',
