@@ -24,8 +24,8 @@ Legend:
 | Operations & Intelligence | **IMPLEMENTED / CI PENDING** | Durable cases, entities, relationships, timelines, intelligence gaps, human-gated proposed options, fusion + adversarial analysis Agents. |
 | Innovation & Discovery | **IMPLEMENTED / CI PENDING** | Testable candidates, mechanisms, falsification tests, experiment handoff/results, independent explorer + critic Agents. Generated ideas cannot self-declare as discoveries. |
 | Shared Task DAG | **IMPLEMENTED / CI PENDING** | Task states, dependencies, retry accounting, durable task-ledger replay, and scheduler admission that respects dependencies/blocking states. |
-| Mission Director | **IMPLEMENTED / CI PENDING** | Durable cross-system plans, isolated planner decomposition, single-task/bounded-cycle execution, and a durable unattended scheduler now exist. Schedules are human-approval gated, retain cadence and cycle receipts, wake only idle root Agents, and execute inside a native Agent turn so leases/fencing/checkpoints remain authoritative. Full CI/native acceptance and multi-process worker scheduling are still pending. |
-| Durable execution | **IMPLEMENTED / CI PENDING** | Runnable tasks use durable leases with monotonically increasing per-task fencing tokens. Renew/checkpoint/executor-state/release mutations require the exact `taskId + leaseId + fence`, stale workers fail closed, checkpoints retain lease lineage, expired leases recover through retry accounting, and persisted execution facts migrate deterministically from v1 to fenced v2. The unattended Director wake loop is implemented; distributed worker-pool/fault-injection acceptance remains pending. |
+| Mission Director | **IMPLEMENTED / CI PENDING** | Durable cross-system plans, isolated planner decomposition, single-task/bounded-cycle execution, and a durable unattended scheduler now exist. Scheduling is human-approval gated, fair across due plans, bounded by configurable in-process concurrency, retains cycle receipts, wakes only idle root Agents, and executes inside native Agent turns so leases/fencing/checkpoints remain authoritative. Same-plan parallel workers, distributed scheduling and full CI/native acceptance are still pending. |
+| Durable execution | **IMPLEMENTED / CI PENDING** | Runnable tasks use durable leases with monotonically increasing per-task fencing tokens. Renew/checkpoint/executor-state/release mutations require the exact `taskId + leaseId + fence`, stale workers fail closed, checkpoints retain lease lineage, expired leases recover through retry accounting, and persisted execution facts migrate deterministically from v1 to fenced v2. The unattended Director wake loop now has fairness plus bounded cross-owner in-process concurrency; same-plan/distributed worker pools and fault-injection acceptance remain pending. |
 | External side-effect idempotency | **IMPLEMENTED FOUNDATION / CI PENDING** | A durable journal and connector gateway now model `RESERVED → DISPATCHED → COMMITTED`, preserve `OUTCOME_UNKNOWN`, suppress replay of committed keys, allow safe rebind only before dispatch, and require human reconciliation for uncertain outcomes. No production mutable connector is enabled yet. |
 | Capability control plane | **IMPLEMENTED / CI PENDING** | Scoped ALLOW/DENY grants, fail-closed authorization, human-approved durable grant changes, append-only audit hash chain, durable control-plane projection. |
 | Evidence / Knowledge graph | **IMPLEMENTED / CI PENDING** | Shared append-only evidence nodes/edges now persist through Session replay with provenance and confidence; support/contradiction graph primitives exist. Automatic domain-to-graph ingestion and graph UI are still incomplete. |
@@ -55,7 +55,7 @@ The active engineering path is:
 
 1. Continue thinning the runtime composition root behind characterization tests; shared owner/turn/mutation invariants and typed projection reads are already centralized.
 2. Restore an executable CI gate and run the full current branch validation. No maturity promotion happens while Actions is failing before steps.
-3. Validate and harden the new unattended scheduler under restart/cancellation/fault injection, then extend from one-process root-Agent wake coordination to a bounded multi-worker execution model.
+3. Validate and harden the unattended scheduler under restart/cancellation/fault injection, then extend the now-bounded cross-owner scheduler to same-plan parallel workers and finally distributed/multi-process execution.
 4. Extend resource telemetry beyond real wall-clock metering to model tokens/cost, data-access cost and human-attention accounting without fabricated estimates.
 5. Expand cross-system authorization from Director task execution into the general tool/evidence gateway.
 6. Regenerate/verify the Harness persistence catalog for all D_AI Session events as part of the gate.
@@ -183,7 +183,7 @@ Still required before it can be called a working D_AI model:
 
 The repository is already beyond a design-only prototype, but major engineering remains:
 
-- bounded multi-process/distributed worker scheduling, crash/restart fault injection and fairness/stagnation policies around the implemented unattended Director wake loop
+- same-plan parallel workers, distributed/multi-process scheduling, crash/restart fault injection and stagnation policy around the implemented fair/bounded unattended Director wake loop
 - checkpoint/recovery across arbitrary active external tool execution, not only Session projection replay and Director child-agent execution
 - generalized cross-system tool/evidence dispatch using the shared grants/control plane
 - persistent scalable shared Evidence/Knowledge Graph backend beyond the current append-only Session projection
