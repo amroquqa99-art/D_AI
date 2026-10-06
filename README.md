@@ -24,7 +24,7 @@ Legend:
 | Operations & Intelligence | **IMPLEMENTED / CI PENDING** | Durable cases, entities, relationships, timelines, intelligence gaps, human-gated proposed options, fusion + adversarial analysis Agents. |
 | Innovation & Discovery | **IMPLEMENTED / CI PENDING** | Testable candidates, mechanisms, falsification tests, experiment handoff/results, independent explorer + critic Agents. Generated ideas cannot self-declare as discoveries. |
 | Shared Task DAG | **IMPLEMENTED / CI PENDING** | Task states, dependencies, retry accounting, durable task-ledger replay, and scheduler admission that respects dependencies/blocking states. |
-| Mission Director | **IMPLEMENTED / CI PENDING** | Durable cross-system plans, isolated planner decomposition, single-task/bounded-cycle execution, and a durable unattended scheduler now exist. Scheduling is human-approval gated, fair across due plans, bounded by configurable in-process concurrency, retains cycle receipts, wakes only idle root Agents, and executes inside native Agent turns so leases/fencing/checkpoints remain authoritative. Budget-safe same-plan parallel worker waves are implemented with exact task claims and partial-failure accounting. Distributed/multi-process scheduling and full CI/native acceptance are still pending. |
+| Mission Director | **IMPLEMENTED / CI PENDING** | Durable cross-system plans, isolated planner decomposition, single-task/bounded-cycle execution, and a durable unattended scheduler now exist. Scheduling is human-approval gated, fair across due plans, bounded by configurable in-process concurrency, retains cycle receipts, wakes only idle root Agents, and executes inside native Agent turns so leases/fencing/checkpoints remain authoritative. Budget-safe same-plan parallel worker waves are implemented with exact task claims and partial-failure accounting. Explicit stagnation guardrails can stop future unattended wakes after configured consecutive scheduler failures or idle cycles; thresholds default to disabled and resets are human-approved. Distributed/multi-process scheduling and full CI/native acceptance are still pending. |
 | Durable execution | **IMPLEMENTED / CI PENDING** | Runnable tasks use durable leases with monotonically increasing per-task fencing tokens. Renew/checkpoint/executor-state/release mutations require the exact `taskId + leaseId + fence`, stale workers fail closed, checkpoints retain lease lineage, expired leases recover through retry accounting, and persisted execution facts migrate deterministically from v1 to fenced v2. The unattended Director wake loop now has fairness plus bounded cross-owner in-process concurrency; distributed/multi-process worker pools and fault-injection acceptance remain pending. |
 | External side-effect idempotency | **IMPLEMENTED FOUNDATION / CI PENDING** | A durable journal and connector gateway now model `RESERVED → DISPATCHED → COMMITTED`, preserve `OUTCOME_UNKNOWN`, suppress replay of committed keys, allow safe rebind only before dispatch, and require human reconciliation for uncertain outcomes. No production mutable connector is enabled yet. |
 | Capability control plane | **IMPLEMENTED / CI PENDING** | Scoped ALLOW/DENY grants, fail-closed authorization, human-approved durable grant changes, append-only audit hash chain, durable control-plane projection. |
@@ -39,7 +39,7 @@ Legend:
 
 ## Current CI blocker
 
-As of 2026-10-07, the latest inspected `D_AI v2 checks` run is [37535402015](https://github.com/amroquqa99-art/D_AI/actions/runs/37535402015), job `112514916395`. The job concluded `failure` with **no workflow steps** (`steps: null`), so checkout/install/persistence generation/build/typecheck/tests did not execute. Attempting to download job logs returned `BlobNotFound`, consistent with the job never starting.
+As of 2026-10-07, the latest inspected `D_AI v2 checks` run is [37536230880](https://github.com/amroquqa99-art/D_AI/actions/runs/37536230880), job `112517746651`. The job concluded `failure` with **no workflow steps** (`steps: null`), so checkout/install/persistence generation/build/typecheck/tests did not execute. The Actions execution blocker therefore remains external to the current test assertions.
 
 The complete native integration/build gate remains **CI PENDING**. Focused local verification is recorded separately below and does not establish full runtime readiness.
 
@@ -55,7 +55,7 @@ The active engineering path is:
 
 1. Continue thinning the runtime composition root behind characterization tests; shared owner/turn/mutation invariants and typed projection reads are already centralized.
 2. Restore an executable CI gate and run the full current branch validation. No maturity promotion happens while Actions is failing before steps.
-3. Validate and harden the unattended scheduler and same-plan worker waves under restart/cancellation/fault injection, then extend scheduling to distributed/multi-process workers.
+3. Validate and harden the unattended scheduler, same-plan worker waves and stagnation guardrails under restart/cancellation/fault injection, while building the durable worker-registry foundation required for distributed/multi-process execution.
 4. Extend resource telemetry beyond real wall-clock metering to model tokens/cost, data-access cost and human-attention accounting without fabricated estimates.
 5. Expand cross-system authorization from Director task execution into the general tool/evidence gateway.
 6. Regenerate/verify the Harness persistence catalog for all D_AI Session events as part of the gate.
@@ -184,7 +184,7 @@ Still required before it can be called a working D_AI model:
 
 The repository is already beyond a design-only prototype, but major engineering remains:
 
-- distributed/multi-process scheduling, crash/restart fault injection and stagnation policy around the implemented fair/bounded unattended Director wake loop and same-plan worker waves
+- distributed/multi-process scheduling and crash/restart fault injection around the implemented fair/bounded unattended Director wake loop, same-plan worker waves and stagnation guardrails
 - checkpoint/recovery across arbitrary active external tool execution, not only Session projection replay and Director child-agent execution
 - generalized cross-system tool/evidence dispatch using the shared grants/control plane
 - persistent scalable shared Evidence/Knowledge Graph backend beyond the current append-only Session projection
