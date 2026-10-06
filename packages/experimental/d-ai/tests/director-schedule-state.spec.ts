@@ -104,6 +104,30 @@ describe('D_AI Director schedule projection', () => {
     expect(invalidTtl.failure).toContain('lease TTL must exceed')
   })
 
+  it('records a task failure without misclassifying it as scheduler failure', () => {
+    const state = projectDirectorScheduleFact(baseState(), event({
+      version: 1,
+      operation: 'UPSERT',
+      actorId: 'owner',
+      ledger: {
+        ownerAgentId: 'owner',
+        revision: 1,
+        schedules: [schedule({
+          lastCycle: {
+            attemptedAt: '2026-10-07T00:00:00.000Z',
+            outcome: 'TASK_FAILED',
+            executedTasks: 1,
+            phase: 'BLOCKED',
+          },
+        })],
+      },
+    }))
+
+    expect(state.failure).toBeUndefined()
+    expect(state.ledgers[0]?.schedules[0]?.lastCycle?.outcome).toBe('TASK_FAILED')
+    expect(state.ledgers[0]?.schedules[0]?.lastCycle?.error).toBeUndefined()
+  })
+
   it('prevents cycle receipts from mutating schedule configuration', () => {
     const prior = projectDirectorScheduleFact(baseState(), event({
       version: 1,
