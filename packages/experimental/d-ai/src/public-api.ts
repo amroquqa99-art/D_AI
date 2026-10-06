@@ -359,6 +359,7 @@ export type {
   DirectorPlanningResult,
 } from './director-orchestration.ts'
 export { runDirectorTaskExecutor } from './director-executor.ts'
+export { DirectorCycleExecutionError } from './director-runtime.ts'
 export type { DirectorCycleResult, DirectorPlanRuntimeView, DirectorTaskExecution } from './director-runtime.ts'
 export type {
   TaskExecutionConfig,
