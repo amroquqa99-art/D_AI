@@ -58,6 +58,26 @@ describe('D_AI runtime architecture boundaries', () => {
     expect(projections).toContain('export function mountDaiProjections')
   })
 
+  it('routes owner, turn and mutation-order invariants through the shared runtime kernel', async () => {
+    const [index, kernel] = await Promise.all([
+      source('index.ts'),
+      source('runtime-kernel.ts'),
+    ])
+
+    expect(index).toContain('new DaiRuntimeKernel(ctx)')
+    expect(index).toContain('this.kernel.authorizeOwner(agent)')
+    expect(index).toContain('this.kernel.requireOpenTurn(agent)')
+    expect(index).toContain('this.kernel.transact(agent, operation)')
+    expect(index).toContain('this.kernel.drain()')
+    expect(index).not.toContain('private readonly tails = new Map')
+    expect(index).not.toContain('this.ctx.agents.get(agent.id) !== agent')
+
+    expect(kernel).toContain('private readonly tails = new Map')
+    expect(kernel).toContain('authorizeOwner(agent: Agent)')
+    expect(kernel).toContain('requireOpenTurn(agent: Agent)')
+    expect(kernel).toContain('async transact<T>')
+  })
+
   it('keeps domain tool adapters outside domain state and orchestration modules', async () => {
     const domainCore = [
       'state.ts',
