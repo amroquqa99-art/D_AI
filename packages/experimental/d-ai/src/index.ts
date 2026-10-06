@@ -77,6 +77,7 @@ import type { DirectorPlanningResult } from './director-orchestration.ts'
 import { runDirectorTaskExecutor } from './director-executor.ts'
 import type { TaskExecutionResult } from './director-executor.ts'
 import type { DirectorCycleResult, DirectorPlanRuntimeView, DirectorTaskExecution } from './director-runtime.ts'
+import { selectDirectorParallelWave } from './director-parallelism.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 import { buildRuntimeConfiguration, configSchema } from './config.ts'
 import type { Config } from './config.ts'
@@ -1705,14 +1706,17 @@ export class DAI extends Service {
     }
   }
 
-  /** Claim the highest-priority runnable task and acquire a durable execution lease. */
-  async claimNextRunnableTask(
+  private async claimRunnableTask(
     agent: Agent,
-    ttlMs = 300000,
+    ttlMs: number,
     missionId?: string,
+    requiredTaskId?: string,
   ): Promise<{ readonly task: MissionTask; readonly lease: TaskLease }> {
     if (!Number.isSafeInteger(ttlMs) || ttlMs < 1000 || ttlMs > 3600000) {
       fail('task lease ttl must be an integer from 1000 to 3600000 ms', 'D_AI_INVALID_INPUT')
+    }
+    if (requiredTaskId !== undefined && requiredTaskId.trim().length === 0) {
+      fail('required task id must be non-empty', 'D_AI_INVALID_INPUT')
     }
 
     return this.transact(agent, async () => {
@@ -1723,11 +1727,27 @@ export class DAI extends Service {
         revision: tasks.revision,
         tasks: tasks.tasks.filter(task => task.missionId === missionId),
       }
-      const selection = selectDurableRunnableTasks(scopedTasks, 1, budgets.profiles)
-      const selected = selection.selected[0]
+      const selection = selectDurableRunnableTasks(
+        scopedTasks,
+        requiredTaskId === undefined ? 1 : Math.max(1, scopedTasks.tasks.length),
+        budgets.profiles,
+      )
+      const selected = requiredTaskId === undefined
+        ? selection.selected[0]
+        : selection.selected.find(task => task.id === requiredTaskId)
+
       if (selected === undefined) {
+        if (requiredTaskId !== undefined) {
+          const blocked = selection.blocked.find(item => item.taskId === requiredTaskId)
+          if (blocked?.reason === 'budget') {
+            fail('requested task is blocked by its resource budget', 'D_AI_BUDGET_EXCEEDED')
+          }
+          fail('requested Director task is not currently runnable', 'D_AI_NO_RUNNABLE_TASK')
+        }
         const budgetBlocked = selection.blocked.filter(item => item.reason === 'budget')
-        if (budgetBlocked.length > 0) fail('no runnable task: matching resource budget is exhausted', 'D_AI_BUDGET_EXCEEDED')
+        if (budgetBlocked.length > 0) {
+          fail('no runnable task: matching resource budget is exhausted', 'D_AI_BUDGET_EXCEEDED')
+        }
         fail('no runnable D_AI task is available', 'D_AI_NO_RUNNABLE_TASK')
       }
 
@@ -1776,6 +1796,25 @@ export class DAI extends Service {
 
       return immutableSnapshot({ task: running, lease })
     })
+  }
+
+  /** Claim the highest-priority runnable task and acquire a durable execution lease. */
+  async claimNextRunnableTask(
+    agent: Agent,
+    ttlMs = 300000,
+    missionId?: string,
+  ): Promise<{ readonly task: MissionTask; readonly lease: TaskLease }> {
+    return this.claimRunnableTask(agent, ttlMs, missionId)
+  }
+
+  /** Claim one exact runnable task for a Director worker wave. */
+  private async claimDirectorTask(
+    agent: Agent,
+    missionId: string,
+    taskId: string,
+    ttlMs: number,
+  ): Promise<{ readonly task: MissionTask; readonly lease: TaskLease }> {
+    return this.claimRunnableTask(agent, ttlMs, missionId, taskId)
   }
 
   /** Extend one exact active task-lease generation. */
