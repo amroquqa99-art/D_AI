@@ -198,6 +198,21 @@ export class DAI extends Service {
     return project
   }
 
+  /** Read durable Investor cases for the exact live owner Agent. */
+  readInvestor(agent: Agent): InvestorState {
+    this.authorize(agent)
+    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiInvestor')
+    if (state === undefined) fail('Investor projection is not mounted', 'D_AI_PROJECTION_MISSING')
+    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
+    return immutable(state)
+  }
+
+  private investorCase(agent: Agent, id: string): InvestorCase {
+    const value = this.readInvestor(agent).cases.find(item => item.id === id)
+    if (value === undefined || value.ownerAgentId !== agent.id) fail('investor case is absent or not owned by this Agent')
+    return value
+  }
+
   private async transact<T>(agent: Agent, operation: () => Promise<T>): Promise<T> {
     this.authorize(agent)
     const prior = this.tails.get(agent.id) ?? Promise.resolve()
@@ -234,6 +249,16 @@ export class DAI extends Service {
     agent.session.append('d_ai/scientific-fact', fact)
     await this.ctx.sessions.flush(agent.session)
     return immutable(fact.project)
+  }
+
+  private async appendInvestor(agent: Agent, operation: InvestorFact['operation'], value: InvestorCase): Promise<InvestorCase> {
+    this.authorize(agent)
+    const fact = immutable(investorFactSchema.parse({ version: 1, operation, actorId: agent.id, case: value }))
+    if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('investor case storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+    this.requireOpenTurn(agent)
+    agent.session.append('d_ai/investor-fact', fact)
+    await this.ctx.sessions.flush(agent.session)
+    return immutable(fact.case)
   }
 
   /**
