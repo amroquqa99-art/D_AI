@@ -4,15 +4,8 @@ import { createHash } from 'node:crypto'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
 
-/** Registered systems; only investigation has execution in this milestone. */
-export const SYSTEMS = [
-  { id: 'investigation', name: 'Investigative Research', status: 'INTEGRATED' },
-  { id: 'scientific-research', name: 'Scientific Research', status: 'FOUNDATION' },
-  { id: 'innovation', name: 'Scientific Innovation', status: 'FOUNDATION' },
-  { id: 'finance', name: 'Financial Intelligence', status: 'FOUNDATION' },
-  { id: 'cybersecurity', name: 'Authorized Cybersecurity', status: 'FOUNDATION' },
-  { id: 'ai-lab', name: 'AI Model Engineering & Research Laboratory', status: 'FOUNDATION' },
-] as const
+/** Product system registry lives in a dedicated first-class contract module. */
+export { SYSTEMS } from './systems.ts'
 
 const identity = z.string().min(1).max(200)
 const sourceSchema = z.object({
