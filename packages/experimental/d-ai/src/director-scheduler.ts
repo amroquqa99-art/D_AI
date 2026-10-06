@@ -26,7 +26,7 @@ export interface DirectorSchedulerConfig {
 export interface ScheduledDirectorCycleResult {
   readonly scheduleId: string
   readonly planId: string
-  readonly outcome: 'EXECUTED' | 'IDLE' | 'FAILED'
+  readonly outcome: 'EXECUTED' | 'TASK_FAILED' | 'IDLE' | 'FAILED'
 }
 
 export interface DirectorSchedulerRuntime {
