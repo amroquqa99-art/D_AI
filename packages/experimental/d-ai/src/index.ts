@@ -758,6 +758,31 @@ export class DAI extends Service {
     })
   }
 
+  /**
+   * Resolve an optional persisted model route. Absence of a policy preserves
+   * deployment fallback configuration; presence of an unsatisfied policy fails
+   * closed instead of silently ignoring the control-plane decision.
+   */
+  private optionalRoutedModel(
+    agent: Agent,
+    systemId: CapabilityGrant['systemId'],
+    role: string,
+  ): ModelProfile | undefined {
+    const registry = this.modelRegistry(agent)
+    const policy = registry.policies.find(item => item.systemId === systemId && item.role === role)
+    if (policy === undefined) return undefined
+    try {
+      return chooseModelInternal(registry.models as readonly ModelProfile[], {
+        requiredCapabilities: policy.requiredCapabilities as readonly ModelCapability[],
+        minContextTokens: policy.minContextTokens,
+        localOnly: policy.localOnly,
+        ...(policy.weights === undefined ? {} : { weights: policy.weights }),
+      }).model
+    } catch (error) {
+      fail(error instanceof Error ? error.message : String(error), 'D_AI_MODEL_ROUTE_FAILED')
+    }
+  }
+
   /** Route one system/role to the best enabled registered model meeting hard requirements. */
   routeRegisteredModel(
     agent: Agent,
@@ -1482,7 +1507,13 @@ export class DAI extends Service {
     if (this.delegating.has(key)) fail('a scientific delegation is already running for this owner', 'D_AI_BUSY')
     this.delegating.add(key)
     try {
-      const result = await runScientificDelegates(this.ctx, agent, project.question, signal, this.scientificDelegation)
+      const literatureRoute = this.optionalRoutedModel(agent, 'scientific-research', 'literature')
+      const methodologyRoute = this.optionalRoutedModel(agent, 'scientific-research', 'methodology')
+      const result = await runScientificDelegates(this.ctx, agent, project.question, signal, {
+        ...this.scientificDelegation,
+        ...(literatureRoute === undefined ? {} : { literatureModel: literatureRoute.id, literatureProvider: literatureRoute.provider }),
+        ...(methodologyRoute === undefined ? {} : { methodologyModel: methodologyRoute.id, methodologyProvider: methodologyRoute.provider }),
+      })
       signal.throwIfAborted()
       return await this.transact(agent, async () => {
         const current = this.scientificProject(agent, id)
@@ -1602,7 +1633,13 @@ export class DAI extends Service {
     if (this.delegating.has(key)) fail('an investor delegation is already running for this owner', 'D_AI_BUSY')
     this.delegating.add(key)
     try {
-      const result = await runInvestorDelegates(this.ctx, agent, value.objective, signal, this.investorDelegation)
+      const fundamentalRoute = this.optionalRoutedModel(agent, 'investor', 'fundamental')
+      const riskRoute = this.optionalRoutedModel(agent, 'investor', 'risk')
+      const result = await runInvestorDelegates(this.ctx, agent, value.objective, signal, {
+        ...this.investorDelegation,
+        ...(fundamentalRoute === undefined ? {} : { fundamentalModel: fundamentalRoute.id, fundamentalProvider: fundamentalRoute.provider }),
+        ...(riskRoute === undefined ? {} : { riskModel: riskRoute.id, riskProvider: riskRoute.provider }),
+      })
       signal.throwIfAborted()
       return await this.transact(agent, async () => {
         const current = this.investorCase(agent, id)
@@ -1744,13 +1781,19 @@ export class DAI extends Service {
     if (this.delegating.has(key)) fail('a cybersecurity delegation is already running for this owner', 'D_AI_BUSY')
     this.delegating.add(key)
     try {
+      const assessmentRoute = this.optionalRoutedModel(agent, 'cybersecurity', 'assessment')
+      const remediationRoute = this.optionalRoutedModel(agent, 'cybersecurity', 'remediation-review')
       const result = await runCyberDelegates(
         this.ctx,
         agent,
         engagement.objective,
         JSON.stringify(engagement.authorization),
         signal,
-        this.cyberDelegation,
+        {
+          ...this.cyberDelegation,
+          ...(assessmentRoute === undefined ? {} : { assessmentModel: assessmentRoute.id, assessmentProvider: assessmentRoute.provider }),
+          ...(remediationRoute === undefined ? {} : { remediationModel: remediationRoute.id, remediationProvider: remediationRoute.provider }),
+        },
       )
       signal.throwIfAborted()
       return await this.transact(agent, async () => {
@@ -1944,7 +1987,13 @@ export class DAI extends Service {
     if (this.delegating.has(key)) fail('an operations delegation is already running for this owner', 'D_AI_BUSY')
     this.delegating.add(key)
     try {
-      const result = await runOperationsDelegates(this.ctx, agent, value.objective, signal, this.operationsDelegation)
+      const fusionRoute = this.optionalRoutedModel(agent, 'operations-intelligence', 'fusion')
+      const adversarialRoute = this.optionalRoutedModel(agent, 'operations-intelligence', 'adversarial')
+      const result = await runOperationsDelegates(this.ctx, agent, value.objective, signal, {
+        ...this.operationsDelegation,
+        ...(fusionRoute === undefined ? {} : { fusionModel: fusionRoute.id, fusionProvider: fusionRoute.provider }),
+        ...(adversarialRoute === undefined ? {} : { adversarialModel: adversarialRoute.id, adversarialProvider: adversarialRoute.provider }),
+      })
       signal.throwIfAborted()
       return await this.transact(agent, async () => {
         const current = this.operationsCase(agent, id)
@@ -2088,7 +2137,13 @@ export class DAI extends Service {
     if (this.delegating.has(key)) fail('an innovation delegation is already running for this owner', 'D_AI_BUSY')
     this.delegating.add(key)
     try {
-      const result = await runInnovationDelegates(this.ctx, agent, project.problem, signal, this.innovationDelegation)
+      const explorerRoute = this.optionalRoutedModel(agent, 'innovation-discovery', 'explorer')
+      const criticRoute = this.optionalRoutedModel(agent, 'innovation-discovery', 'critic')
+      const result = await runInnovationDelegates(this.ctx, agent, project.problem, signal, {
+        ...this.innovationDelegation,
+        ...(explorerRoute === undefined ? {} : { explorerModel: explorerRoute.id, explorerProvider: explorerRoute.provider }),
+        ...(criticRoute === undefined ? {} : { criticModel: criticRoute.id, criticProvider: criticRoute.provider }),
+      })
       signal.throwIfAborted()
       return await this.transact(agent, async () => {
         const current = this.innovationProject(agent, id)
@@ -2163,7 +2218,13 @@ export class DAI extends Service {
     if (this.delegating.has(agent.id)) fail('a delegated mission is already running for this owner', 'D_AI_BUSY')
     this.delegating.add(agent.id)
     try {
-      const result = await runInvestigationDelegates(this.ctx, agent, mission.objective, signal, this.delegation)
+      const researchRoute = this.optionalRoutedModel(agent, 'investigation', 'research')
+      const verificationRoute = this.optionalRoutedModel(agent, 'investigation', 'verification')
+      const result = await runInvestigationDelegates(this.ctx, agent, mission.objective, signal, {
+        ...this.delegation,
+        ...(researchRoute === undefined ? {} : { researchModel: researchRoute.id, researchProvider: researchRoute.provider }),
+        ...(verificationRoute === undefined ? {} : { verificationModel: verificationRoute.id, verificationProvider: verificationRoute.provider }),
+      })
       signal.throwIfAborted()
       return await this.transact(agent, async () => {
         const current = this.mission(agent, id)
