@@ -82,7 +82,7 @@ export type {
   AuditAction,
 } from './audit-log.ts'
 
-export { authorizeCrossSystemHandoff } from './cross-system.ts'
+export { CROSS_SYSTEM_TASK_EXECUTION_CAPABILITY, authorizeCrossSystemHandoff, deriveTaskHandoffSources } from './cross-system.ts'
 export type {
   CrossSystemRequest,
   CrossSystemHandoff,
