@@ -25,7 +25,8 @@ Legend:
 | Innovation & Discovery | **IMPLEMENTED / CI PENDING** | Testable candidates, mechanisms, falsification tests, experiment handoff/results, independent explorer + critic Agents. Generated ideas cannot self-declare as discoveries. |
 | Shared Task DAG | **IMPLEMENTED / CI PENDING** | Task states, dependencies, retry accounting, durable task-ledger replay, and scheduler admission that respects dependencies/blocking states. |
 | Mission Director | **IMPLEMENTED / CI PENDING** | Durable cross-system plans, isolated planner decomposition, single-task execution and bounded multi-task execution cycles now exist with authoritative Task-Ledger linkage, dependency-checkpoint reconstruction, derived lifecycle phase and budget-aware admission. Fully unattended/periodic scheduling is still incomplete. |
-| Durable execution | **IMPLEMENTED / CI PENDING** | Runnable tasks can be claimed with durable leases, checkpointed, heartbeat-renewed during Director execution, completed/failed through explicit transitions, released on every claimed-task exit path, replayed after restart, and recovered after lease expiry. A persistent unattended scheduler/worker daemon is still incomplete. |
+| Durable execution | **IMPLEMENTED / CI PENDING** | Runnable tasks use durable leases with monotonically increasing per-task fencing tokens. Renew/checkpoint/executor-state/release mutations require the exact `taskId + leaseId + fence`, stale workers fail closed, checkpoints retain lease lineage, expired leases recover through retry accounting, and persisted execution facts migrate deterministically from v1 to fenced v2. A persistent unattended scheduler/worker daemon is still incomplete. |
+| External side-effect idempotency | **IMPLEMENTED FOUNDATION / CI PENDING** | A durable journal and connector gateway now model `RESERVED → DISPATCHED → COMMITTED`, preserve `OUTCOME_UNKNOWN`, suppress replay of committed keys, allow safe rebind only before dispatch, and require human reconciliation for uncertain outcomes. No production mutable connector is enabled yet. |
 | Capability control plane | **IMPLEMENTED / CI PENDING** | Scoped ALLOW/DENY grants, fail-closed authorization, human-approved durable grant changes, append-only audit hash chain, durable control-plane projection. |
 | Evidence / Knowledge graph | **IMPLEMENTED / CI PENDING** | Shared append-only evidence nodes/edges now persist through Session replay with provenance and confidence; support/contradiction graph primitives exist. Automatic domain-to-graph ingestion and graph UI are still incomplete. |
 | Cross-system handoff | **IMPLEMENTED / CI PENDING** | Mission Director execution now enforces persisted capability grants fail-closed before cross-system task work begins, derives handoff sources from durable dependencies, records authorized handoffs in the audit chain, and moves denied work to `BLOCKED_POLICY`. Broader cross-system tool/data gateways remain incomplete. |
@@ -38,9 +39,9 @@ Legend:
 
 ## Current CI blocker
 
-As of 2026-10-06, the latest `D_AI v2 checks` run for the active head (`e815a4c…`, run `37473773103`) failed before executing any workflow step; job `112303748025` reports `steps: []`. Therefore no checkout/install, persistence generation, TypeScript build or D_AI test command ran for this checkpoint.
+As of 2026-10-06, the latest `D_AI v2 checks` run for head `166c998fc58975b93aaa3e4cb8d89a4f3513e7ed` is run `37478292392`, job `112319449248`. The job concluded `failure` with **no workflow steps** (`steps=[]`), so checkout/install/persistence generation/build/typecheck/tests did not execute.
 
-This is recorded as a **CI execution blocker**, not as a D_AI test assertion failure and not as evidence that the new code passes. Everything changed after the last verified baseline remains **CI PENDING** until the gate executes normally.
+This remains an Actions execution/infrastructure blocker, not evidence that the current source passes or fails its code gate. All post-baseline work remains **CI PENDING** until a runner executes the required commands.
 
 ## What is being worked on right now
 
