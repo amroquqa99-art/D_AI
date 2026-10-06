@@ -19,10 +19,11 @@
 | Scoped tool/cross-system gateway | Tooling/security | orchestration toolFilter, owner/turn checks, negative tests | FOUNDATION | Full owner control panel and temporary/permanent grants pending |
 | Provider router/resource budgets | AI/ML engineer | Upstream LLM adapters available | NOT_STARTED | D_AI policy, metrics and live evaluation |
 | Scientific Research | Domain engineer | Approved product specification | NOT_STARTED | Reproducible domain slice |
-| Scientific Innovation | Domain engineer | Approved product specification | NOT_STARTED | Deterministic oracle and artifact verification |
-| Financial Intelligence | Domain engineer | Approved product specification | NOT_STARTED | Sourced analysis and backtest safeguards |
-| Authorized Cybersecurity | Security/domain engineer | Approved product specification | NOT_STARTED | Scope enforcement and isolated defensive test |
-| Model engineering laboratory | AI/ML engineer | Approved product specification | NOT_STARTED | Registry/contracts plus real baseline evaluation |
+| Innovation & Discovery | Domain engineer | v2 system registry + product specification | FOUNDATION | Multi-disciplinary runtime, novelty checks and experiment handoff |
+| Investor | Domain engineer | v2 system registry + product specification | FOUNDATION | Sourced analysis, valuation, thesis tracking and backtest safeguards |
+| Cybersecurity | Security/domain engineer | v2 system registry + product specification | FOUNDATION | Full scope/grant service and isolated authorized test slice |
+| Operations & Intelligence | Domain engineer | v2 system registry + product specification | FOUNDATION | Case workspace, fusion graph, timeline, intelligence gaps and options analysis |
+| Local Intelligence Core | AI/ML engineer | v2 system registry/core manifest + product specification | FOUNDATION | Dataset governance, model registry, baseline eval and controlled training/adapters |
 | Collaborative rooms/scoped memory | Systems engineer | Native persisted domain integration required | NOT_STARTED | Two-system sharing and permission evidence |
 | Backup/export/import and Arch handoff | Integrator/QA | Operations and test report | NOT_STARTED | Fresh-checkout and restore verification |
 
