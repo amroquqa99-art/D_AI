@@ -304,6 +304,21 @@ export class DAI extends Service {
     return value
   }
 
+  /** Read durable Innovation & Discovery projects for the exact live owner Agent. */
+  readInnovation(agent: Agent): InnovationState {
+    this.authorize(agent)
+    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiInnovationDiscovery')
+    if (state === undefined) fail('Innovation & Discovery projection is not mounted', 'D_AI_PROJECTION_MISSING')
+    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
+    return immutable(state)
+  }
+
+  private innovationProject(agent: Agent, id: string): InnovationProject {
+    const value = this.readInnovation(agent).projects.find(item => item.id === id)
+    if (value === undefined || value.ownerAgentId !== agent.id) fail('innovation project is absent or not owned by this Agent')
+    return value
+  }
+
   private async transact<T>(agent: Agent, operation: () => Promise<T>): Promise<T> {
     this.authorize(agent)
     const prior = this.tails.get(agent.id) ?? Promise.resolve()
@@ -370,6 +385,16 @@ export class DAI extends Service {
     agent.session.append('d_ai/operations-fact', fact)
     await this.ctx.sessions.flush(agent.session)
     return immutable(fact.case)
+  }
+
+  private async appendInnovation(agent: Agent, operation: InnovationFact['operation'], project: InnovationProject): Promise<InnovationProject> {
+    this.authorize(agent)
+    const fact = immutable(innovationFactSchema.parse({ version: 1, operation, actorId: agent.id, project }))
+    if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('innovation project storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+    this.requireOpenTurn(agent)
+    agent.session.append('d_ai/innovation-fact', fact)
+    await this.ctx.sessions.flush(agent.session)
+    return immutable(fact.project)
   }
 
   /**
