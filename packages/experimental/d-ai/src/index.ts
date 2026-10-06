@@ -63,7 +63,7 @@ import type { DataSensitivity, TrainingDataCandidate } from './training-governan
 import { modelLifecycleFactSchema, modelLifecycleProjection } from './model-lifecycle-state.ts'
 import type { GovernedModelEvaluation, GovernedPromotion, ModelLifecycleFact, ModelLifecycleLedger, ModelLifecycleState } from './model-lifecycle-state.ts'
 import { createModelReleasePointer as createModelReleasePointerInternal, evaluateModelPromotion as evaluateModelPromotionInternal } from './model-evaluation.ts'
-import type { ModelEvaluationMetrics, ModelEvaluationResult, PromotionPolicy } from './model-evaluation.ts'
+import type { ModelEvaluationResult, PromotionPolicy } from './model-evaluation.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
