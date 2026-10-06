@@ -1,0 +1,42 @@
+name: D_AI one-time lockfile repair
+
+on:
+  push:
+    branches:
+      - dai/v2-core-foundation
+    paths:
+      - '.github/workflows/d-ai-lockfile-repair.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: dai/v2-core-foundation
+          fetch-depth: 1
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Regenerate lockfile from current workspace manifests
+        run: |
+          rm -f pnpm-lock.yaml
+          pnpm install --lockfile-only --no-frozen-lockfile
+      - name: Validate regenerated lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Commit repaired lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          if git diff --cached --quiet; then
+            echo "No lockfile change to commit"
+          else
+            git commit -m "fix: regenerate corrupted pnpm lockfile"
+            git push origin HEAD:dai/v2-core-foundation
+          fi
