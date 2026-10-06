@@ -8,7 +8,7 @@ import type { ToolOwnerResolver } from './tool-support.ts'
 export interface InvestigationToolRuntime {
   create(agent: Agent, objective: string, signal?: AbortSignal): Promise<Mission>
   read(agent: Agent): MissionState
-  capture(agent: Agent, missionId: string, url: string, signal: AbortSignal): Promise<unknown>
+  capture(agent: Agent, missionId: string, url: string, signal: AbortSignal): Promise<Mission>
   addClaim(
     agent: Agent,
     missionId: string,
@@ -18,8 +18,8 @@ export interface InvestigationToolRuntime {
       excerpt: string
       contradicts?: string
     },
-  ): Promise<unknown>
-  delegate(agent: Agent, missionId: string, signal: AbortSignal): Promise<unknown>
+  ): Promise<Mission>
+  delegate(agent: Agent, missionId: string, signal: AbortSignal): Promise<Mission>
 }
 
 export function registerInvestigationTools(
