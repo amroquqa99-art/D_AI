@@ -83,6 +83,17 @@ import { failDai, hasDaiErrorCode } from './runtime-errors.ts'
 import { DaiProjectionReader, immutableSnapshot } from './runtime-state.ts'
 import { withLeaseHeartbeat } from './lease-heartbeat.ts'
 import { locateActiveLeaseFence, locateLeaseFence, nextLeaseFence } from './execution-fencing.ts'
+import {
+  abortReservedSideEffect,
+  commitSideEffectRecord,
+  createReservedSideEffect,
+  markSideEffectDispatched as markSideEffectDispatchedRecord,
+  markSideEffectOutcomeUnknown as markSideEffectOutcomeUnknownRecord,
+  rebindReservedSideEffect,
+  reconcileUnknownSideEffect,
+  sameSideEffectRequest,
+} from './side-effect-runtime.ts'
+import type { SideEffectReservationInput } from './side-effect-runtime.ts'
 
 export * from './public-api.ts'
 
@@ -1720,6 +1731,294 @@ export class DAI extends Service {
         recoveredTaskIds: [...recovered].sort(),
         retryExhaustedTaskIds: [...exhausted].sort(),
       })
+    })
+  }
+
+  private assertActiveSideEffectLease(
+    agent: Agent,
+    input: Pick<SideEffectReservationInput, 'taskId' | 'missionId' | 'systemId' | 'leaseId' | 'fence'>,
+  ): TaskLease {
+    const task = this.taskLedger(agent).tasks.find(item => item.id === input.taskId)
+    if (
+      task === undefined
+      || task.missionId !== input.missionId
+      || task.systemId !== input.systemId
+    ) {
+      fail('side effect does not match the durable task identity', 'D_AI_POLICY_DENIED')
+    }
+
+    const located = locateActiveLeaseFence(
+      this.executionLedger(agent).leases,
+      {
+        taskId: input.taskId,
+        leaseId: input.leaseId,
+        fence: input.fence,
+      },
+      agent.id,
+      Date.now(),
+    )
+    if (
+      located === undefined
+      || located.lease.missionId !== input.missionId
+    ) {
+      fail('side effect requires the current active task lease fence', 'D_AI_POLICY_DENIED')
+    }
+    return located.lease
+  }
+
+  /**
+   * Reserve one external side effect under a stable idempotency key.
+   *
+   * Repeating the same reservation returns the existing record. An undispatched
+   * reservation may be rebound to a newer active lease generation after
+   * recovery; dispatched/terminal records are never silently replayed.
+   */
+  async reserveSideEffect(
+    agent: Agent,
+    input: SideEffectReservationInput,
+  ): Promise<SideEffectRecord> {
+    return this.transact(agent, async () => {
+      this.assertActiveSideEffectLease(agent, input)
+      const current = this.sideEffectLedger(agent)
+      const existing = current.records.find(record => record.idempotencyKey === input.idempotencyKey)
+
+      if (existing !== undefined) {
+        if (!sameSideEffectRequest(existing, input)) {
+          fail('idempotency key already belongs to a different side-effect request', 'D_AI_IDEMPOTENCY_CONFLICT')
+        }
+        if (existing.state !== 'RESERVED') return immutableSnapshot(existing)
+        if (existing.leaseId === input.leaseId && existing.fence === input.fence) {
+          return immutableSnapshot(existing)
+        }
+
+        let rebound: SideEffectRecord
+        try {
+          rebound = rebindReservedSideEffect(existing, input.leaseId, input.fence)
+        } catch (error) {
+          fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_TRANSITION')
+        }
+        const next = await this.appendSideEffectLedger(agent, 'REBIND', {
+          ownerAgentId: agent.id,
+          revision: current.revision + 1,
+          records: current.records.map(record => record.id === existing.id ? rebound : record),
+        })
+        return immutableSnapshot(next.records.find(record => record.id === existing.id)!)
+      }
+
+      let reserved: SideEffectRecord
+      try {
+        reserved = createReservedSideEffect(randomUUID(), new Date().toISOString(), input)
+      } catch (error) {
+        fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_INPUT')
+      }
+
+      const next = await this.appendSideEffectLedger(agent, 'RESERVE', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        records: [...current.records, reserved],
+      })
+      return immutableSnapshot(next.records.at(-1)!)
+    })
+  }
+
+  /** Mark the exact reserved effect as dispatched immediately before connector I/O. */
+  async markSideEffectDispatched(
+    agent: Agent,
+    idempotencyKey: string,
+    leaseId: string,
+    fence: number,
+  ): Promise<SideEffectRecord> {
+    return this.transact(agent, async () => {
+      const current = this.sideEffectLedger(agent)
+      const record = current.records.find(item => item.idempotencyKey === idempotencyKey)
+      if (record === undefined) fail('unknown side-effect idempotency key', 'D_AI_INVALID_INPUT')
+      this.assertActiveSideEffectLease(agent, {
+        taskId: record.taskId,
+        missionId: record.missionId,
+        systemId: record.systemId,
+        leaseId,
+        fence,
+      })
+      if (record.leaseId !== leaseId || record.fence !== fence) {
+        fail('side-effect reservation belongs to a different lease fence', 'D_AI_POLICY_DENIED')
+      }
+
+      let dispatched: SideEffectRecord
+      try {
+        dispatched = markSideEffectDispatchedRecord(record, new Date().toISOString())
+      } catch (error) {
+        fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_TRANSITION')
+      }
+
+      const next = await this.appendSideEffectLedger(agent, 'MARK_DISPATCHED', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        records: current.records.map(item => item.id === record.id ? dispatched : item),
+      })
+      return immutableSnapshot(next.records.find(item => item.id === record.id)!)
+    })
+  }
+
+  /** Commit a confirmed connector result while the exact dispatch fence is active. */
+  async commitSideEffect(
+    agent: Agent,
+    idempotencyKey: string,
+    leaseId: string,
+    fence: number,
+    resultDigest: string,
+    artifactRefs: readonly string[] = [],
+  ): Promise<SideEffectRecord> {
+    return this.transact(agent, async () => {
+      const current = this.sideEffectLedger(agent)
+      const record = current.records.find(item => item.idempotencyKey === idempotencyKey)
+      if (record === undefined) fail('unknown side-effect idempotency key', 'D_AI_INVALID_INPUT')
+      this.assertActiveSideEffectLease(agent, {
+        taskId: record.taskId,
+        missionId: record.missionId,
+        systemId: record.systemId,
+        leaseId,
+        fence,
+      })
+      if (record.leaseId !== leaseId || record.fence !== fence) {
+        fail('side-effect dispatch belongs to a different lease fence', 'D_AI_POLICY_DENIED')
+      }
+
+      let committed: SideEffectRecord
+      try {
+        committed = commitSideEffectRecord(
+          record,
+          new Date().toISOString(),
+          resultDigest,
+          artifactRefs,
+        )
+      } catch (error) {
+        fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_TRANSITION')
+      }
+
+      const next = await this.appendSideEffectLedger(agent, 'COMMIT', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        records: current.records.map(item => item.id === record.id ? committed : item),
+      })
+      return immutableSnapshot(next.records.find(item => item.id === record.id)!)
+    })
+  }
+
+  /**
+   * Record uncertainty after dispatch. This transition is deliberately allowed
+   * even after lease loss because it reduces risk and never repeats the effect.
+   */
+  async markSideEffectOutcomeUnknown(
+    agent: Agent,
+    idempotencyKey: string,
+  ): Promise<SideEffectRecord> {
+    return this.transact(agent, async () => {
+      const current = this.sideEffectLedger(agent)
+      const record = current.records.find(item => item.idempotencyKey === idempotencyKey)
+      if (record === undefined) fail('unknown side-effect idempotency key', 'D_AI_INVALID_INPUT')
+
+      let unknown: SideEffectRecord
+      try {
+        unknown = markSideEffectOutcomeUnknownRecord(record, new Date().toISOString())
+      } catch (error) {
+        fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_TRANSITION')
+      }
+
+      const next = await this.appendSideEffectLedger(agent, 'MARK_UNKNOWN', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        records: current.records.map(item => item.id === record.id ? unknown : item),
+      })
+      return immutableSnapshot(next.records.find(item => item.id === record.id)!)
+    })
+  }
+
+  /** Abort an undispatched reservation while its exact lease generation is active. */
+  async abortReservedSideEffect(
+    agent: Agent,
+    idempotencyKey: string,
+    leaseId: string,
+    fence: number,
+  ): Promise<SideEffectRecord> {
+    return this.transact(agent, async () => {
+      const current = this.sideEffectLedger(agent)
+      const record = current.records.find(item => item.idempotencyKey === idempotencyKey)
+      if (record === undefined) fail('unknown side-effect idempotency key', 'D_AI_INVALID_INPUT')
+      this.assertActiveSideEffectLease(agent, {
+        taskId: record.taskId,
+        missionId: record.missionId,
+        systemId: record.systemId,
+        leaseId,
+        fence,
+      })
+      if (record.leaseId !== leaseId || record.fence !== fence) {
+        fail('side-effect reservation belongs to a different lease fence', 'D_AI_POLICY_DENIED')
+      }
+
+      let aborted: SideEffectRecord
+      try {
+        aborted = abortReservedSideEffect(record, new Date().toISOString())
+      } catch (error) {
+        fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_TRANSITION')
+      }
+
+      const next = await this.appendSideEffectLedger(agent, 'ABORT', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        records: current.records.map(item => item.id === record.id ? aborted : item),
+      })
+      return immutableSnapshot(next.records.find(item => item.id === record.id)!)
+    })
+  }
+
+  /** Resolve an uncertain dispatched effect only after explicit human approval. */
+  async reconcileSideEffect(
+    agent: Agent,
+    input: {
+      readonly idempotencyKey: string
+      readonly outcome: 'COMMITTED' | 'ABORTED'
+      readonly note: string
+      readonly resultDigest?: string
+      readonly artifactRefs?: readonly string[]
+    },
+    signal?: AbortSignal,
+  ): Promise<SideEffectRecord> {
+    this.authorize(agent)
+    const outcome = await this.ctx.approval.request({
+      agent,
+      toolName: 'd_ai_side_effect_reconcile',
+      reason: 'Reconcile uncertain side effect ' + input.idempotencyKey + ' as ' + input.outcome,
+      ...(signal === undefined ? {} : { signal }),
+    })
+    if (outcome !== 'allowed-once') {
+      fail('human approval is required to reconcile an uncertain side effect')
+    }
+
+    return this.transact(agent, async () => {
+      const current = this.sideEffectLedger(agent)
+      const record = current.records.find(item => item.idempotencyKey === input.idempotencyKey)
+      if (record === undefined) fail('unknown side-effect idempotency key', 'D_AI_INVALID_INPUT')
+
+      let reconciled: SideEffectRecord
+      try {
+        reconciled = reconcileUnknownSideEffect(record, {
+          outcome: input.outcome,
+          at: new Date().toISOString(),
+          by: agent.id,
+          note: input.note,
+          ...(input.resultDigest === undefined ? {} : { resultDigest: input.resultDigest }),
+          ...(input.artifactRefs === undefined ? {} : { artifactRefs: input.artifactRefs }),
+        })
+      } catch (error) {
+        fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_TRANSITION')
+      }
+
+      const next = await this.appendSideEffectLedger(agent, 'RECONCILE', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        records: current.records.map(item => item.id === record.id ? reconciled : item),
+      })
+      return immutableSnapshot(next.records.find(item => item.id === record.id)!)
     })
   }
 
