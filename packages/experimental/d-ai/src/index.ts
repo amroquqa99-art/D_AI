@@ -233,6 +233,21 @@ export class DAI extends Service {
     return value
   }
 
+  /** Read durable authorized Cybersecurity engagements for the exact live owner Agent. */
+  readCybersecurity(agent: Agent): CyberState {
+    this.authorize(agent)
+    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiCybersecurity')
+    if (state === undefined) fail('Cybersecurity projection is not mounted', 'D_AI_PROJECTION_MISSING')
+    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
+    return immutable(state)
+  }
+
+  private cyberEngagement(agent: Agent, id: string): CyberEngagement {
+    const engagement = this.readCybersecurity(agent).engagements.find(item => item.id === id)
+    if (engagement === undefined || engagement.ownerAgentId !== agent.id) fail('cybersecurity engagement is absent or not owned by this Agent')
+    return engagement
+  }
+
   private async transact<T>(agent: Agent, operation: () => Promise<T>): Promise<T> {
     this.authorize(agent)
     const prior = this.tails.get(agent.id) ?? Promise.resolve()
@@ -279,6 +294,16 @@ export class DAI extends Service {
     agent.session.append('d_ai/investor-fact', fact)
     await this.ctx.sessions.flush(agent.session)
     return immutable(fact.case)
+  }
+
+  private async appendCyber(agent: Agent, operation: CyberFact['operation'], engagement: CyberEngagement): Promise<CyberEngagement> {
+    this.authorize(agent)
+    const fact = immutable(cyberFactSchema.parse({ version: 1, operation, actorId: agent.id, engagement }))
+    if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('cybersecurity engagement storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+    this.requireOpenTurn(agent)
+    agent.session.append('d_ai/cyber-fact', fact)
+    await this.ctx.sessions.flush(agent.session)
+    return immutable(fact.engagement)
   }
 
   /**
