@@ -5,6 +5,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { ContextFormed, UserMessage } from '@deepseek-ai/dsh-llm'
 import type { DirectorPlanRuntimeView } from './director-runtime.ts'
+import { directorScheduleStagnationReason } from './director-schedule-state.ts'
 import type { DirectorSchedule, DirectorScheduleState } from './director-schedule-state.ts'
 import type { ExecutionState } from './execution-state.ts'
 
@@ -155,6 +156,7 @@ export function shouldWakeDirectorSchedule(
   nowMs: number,
 ): boolean {
   if (!isCurrentDirectorScheduleWake(schedule, schedule.nextWakeAt, nowMs)
+    || directorScheduleStagnationReason(schedule) !== undefined
     || plan.plan.status !== 'ACTIVE') {
     return false
   }
