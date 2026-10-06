@@ -30,6 +30,10 @@ import { operationsFactSchema, operationsProjection } from './operations-state.t
 import type { IntelligenceGap, OperationalOption, OperationsCase, OperationsEntity, OperationsFact, OperationsRelationship, OperationsState, OperationsTimelineEvent } from './operations-state.ts'
 import { runOperationsDelegates } from './operations-orchestration.ts'
 import type { OperationsDelegationConfig } from './operations-orchestration.ts'
+import { innovationFactSchema, innovationProjection } from './innovation-state.ts'
+import type { InnovationCandidate, InnovationExperiment, InnovationFact, InnovationProject, InnovationState } from './innovation-state.ts'
+import { runInnovationDelegates } from './innovation-orchestration.ts'
+import type { InnovationDelegationConfig } from './innovation-orchestration.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
 export { getSystemManifest, listSystemManifests, LOCAL_INTELLIGENCE_CORE } from './systems.ts'
@@ -70,6 +74,10 @@ export { operationsFactSchema, operationsProjection, projectOperationsFact } fro
 export type { IntelligenceGap, OperationalOption, OperationsCase, OperationsEntity, OperationsFact, OperationsRelationship, OperationsState, OperationsTimelineEvent } from './operations-state.ts'
 export { runOperationsDelegates } from './operations-orchestration.ts'
 export type { OperationsDelegationConfig, OperationsDelegates, OperationsWorkerOutput } from './operations-orchestration.ts'
+export { innovationFactSchema, innovationProjection, projectInnovationFact } from './innovation-state.ts'
+export type { InnovationCandidate, InnovationExperiment, InnovationFact, InnovationProject, InnovationState } from './innovation-state.ts'
+export { runInnovationDelegates } from './innovation-orchestration.ts'
+export type { InnovationDelegationConfig, InnovationDelegates, InnovationWorkerOutput } from './innovation-orchestration.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
@@ -92,6 +100,8 @@ export interface Config {
   cyberRemediationModel?: string
   operationsFusionModel?: string
   operationsAdversarialModel?: string
+  innovationExplorerModel?: string
+  innovationCriticModel?: string
   allowedTools?: string[]
   maxResultBytes?: number
 }
@@ -125,7 +135,7 @@ export class DAI extends Service {
     maxMissionBytes: z.number().step(1).min(1).default(2000000), maxSources: z.number().step(1).min(1).default(32),
     researchModel: z.string(), verificationModel: z.string(), literatureModel: z.string(), methodologyModel: z.string(),
     fundamentalModel: z.string(), riskModel: z.string(), cyberAssessmentModel: z.string(), cyberRemediationModel: z.string(),
-    operationsFusionModel: z.string(), operationsAdversarialModel: z.string(),
+    operationsFusionModel: z.string(), operationsAdversarialModel: z.string(), innovationExplorerModel: z.string(), innovationCriticModel: z.string(),
     allowedTools: z.array(z.string()).default(['web_search', 'web_fetch']), maxResultBytes: z.number().step(1).min(1).default(65536),
   })
   private readonly limits: { maxSourceBytes: number; maxMissionBytes: number; maxSources: number }
@@ -134,6 +144,7 @@ export class DAI extends Service {
   private readonly investorDelegation: InvestorDelegationConfig
   private readonly cyberDelegation: CyberDelegationConfig
   private readonly operationsDelegation: OperationsDelegationConfig
+  private readonly innovationDelegation: InnovationDelegationConfig
   private readonly tails = new Map<string, Promise<void>>()
   private readonly delegating = new Set<string>()
   private readonly index: ReturnType<Context['storageDomain']['open']>
@@ -181,6 +192,14 @@ export class DAI extends Service {
       ...(config.operationsFusionModel === undefined ? {} : { fusionModel: config.operationsFusionModel }),
       ...(config.operationsAdversarialModel === undefined ? {} : { adversarialModel: config.operationsAdversarialModel }),
     }
+    this.innovationDelegation = {
+      provider: config.subagentProvider ?? 'spawn', maxDepth: config.maxDepth ?? 3,
+      allowedTools: config.allowedTools ?? ['web_search', 'web_fetch'], maxResultBytes: config.maxResultBytes ?? 65536,
+      maxOutputTokens: config.maxOutputTokens ?? 4096, maxRequestsPerChild: config.maxRequestsPerChild ?? 8,
+      timeoutMs: config.timeoutMs ?? 120000,
+      ...(config.innovationExplorerModel === undefined ? {} : { explorerModel: config.innovationExplorerModel }),
+      ...(config.innovationCriticModel === undefined ? {} : { criticModel: config.innovationCriticModel }),
+    }
     for (const [key, value] of Object.entries({ ...this.limits, maxDepth: this.delegation.maxDepth,
       maxOutputTokens: this.delegation.maxOutputTokens, maxRequestsPerChild: this.delegation.maxRequestsPerChild, timeoutMs: this.delegation.timeoutMs })) {
       if (!Number.isSafeInteger(value) || value < 1) throw new TypeError(`${key} must be a positive safe integer`)
@@ -191,6 +210,7 @@ export class DAI extends Service {
     ctx.effect(() => ctx.sessionProjections.register(investorProjection), 'dai.investorProjection()')
     ctx.effect(() => ctx.sessionProjections.register(cyberProjection), 'dai.cyberProjection()')
     ctx.effect(() => ctx.sessionProjections.register(operationsProjection), 'dai.operationsProjection()')
+    ctx.effect(() => ctx.sessionProjections.register(innovationProjection), 'dai.innovationProjection()')
     ctx.effect(() => async () => { await Promise.all([...this.tails.values()]); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
   }
