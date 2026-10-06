@@ -120,16 +120,30 @@ export function projectControlPlaneFact(state: ControlPlaneState, event: Session
       if (JSON.stringify(fact.control.auditRecords.slice(0, prior.auditRecords.length)) !== JSON.stringify(prior.auditRecords)) {
         throw new Error('prior audit records changed or disappeared')
       }
-      if (fact.operation === 'APPEND_GRANT' && fact.control.grants.length !== prior.grants.length + 1) {
-        throw new Error('APPEND_GRANT must append exactly one grant')
+      if (fact.operation === 'APPEND_GRANT') {
+        if (fact.control.grants.length !== prior.grants.length + 1) throw new Error('APPEND_GRANT must append exactly one grant')
+        if (fact.control.auditRecords.length !== prior.auditRecords.length + 1) throw new Error('APPEND_GRANT must append exactly one audit record')
+        const grant = fact.control.grants.at(-1)!
+        const audit = fact.control.auditRecords.at(-1)!
+        const expectedAction = grant.decision === 'ALLOW' ? 'CAPABILITY_GRANT' : 'CAPABILITY_DENY'
+        if (audit.action !== expectedAction || audit.subjectId !== grant.id) throw new Error('APPEND_GRANT audit does not match appended grant')
       }
-      if (fact.operation === 'APPEND_AUDIT' && fact.control.auditRecords.length !== prior.auditRecords.length + 1) {
-        throw new Error('APPEND_AUDIT must append exactly one audit record')
+      if (fact.operation === 'APPEND_AUDIT') {
+        if (fact.control.grants.length !== prior.grants.length) throw new Error('APPEND_AUDIT cannot change grants')
+        if (fact.control.auditRecords.length !== prior.auditRecords.length + 1) throw new Error('APPEND_AUDIT must append exactly one audit record')
       }
     } else {
       if (fact.control.revision !== 1) throw new Error('control-plane must begin at revision 1')
-      if (fact.operation === 'APPEND_GRANT' && fact.control.grants.length !== 1) throw new Error('initial APPEND_GRANT must contain exactly one grant')
-      if (fact.operation === 'APPEND_AUDIT' && fact.control.auditRecords.length !== 1) throw new Error('initial APPEND_AUDIT must contain exactly one audit record')
+      if (fact.operation === 'APPEND_GRANT') {
+        if (fact.control.grants.length !== 1 || fact.control.auditRecords.length !== 1) throw new Error('initial APPEND_GRANT must contain one grant and one audit record')
+        const grant = fact.control.grants[0]!
+        const audit = fact.control.auditRecords[0]!
+        const expectedAction = grant.decision === 'ALLOW' ? 'CAPABILITY_GRANT' : 'CAPABILITY_DENY'
+        if (audit.action !== expectedAction || audit.subjectId !== grant.id) throw new Error('initial APPEND_GRANT audit does not match grant')
+      }
+      if (fact.operation === 'APPEND_AUDIT') {
+        if (fact.control.grants.length !== 0 || fact.control.auditRecords.length !== 1) throw new Error('initial APPEND_AUDIT must contain exactly one audit record and no grants')
+      }
     }
 
     for (const grant of fact.control.grants as readonly CapabilityGrant[]) {
