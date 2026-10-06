@@ -5,6 +5,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { DirectorLedger, DirectorPlan, DirectorState } from './director-state.ts'
 import type { DirectorPlanningResult } from './director-orchestration.ts'
 import type { TaskExecutionResult } from './director-executor.ts'
+import type { DirectorCycleResult, DirectorPlanRuntimeView } from './director-runtime.ts'
 import { SYSTEMS } from './state.ts'
 import type { DurableTaskLedger, TaskLedgerState } from './task-ledger-state.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
@@ -43,7 +44,14 @@ export interface TasksDirectorToolRuntime {
     signal: AbortSignal,
     ttlMs?: number,
   ): Promise<Readonly<{ task: MissionTask; execution: TaskExecutionResult }>>
-  directorPlanView(agent: Agent, planId: string, maxTasks?: number): Readonly<Record<string, unknown>>
+  directorPlanView(agent: Agent, planId: string, maxTasks?: number): DirectorPlanRuntimeView
+  executeDirectorCycle(
+    agent: Agent,
+    planId: string,
+    signal: AbortSignal,
+    maxTasks?: number,
+    ttlMs?: number,
+  ): Promise<DirectorCycleResult>
   setDirectorPlanStatus(
     agent: Agent,
     planId: string,
@@ -227,6 +235,31 @@ export function registerTasksDirectorTools(
       exec.signal,
       args.ttl_ms ?? 600000,
     )),
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'd_ai_director_execute_cycle',
+    description: 'Execute a bounded batch of runnable Mission Director tasks sequentially. The cycle stops on failure, plan blocking, cancellation, no runnable work, or the explicit max_tasks limit.',
+    parameters: {
+      plan_id: { type: 'string', required: true },
+      max_tasks: { type: 'number' },
+      ttl_ms: { type: 'number' },
+    },
+    output: jsonToolOutput,
+    timeoutMs: workerTimeoutMs * 8 + 60000,
+    execute: (args, exec) => {
+      const maxTasks = args.max_tasks ?? 4
+      if (!Number.isSafeInteger(maxTasks) || maxTasks < 1 || maxTasks > 8) {
+        rejectInvalidInput('max_tasks must be an integer from 1 to 8')
+      }
+      return encodeToolResult(runtime.executeDirectorCycle(
+        owner(exec.agent),
+        args.plan_id,
+        exec.signal,
+        maxTasks,
+        args.ttl_ms ?? 600000,
+      ))
+    },
   }))
 
   ctx.tools.register(defineTool({
