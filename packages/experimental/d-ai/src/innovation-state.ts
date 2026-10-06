@@ -70,6 +70,7 @@ export interface InnovationState {
 
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
+    /** Complete post-change Innovation & Discovery project fact retaining testable candidates, experiment handoffs/results and independent explorer/critic state. */
     'd_ai/innovation-fact': InnovationFact
   }
 }
