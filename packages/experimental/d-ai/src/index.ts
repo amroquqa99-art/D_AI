@@ -22,6 +22,10 @@ import { investorFactSchema, investorProjection } from './investor-state.ts'
 import type { InvestmentThesis, InvestorCase, InvestorFact, InvestorSource, InvestorState } from './investor-state.ts'
 import { runInvestorDelegates } from './investor-orchestration.ts'
 import type { InvestorDelegationConfig } from './investor-orchestration.ts'
+import { cyberFactSchema, cyberProjection } from './cyber-state.ts'
+import type { CyberAuthorizationScope, CyberEngagement, CyberFact, CyberFinding, CyberState } from './cyber-state.ts'
+import { runCyberDelegates } from './cyber-orchestration.ts'
+import type { CyberDelegationConfig } from './cyber-orchestration.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
 export { getSystemManifest, listSystemManifests, LOCAL_INTELLIGENCE_CORE } from './systems.ts'
@@ -54,6 +58,10 @@ export { investorFactSchema, investorProjection, projectInvestorFact } from './i
 export type { InvestmentThesis, InvestorCase, InvestorFact, InvestorSource, InvestorState } from './investor-state.ts'
 export { runInvestorDelegates } from './investor-orchestration.ts'
 export type { InvestorDelegationConfig, InvestorDelegates, InvestorWorkerOutput } from './investor-orchestration.ts'
+export { cyberFactSchema, cyberProjection, projectCyberFact } from './cyber-state.ts'
+export type { CyberAuthorizationScope, CyberEngagement, CyberFact, CyberFinding, CyberState } from './cyber-state.ts'
+export { runCyberDelegates } from './cyber-orchestration.ts'
+export type { CyberDelegationConfig, CyberDelegates, CyberWorkerOutput } from './cyber-orchestration.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
@@ -72,6 +80,8 @@ export interface Config {
   methodologyModel?: string
   fundamentalModel?: string
   riskModel?: string
+  cyberAssessmentModel?: string
+  cyberRemediationModel?: string
   allowedTools?: string[]
   maxResultBytes?: number
 }
@@ -104,13 +114,14 @@ export class DAI extends Service {
     timeoutMs: z.number().step(1).min(1).default(120000), maxSourceBytes: z.number().step(1).min(1).default(200000),
     maxMissionBytes: z.number().step(1).min(1).default(2000000), maxSources: z.number().step(1).min(1).default(32),
     researchModel: z.string(), verificationModel: z.string(), literatureModel: z.string(), methodologyModel: z.string(),
-    fundamentalModel: z.string(), riskModel: z.string(),
+    fundamentalModel: z.string(), riskModel: z.string(), cyberAssessmentModel: z.string(), cyberRemediationModel: z.string(),
     allowedTools: z.array(z.string()).default(['web_search', 'web_fetch']), maxResultBytes: z.number().step(1).min(1).default(65536),
   })
   private readonly limits: { maxSourceBytes: number; maxMissionBytes: number; maxSources: number }
   private readonly delegation: InvestigationDelegationConfig
   private readonly scientificDelegation: ScientificDelegationConfig
   private readonly investorDelegation: InvestorDelegationConfig
+  private readonly cyberDelegation: CyberDelegationConfig
   private readonly tails = new Map<string, Promise<void>>()
   private readonly delegating = new Set<string>()
   private readonly index: ReturnType<Context['storageDomain']['open']>
@@ -142,6 +153,14 @@ export class DAI extends Service {
       ...(config.fundamentalModel === undefined ? {} : { fundamentalModel: config.fundamentalModel }),
       ...(config.riskModel === undefined ? {} : { riskModel: config.riskModel }),
     }
+    this.cyberDelegation = {
+      provider: config.subagentProvider ?? 'spawn', maxDepth: config.maxDepth ?? 3,
+      allowedTools: config.allowedTools ?? [], maxResultBytes: config.maxResultBytes ?? 65536,
+      maxOutputTokens: config.maxOutputTokens ?? 4096, maxRequestsPerChild: config.maxRequestsPerChild ?? 8,
+      timeoutMs: config.timeoutMs ?? 120000,
+      ...(config.cyberAssessmentModel === undefined ? {} : { assessmentModel: config.cyberAssessmentModel }),
+      ...(config.cyberRemediationModel === undefined ? {} : { remediationModel: config.cyberRemediationModel }),
+    }
     for (const [key, value] of Object.entries({ ...this.limits, maxDepth: this.delegation.maxDepth,
       maxOutputTokens: this.delegation.maxOutputTokens, maxRequestsPerChild: this.delegation.maxRequestsPerChild, timeoutMs: this.delegation.timeoutMs })) {
       if (!Number.isSafeInteger(value) || value < 1) throw new TypeError(`${key} must be a positive safe integer`)
@@ -150,6 +169,7 @@ export class DAI extends Service {
     ctx.effect(() => ctx.sessionProjections.register(missionProjection), 'dai.projection()')
     ctx.effect(() => ctx.sessionProjections.register(scientificProjection), 'dai.scientificProjection()')
     ctx.effect(() => ctx.sessionProjections.register(investorProjection), 'dai.investorProjection()')
+    ctx.effect(() => ctx.sessionProjections.register(cyberProjection), 'dai.cyberProjection()')
     ctx.effect(() => async () => { await Promise.all([...this.tails.values()]); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
   }
