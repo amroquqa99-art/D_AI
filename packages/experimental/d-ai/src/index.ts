@@ -591,6 +591,16 @@ export class DAI extends Service {
           datasets: ledger.datasets.length,
         }
       })(),
+      modelLifecycle: (() => {
+        const ledger = this.modelLifecycleLedger(agent)
+        return {
+          revision: ledger.revision,
+          evaluations: ledger.evaluations.length,
+          promotions: ledger.promotions.length,
+          successfulPromotions: ledger.promotions.filter(item => item.decision.promote).length,
+          latestRelease: [...ledger.promotions].reverse().find(item => item.release !== undefined)?.release ?? null,
+        }
+      })(),
     })
   }
 
@@ -777,6 +787,116 @@ export class DAI extends Service {
 
 
 
+
+  /** Record one externally produced model evaluation against a governed dataset. */
+  async recordModelEvaluation(
+    agent: Agent,
+    input: { readonly result: ModelEvaluationResult; readonly artifactRef: string },
+    signal?: AbortSignal,
+  ): Promise<ModelLifecycleLedger> {
+    this.authorize(agent)
+    if (input.artifactRef.trim().length === 0) fail('model evaluation artifactRef is required', 'D_AI_INVALID_INPUT')
+
+    const training = this.trainingLedger(agent)
+    if (!training.datasets.some(dataset => dataset.lineage.datasetId === input.result.datasetId)) {
+      fail('model evaluation must reference an existing governed dataset', 'D_AI_INVALID_INPUT')
+    }
+
+    const outcome = await this.ctx.approval.request({
+      agent,
+      toolName: 'd_ai_model_evaluation_record',
+      reason: 'Record governed evaluation for model ' + input.result.modelId + ' on dataset ' + input.result.datasetId,
+      ...(signal === undefined ? {} : { signal }),
+    })
+    if (outcome !== 'allowed-once') fail('human approval is required to record model evaluations')
+
+    return this.transact(agent, async () => {
+      const current = this.modelLifecycleLedger(agent)
+      const evaluation: GovernedModelEvaluation = {
+        id: randomUUID(),
+        result: input.result,
+        artifactRef: input.artifactRef,
+        recordedAt: new Date().toISOString(),
+        recordedBy: agent.id,
+      }
+      return this.appendModelLifecycle(agent, 'RECORD_EVALUATION', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        evaluations: [...current.evaluations, evaluation],
+        promotions: [...current.promotions],
+      })
+    })
+  }
+
+  /**
+   * Recompute a baseline/candidate promotion decision from persisted
+   * evaluations. A successful decision records an explicit rollback pointer;
+   * it does not deploy or activate the model by itself.
+   */
+  async evaluateGovernedModelPromotion(
+    agent: Agent,
+    input: {
+      readonly baselineEvaluationId: string
+      readonly candidateEvaluationId: string
+      readonly policy: PromotionPolicy
+    },
+    signal?: AbortSignal,
+  ): Promise<ModelLifecycleLedger> {
+    this.authorize(agent)
+    const current = this.modelLifecycleLedger(agent)
+    const baseline = current.evaluations.find(item => item.id === input.baselineEvaluationId)
+    const candidate = current.evaluations.find(item => item.id === input.candidateEvaluationId)
+    if (baseline === undefined || candidate === undefined) fail('promotion requires known baseline and candidate evaluations', 'D_AI_INVALID_INPUT')
+
+    let decision
+    try {
+      decision = evaluateModelPromotionInternal(
+        baseline.result as ModelEvaluationResult,
+        candidate.result as ModelEvaluationResult,
+        input.policy,
+      )
+    } catch (error) {
+      fail(error instanceof Error ? error.message : String(error), 'D_AI_MODEL_PROMOTION_INVALID')
+    }
+
+    const outcome = await this.ctx.approval.request({
+      agent,
+      toolName: 'd_ai_model_promotion_evaluate',
+      reason: 'Persist model promotion decision ' + baseline.result.modelId + ' -> ' + candidate.result.modelId,
+      ...(signal === undefined ? {} : { signal }),
+    })
+    if (outcome !== 'allowed-once') fail('human approval is required to persist model promotion decisions')
+
+    return this.transact(agent, async () => {
+      const latest = this.modelLifecycleLedger(agent)
+      if (latest.revision !== current.revision) fail('model lifecycle changed during promotion approval; retry with current state', 'D_AI_STALE_STATE')
+      const now = new Date().toISOString()
+      const release = decision.promote
+        ? createModelReleasePointerInternal(
+            baseline.result as ModelEvaluationResult,
+            candidate.result as ModelEvaluationResult,
+            decision,
+            now,
+          )
+        : undefined
+      const promotion: GovernedPromotion = {
+        id: randomUUID(),
+        baselineEvaluationId: baseline.id,
+        candidateEvaluationId: candidate.id,
+        policy: input.policy,
+        decision,
+        ...(release === undefined ? {} : { release }),
+        decidedAt: now,
+        decidedBy: agent.id,
+      }
+      return this.appendModelLifecycle(agent, 'EVALUATE_PROMOTION', {
+        ownerAgentId: agent.id,
+        revision: latest.revision + 1,
+        evaluations: [...latest.evaluations],
+        promotions: [...latest.promotions, promotion],
+      })
+    })
+  }
 
   /**
    * Register metadata for one possible training artifact after explicit human
@@ -2487,6 +2607,69 @@ export class DAI extends Service {
         if (!states.includes(args.next_state as typeof states[number])) fail('invalid durable task state', 'D_AI_INVALID_INPUT')
         return encoded(this.transitionDurableTask(owner(exec.agent), args.task_id, args.next_state as TaskState))
       } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_model_lifecycle_read', description: 'Read governed Local Intelligence Core model evaluations, promotion decisions and rollback pointers. No model artifact bytes are stored here.',
+      parameters: {}, output,
+      execute: (_args, exec) => encoded(this.readModelLifecycle(owner(exec.agent))) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_model_evaluation_record', description: 'Record one externally produced model evaluation by artifact reference after human approval. The evaluation must reference an existing governed dataset.',
+      parameters: {
+        model_id: { type: 'string', required: true },
+        dataset_id: { type: 'string', required: true },
+        holdout_id: { type: 'string', required: true },
+        artifact_ref: { type: 'string', required: true },
+        completed_at: { type: 'string', required: true },
+        independent_evaluator: { type: 'string', required: true },
+        correctness: { type: 'number', required: true },
+        domain_quality: { type: 'number', required: true },
+        tool_use_reliability: { type: 'number', required: true },
+        robustness: { type: 'number', required: true },
+        safety: { type: 'number', required: true },
+        latency_score: { type: 'number', required: true },
+        efficiency_score: { type: 'number', required: true },
+      }, output,
+      execute: (args, exec) => encoded(this.recordModelEvaluation(owner(exec.agent), {
+        artifactRef: args.artifact_ref,
+        result: {
+          modelId: args.model_id,
+          datasetId: args.dataset_id,
+          holdoutId: args.holdout_id,
+          completedAt: args.completed_at,
+          independentEvaluator: args.independent_evaluator,
+          metrics: {
+            correctness: args.correctness,
+            domainQuality: args.domain_quality,
+            toolUseReliability: args.tool_use_reliability,
+            robustness: args.robustness,
+            safety: args.safety,
+            latencyScore: args.latency_score,
+            efficiencyScore: args.efficiency_score,
+          },
+        },
+      }, exec.signal)) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_model_promotion_evaluate', description: 'Recompute and persist a baseline/candidate promotion decision after human approval. Successful decisions create rollback pointers but do not deploy models.',
+      parameters: {
+        baseline_evaluation_id: { type: 'string', required: true },
+        candidate_evaluation_id: { type: 'string', required: true },
+        min_correctness: { type: 'number', required: true },
+        min_domain_quality: { type: 'number', required: true },
+        min_tool_use_reliability: { type: 'number', required: true },
+        min_robustness: { type: 'number', required: true },
+        min_safety: { type: 'number', required: true },
+        max_allowed_regression: { type: 'number', required: true },
+        require_distinct_evaluator: { type: 'boolean', required: true },
+      }, output,
+      execute: (args, exec) => encoded(this.evaluateGovernedModelPromotion(owner(exec.agent), {
+        baselineEvaluationId: args.baseline_evaluation_id,
+        candidateEvaluationId: args.candidate_evaluation_id,
+        policy: {
+          minCorrectness: args.min_correctness,
+          minDomainQuality: args.min_domain_quality,
+          minToolUseReliability: args.min_tool_use_reliability,
+          minRobustness: args.min_robustness,
+          minSafety: args.min_safety,
+          maxAllowedRegression: args.max_allowed_regression,
+          requireDistinctEvaluator: args.require_distinct_evaluator,
+        },
+      }, exec.signal)) }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_training_read', description: 'Read governed Local Intelligence Core training-candidate metadata and dataset lineage. Raw training content is not stored in this state.',
       parameters: {}, output,
       execute: (_args, exec) => encoded(this.readTraining(owner(exec.agent))) }))
