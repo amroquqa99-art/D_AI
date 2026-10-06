@@ -69,6 +69,8 @@ import type { DirectorFact, DirectorLedger, DirectorPlan, DirectorState } from '
 import type { MissionPhase } from './mission-director.ts'
 import { runDirectorPlanner } from './director-orchestration.ts'
 import type { DirectorPlanningResult } from './director-orchestration.ts'
+import { runDirectorTaskExecutor } from './director-executor.ts'
+import type { TaskExecutionResult } from './director-executor.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
@@ -136,6 +138,8 @@ export { directorFactSchema, directorProjection, projectDirectorFact, directorPl
 export type { DirectorFact, DirectorLedger, DirectorPlan, DirectorState } from './director-state.ts'
 export { runDirectorPlanner } from './director-orchestration.ts'
 export type { DirectorPlanningConfig, DirectorPlanningResult } from './director-orchestration.ts'
+export { runDirectorTaskExecutor } from './director-executor.ts'
+export type { TaskExecutionConfig, TaskExecutionOutcome, TaskExecutionResult } from './director-executor.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
@@ -968,6 +972,83 @@ export class DAI extends Service {
     return immutable({ planning, ledger })
   }
 
+  /**
+   * Execute one runnable task from an approved Director plan using a fresh
+   * isolated Agent. The child sees only reconstructed plan/task/dependency
+   * context, not the parent's full conversation history.
+   */
+  async executeNextDirectorTask(
+    agent: Agent,
+    planId: string,
+    signal: AbortSignal,
+    ttlMs = 600000,
+  ): Promise<Readonly<{ task: MissionTask; execution: TaskExecutionResult }>> {
+    const plan = this.directorPlan(agent, planId)
+    if (plan.status !== 'ACTIVE') fail('Mission Director execution requires an active plan', 'D_AI_INVALID_TRANSITION')
+
+    await this.recoverExpiredTaskLeases(agent)
+    const claimed = await this.claimNextRunnableTask(agent, ttlMs, plan.id)
+    const system = SYSTEMS.find(item => item.id === claimed.task.systemId)
+    if (system === undefined) fail('claimed task references unknown D_AI system', 'D_AI_CORRUPT_STATE')
+
+    const executionLedger = this.executionLedger(agent)
+    const dependencyCheckpoints = claimed.task.dependsOn.flatMap((dependencyId) => {
+      const matching = executionLedger.checkpoints
+        .filter(checkpoint => checkpoint.taskId === dependencyId)
+        .sort((a, b) => b.sequence - a.sequence)
+      return matching[0] === undefined ? [] : [matching[0]]
+    })
+
+    const route = this.optionalRoutedModel(agent, claimed.task.systemId, 'task-executor')
+    const allowedTools = system.riskClass === 'authorized-cyber' || system.riskClass === 'sensitive-operations'
+      ? []
+      : this.delegation.allowedTools
+
+    try {
+      const execution = await runDirectorTaskExecutor(
+        this.ctx,
+        agent,
+        plan,
+        claimed.task,
+        system,
+        dependencyCheckpoints,
+        signal,
+        {
+          subagentProvider: this.delegation.provider,
+          maxDepth: this.delegation.maxDepth,
+          maxOutputTokens: this.delegation.maxOutputTokens,
+          maxRequests: this.delegation.maxRequestsPerChild,
+          timeoutMs: this.delegation.timeoutMs,
+          maxResultBytes: this.delegation.maxResultBytes,
+          allowedTools,
+          ...(route === undefined ? {} : { model: route.id, llmProvider: route.provider }),
+        },
+      )
+      signal.throwIfAborted()
+
+      await this.checkpointTask(
+        agent,
+        claimed.task.id,
+        execution.nextNeed === undefined ? execution.summary : execution.summary + '\nNext need: ' + execution.nextNeed,
+        execution.artifactRefs,
+      )
+      await this.transitionDurableTask(agent, claimed.task.id, execution.outcome)
+      return immutable({ task: claimed.task, execution })
+    } catch (error) {
+      const latest = this.taskLedger(agent).tasks.find(task => task.id === claimed.task.id)
+      if (latest?.state === 'RUNNING') {
+        try { await this.transitionDurableTask(agent, claimed.task.id, 'FAILED') } catch { /* preserve original executor failure */ }
+      }
+      throw error
+    } finally {
+      const active = [...this.executionLedger(agent).leases].reverse().find(lease =>
+        lease.taskId === claimed.task.id && lease.releasedAt === undefined)
+      if (active !== undefined) {
+        try { await this.releaseTaskLease(agent, claimed.task.id) } catch { /* expiry recovery remains available */ }
+      }
+    }
+  }
+
   /** Change explicit plan lifecycle state after human approval. */
   async setDirectorPlanStatus(
     agent: Agent,
@@ -1374,6 +1455,7 @@ export class DAI extends Service {
   async claimNextRunnableTask(
     agent: Agent,
     ttlMs = 300000,
+    missionId?: string,
   ): Promise<{ readonly task: MissionTask; readonly lease: TaskLease }> {
     if (!Number.isSafeInteger(ttlMs) || ttlMs < 1000 || ttlMs > 3600000) {
       fail('task lease ttl must be an integer from 1000 to 3600000 ms', 'D_AI_INVALID_INPUT')
@@ -1382,7 +1464,12 @@ export class DAI extends Service {
     return this.transact(agent, async () => {
       const tasks = this.taskLedger(agent)
       const budgets = this.budgetLedger(agent)
-      const selection = selectDurableRunnableTasks(tasks, 1, budgets.profiles)
+      const scopedTasks: DurableTaskLedger = missionId === undefined ? tasks : {
+        ownerAgentId: tasks.ownerAgentId,
+        revision: tasks.revision,
+        tasks: tasks.tasks.filter(task => task.missionId === missionId),
+      }
+      const selection = selectDurableRunnableTasks(scopedTasks, 1, budgets.profiles)
       const selected = selection.selected[0]
       if (selected === undefined) {
         const budgetBlocked = selection.blocked.filter(item => item.reason === 'budget')
@@ -2892,6 +2979,9 @@ export class DAI extends Service {
     this.ctx.tools.register(defineTool({ name: 'd_ai_director_generate_tasks', description: 'Run an isolated Mission Director planner Agent for an empty approved plan. The planner has no tools; its proposed DAG is validated before durable task creation.',
       parameters: { plan_id: { type: 'string', required: true } }, output, timeoutMs: this.delegation.timeoutMs + 10000,
       execute: (args, exec) => encoded(this.generateDirectorTasks(owner(exec.agent), args.plan_id, exec.signal)) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_director_execute_next', description: 'Execute exactly one runnable task from an active Mission Director plan using a fresh isolated Agent, durable lease/checkpoint state, dependency-context reconstruction and model routing.',
+      parameters: { plan_id: { type: 'string', required: true }, ttl_ms: { type: 'number' } }, output, timeoutMs: this.delegation.timeoutMs + 30000,
+      execute: (args, exec) => encoded(this.executeNextDirectorTask(owner(exec.agent), args.plan_id, exec.signal, args.ttl_ms ?? 600000)) }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_director_plan_view', description: 'Read one Mission Director plan with derived phase, authoritative tasks and budget-aware next runnable work.',
       parameters: { plan_id: { type: 'string', required: true }, max_tasks: { type: 'number' } }, output,
       execute: (args, exec) => {
