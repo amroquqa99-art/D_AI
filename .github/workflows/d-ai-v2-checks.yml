@@ -32,7 +32,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Generate and verify persistence catalog
         run: |
-          pnpm run gen:persistence-catalog
+          pnpm run gen-persistence-catalog
           pnpm run verify-persistence-catalog
       - name: Build Harness native system addon
         run: pnpm run build:native-system
