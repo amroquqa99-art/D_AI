@@ -142,20 +142,22 @@ export function projectOperationsFact(state: OperationsState, event: SessionEven
         || prior.classification !== fact.case.classification
       ) throw new Error('immutable operations case identity changed')
 
-      const immutableCollections = [
-        ['entity', prior.entities, fact.case.entities],
-        ['relationship', prior.relationships, fact.case.relationships],
-        ['timeline event', prior.timeline, fact.case.timeline],
-        ['gap', prior.gaps, fact.case.gaps],
-        ['option', prior.options, fact.case.options],
-      ] as const
-      for (const [label, before, after] of immutableCollections) {
+      const assertAppendOnly = <T extends { readonly id: string }>(
+        label: string,
+        before: readonly T[],
+        after: readonly T[],
+      ): void => {
         for (const item of before) {
           if (JSON.stringify(after.find(next => next.id === item.id)) !== JSON.stringify(item)) {
             throw new Error('prior operations ' + label + ' changed or disappeared')
           }
         }
       }
+      assertAppendOnly('entity', prior.entities, fact.case.entities)
+      assertAppendOnly('relationship', prior.relationships, fact.case.relationships)
+      assertAppendOnly('timeline event', prior.timeline, fact.case.timeline)
+      assertAppendOnly('gap', prior.gaps, fact.case.gaps)
+      assertAppendOnly('option', prior.options, fact.case.options)
       if (JSON.stringify(fact.case.delegations.slice(0, prior.delegations.length)) !== JSON.stringify(prior.delegations)) {
         throw new Error('prior operations delegation changed or disappeared')
       }
