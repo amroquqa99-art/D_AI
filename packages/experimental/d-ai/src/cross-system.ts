@@ -2,6 +2,40 @@
 import { appendAuditRecord, type AuditChain } from './audit-log.ts'
 import { authorizeCapability, type CapabilityGrant } from './capability-grants.ts'
 import { getSystemManifest, type SystemId } from './systems.ts'
+import type { MissionTask } from './task-dag.ts'
+
+
+/** Stable capability required when a Director task crosses system boundaries. */
+export const CROSS_SYSTEM_TASK_EXECUTION_CAPABILITY = 'runtime.task-execute'
+
+/**
+ * Determine which systems must hand durable task context into the target
+ * system. Dependency systems are the source of truth; plans with no
+ * dependencies fall back to the plan's primary system.
+ */
+export function deriveTaskHandoffSources(
+  primarySystem: SystemId,
+  task: MissionTask,
+  dependencies: readonly MissionTask[],
+): readonly SystemId[] {
+  const byId = new Map(dependencies.map(dependency => [dependency.id, dependency]))
+  const sources = new Set<SystemId>()
+
+  if (task.dependsOn.length === 0) {
+    sources.add(primarySystem)
+  } else {
+    for (const dependencyId of task.dependsOn) {
+      const dependency = byId.get(dependencyId)
+      if (dependency === undefined) {
+        throw new Error('task handoff dependency is missing from durable task state: ' + dependencyId)
+      }
+      sources.add(dependency.systemId)
+    }
+  }
+
+  sources.delete(task.systemId)
+  return Object.freeze([...sources])
+}
 
 export interface CrossSystemRequest {
   readonly id: string
