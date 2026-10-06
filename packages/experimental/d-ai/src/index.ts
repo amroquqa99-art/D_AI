@@ -74,6 +74,8 @@ import type { MissionTask, TaskState } from './task-dag.ts'
 import { buildRuntimeConfiguration, configSchema } from './config.ts'
 import type { Config } from './config.ts'
 import { mountDaiProjections } from './runtime-projections.ts'
+import { encodeToolResult, jsonToolOutput } from './tool-support.ts'
+import { registerScientificTools } from './scientific-tools.ts'
 
 export * from './public-api.ts'
 
@@ -2732,8 +2734,8 @@ export class DAI extends Service {
       this.authorize(agent)
       return agent
     }
-    const output = { schema: { type: 'object' as const, additionalProperties: false, properties: { json: { type: 'string' as const, required: true as const } } }, render: (_args: unknown, value: { json: string }) => [{ type: 'text' as const, text: value.json }] }
-    const encoded = async (value: unknown | Promise<unknown>): Promise<{ json: string }> => ({ json: JSON.stringify(await value) })
+    const output = jsonToolOutput
+    const encoded = encodeToolResult
     this.ctx.tools.register(defineTool({ name: 'd_ai_platform_snapshot', description: 'Read a consolidated D_AI control-center snapshot: domain counts, task states, grants/audit, budgets, evidence graph and system readiness.', parameters: {}, output,
       execute: (_args, exec) => encoded(this.platformSnapshot(owner(exec.agent))) }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_systems_list', description: 'Read the authoritative D_AI first-class system registry and truthful execution/readiness status. PARTIAL means a native slice exists but is not yet fully production-complete.', parameters: {}, output,
@@ -3184,38 +3186,7 @@ export class DAI extends Service {
           reason: args.reason,
         }))
       } }))
-    this.ctx.tools.register(defineTool({ name: 'd_ai_scientific_create', description: 'Create an explicitly user-requested Scientific Research project. Do not activate a new independent research project without owner approval.',
-      parameters: { question: { type: 'string', required: true } }, output,
-      execute: (args, exec) => encoded(this.createScientific(owner(exec.agent), args.question, exec.signal)) }))
-    this.ctx.tools.register(defineTool({ name: 'd_ai_scientific_read', description: 'Read durable Scientific Research projects, hypotheses, requested experiments, results and independent worker outputs.', parameters: {}, output,
-      execute: (_args, exec) => encoded(this.readScientific(owner(exec.agent))) }))
-    this.ctx.tools.register(defineTool({ name: 'd_ai_scientific_add_hypothesis', description: 'Append a researcher hypothesis and rationale. The hypothesis remains OPEN and is not treated as a finding.',
-      parameters: { project_id: { type: 'string', required: true }, statement: { type: 'string', required: true }, rationale: { type: 'string', required: true } }, output,
-      execute: (args, exec) => encoded(this.addScientificHypothesis(owner(exec.agent), args.project_id, { statement: args.statement, rationale: args.rationale })) }))
-    this.ctx.tools.register(defineTool({ name: 'd_ai_scientific_request_experiment', description: 'Turn an evidence gap into a concrete human/lab experiment request and move the project to WAITING_FOR_HUMAN.',
-      parameters: {
-        project_id: { type: 'string', required: true },
-        title: { type: 'string', required: true },
-        objective: { type: 'string', required: true },
-        protocol: { type: 'string', required: true },
-        expected_evidence: { type: 'string', required: true },
-        budget_usd: { type: 'number' },
-      }, output,
-      execute: (args, exec) => encoded(this.requestScientificExperiment(owner(exec.agent), args.project_id, {
-        title: args.title, objective: args.objective, protocol: args.protocol, expectedEvidence: args.expected_evidence,
-        ...(args.budget_usd === undefined ? {} : { budgetUsd: args.budget_usd }),
-      })) }))
-    this.ctx.tools.register(defineTool({ name: 'd_ai_scientific_record_result', description: 'Record the real observation returned by the human/lab for a previously requested experiment.',
-      parameters: {
-        project_id: { type: 'string', required: true },
-        experiment_id: { type: 'string', required: true },
-        observation: { type: 'string', required: true },
-        artifact_ref: { type: 'string' },
-      }, output,
-      execute: (args, exec) => encoded(this.recordScientificResult(owner(exec.agent), args.project_id, args.experiment_id, args.observation, args.artifact_ref)) }))
-    this.ctx.tools.register(defineTool({ name: 'd_ai_scientific_delegate', description: 'Run fresh independent literature and methodology Agents for the approved Scientific Research question.',
-      parameters: { project_id: { type: 'string', required: true } }, output, timeoutMs: this.scientificDelegation.timeoutMs * 2 + 10000,
-      execute: (args, exec) => encoded(this.delegateScientific(owner(exec.agent), args.project_id, exec.signal)) }))
+    registerScientificTools(this.ctx, this, owner, this.scientificDelegation.timeoutMs)
     this.ctx.tools.register(defineTool({ name: 'd_ai_investor_create', description: 'Create an explicitly user-requested Investor analysis case. This does not authorize real capital movement.',
       parameters: { objective: { type: 'string', required: true } }, output,
       execute: (args, exec) => encoded(this.createInvestor(owner(exec.agent), args.objective, exec.signal)) }))
