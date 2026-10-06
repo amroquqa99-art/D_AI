@@ -60,9 +60,35 @@ describe('D_AI durable scheduler admission', () => {
     const result = selectDurableRunnableTasks(ledger(), 4)
     expect(result.selected.map(task => task.id)).toEqual(['b'])
     expect(result.blocked).toEqual(expect.arrayContaining([
-      { taskId: 'c', reason: 'dependency' },
-      { taskId: 'd', reason: 'state' },
+      { taskId: 'c', reason: 'dependency', details: [] },
+      { taskId: 'd', reason: 'state', details: [] },
     ]))
+  })
+
+  it('blocks structurally runnable work when a matching persisted budget is exceeded', () => {
+    const result = selectDurableRunnableTasks(ledger(), 4, [{
+      id: 'budget-1',
+      ownerAgentId: 'owner',
+      scope: 'MISSION',
+      scopeId: 'm1',
+      limits: { moneyLimitUsd: 10 },
+      usage: {
+        tokens: 0,
+        moneyUsd: 12,
+        wallClockMs: 0,
+        humanAttentionMinutes: 0,
+        dataAccessCostUsd: 0,
+      },
+      createdAt: '2026-10-06T00:00:00Z',
+      updatedAt: '2026-10-06T01:00:00Z',
+      updatedBy: 'owner',
+    }])
+    expect(result.selected).toEqual([])
+    expect(result.blocked).toContainEqual({
+      taskId: 'b',
+      reason: 'budget',
+      details: ['money-limit-exceeded'],
+    })
   })
 
   it('respects maxTasks deterministically', () => {
