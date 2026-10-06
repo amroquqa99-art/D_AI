@@ -8,11 +8,11 @@ This document separates **historical verified evidence** from the **current bran
 
 - Branch: `dai/v2-core-foundation`
 - Pull request: #15 (draft)
-- Current checkpoint head when this report was updated: `78a12ff3eb646e8735bc1cc3b519941284abf08a`
+- Current checkpoint head when this report was updated: `2b02af66dfcbdfc5f5db18178f92e978e3fe7d9f`
 - Latest D_AI check observed before this documentation commit:
-  - workflow run `37457295066`
-  - head `0075ee1b0eabe138a0c2b73fd5f32d18d57da4c3`
-  - job `112247906618`
+  - workflow run `37473988812`
+  - head `2b02af66dfcbdfc5f5db18178f92e978e3fe7d9f`
+  - job `112304493986`
   - conclusion: FAILURE
   - executed steps: **none** (`steps: []`)
 
@@ -60,22 +60,23 @@ The active branch now contains substantially more runtime code than the verified
 
 - six native domain slices: Investigation, Scientific Research, Investor, Cybersecurity, Operations & Intelligence, Innovation & Discovery;
 - durable Task DAG / Task Ledger;
-- Mission Director plans, isolated planner and single-task executor path;
-- durable execution leases/checkpoints/expired-lease recovery;
-- scoped budgets and scheduler admission;
+- Mission Director plans, isolated planner, single-task execution and bounded multi-task execution cycles;
+- durable execution leases/checkpoints/expired-lease recovery plus fail-closed heartbeat renewal during Director work;
+- scoped budgets and scheduler admission, including exact-exhaustion blocking and automatic real wall-clock metering for Director tasks across matching TASK/MISSION/SYSTEM profiles;
 - durable grants, human approval and append-only audit chain;
-- persisted grant-backed cross-system handoff;
+- persisted grant-backed cross-system handoff now enforced directly by Director execution before target-system work starts;
 - shared evidence/knowledge graph persistence;
 - model registry and routing policies;
 - training-governance metadata/dataset lineage;
 - model evaluation/promotion/rollback records;
 - Local Intelligence Core governance foundation;
 - consolidated platform snapshot;
-- runtime decomposition into configuration, projection registry, public API and bounded-context tool registrars.
+- runtime decomposition into configuration, projection registry, public API and bounded-context tool registrars;
+- centralized runtime kernel for owner/open-turn/mutation-order invariants and a typed projection-reader boundary.
 
 ### Characterization added during decomposition
 
-The branch now includes an integration characterization test that expects exactly **74 unique `d_ai_*` native tools** after tool-registration extraction. This test exists in source but has **not run successfully on the current checkpoint because Actions does not reach test execution**.
+The branch now includes an integration characterization test that expects exactly **75 unique `d_ai_*` native tools**, including the bounded `d_ai_director_execute_cycle` surface. Additional source tests cover lease-heartbeat failure/renewal behavior, Director execution-cycle limits, cross-system policy blocking, task/mission/system wall-clock metering, shared budget-scope selection and exact budget exhaustion. These tests exist in source but have **not run successfully on the current checkpoint because Actions does not reach test execution**.
 
 ## Current required gate
 
@@ -108,7 +109,8 @@ A failure must be treated as code/test evidence and fixed before further maturit
 - real Local Intelligence Core model artifact/training job;
 - live browser Control Center;
 - institutional multi-user deployment;
-- production long-running worker infrastructure.
+- production unattended long-running worker infrastructure;
+- live token/cost/data-access/human-attention metering (current automatic metering is wall-clock only at the Director task boundary).
 
 Fixture or mock execution is labeled as such and does not satisfy live-provider acceptance.
 
