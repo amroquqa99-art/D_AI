@@ -572,6 +572,16 @@ export class DAI extends Service {
         operationsIntelligence: operations.cases.length,
         innovationDiscovery: innovation.projects.length,
       },
+      missionDirector: (() => {
+        const ledger = this.directorLedger(agent)
+        return {
+          revision: ledger.revision,
+          plans: ledger.plans.length,
+          activePlans: ledger.plans.filter(plan => plan.status === 'ACTIVE').length,
+          pausedPlans: ledger.plans.filter(plan => plan.status === 'PAUSED').length,
+          completedPlans: ledger.plans.filter(plan => plan.status === 'COMPLETE').length,
+        }
+      })(),
       tasks: {
         revision: taskLedger.revision,
         total: taskLedger.tasks.length,
@@ -828,6 +838,157 @@ export class DAI extends Service {
 
 
 
+
+  /** Create one approved cross-system Mission Director plan. */
+  async createDirectorPlan(
+    agent: Agent,
+    input: {
+      readonly objective: string
+      readonly primarySystem: DirectorPlan['primarySystem']
+      readonly stopConditions?: readonly string[]
+    },
+    signal?: AbortSignal,
+  ): Promise<DirectorPlan> {
+    this.authorize(agent)
+    if (input.objective.trim().length === 0) fail('Mission Director objective is required', 'D_AI_INVALID_INPUT')
+    if ((input.stopConditions ?? []).some(condition => condition.trim().length === 0)) fail('Mission Director stop conditions must be non-empty', 'D_AI_INVALID_INPUT')
+
+    const boundary = this.requireOpenTurn(agent)
+    const explicit = agent.session.snapshotEvents().slice(boundary + 1).some(event =>
+      event.type === 'user/message'
+      && event.data.source.kind === 'user'
+      && event.data.content.filter(block => block.type === 'text').map(block => block.text).join('\n').includes(input.objective.trim()))
+    if (!explicit) {
+      const outcome = await this.ctx.approval.request({
+        agent,
+        toolName: 'd_ai_director_plan_create',
+        reason: 'Create independent D_AI Mission Director plan: ' + input.objective,
+        ...(signal === undefined ? {} : { signal }),
+      })
+      if (outcome !== 'allowed-once') fail('owner approval is required for an independent Mission Director plan')
+    }
+
+    const plan: DirectorPlan = {
+      id: randomUUID(),
+      objective: input.objective,
+      primarySystem: input.primarySystem,
+      ownerAgentId: agent.id,
+      createdAt: new Date().toISOString(),
+      status: 'ACTIVE',
+      stopConditions: [...(input.stopConditions ?? [])],
+    }
+    await this.transact(agent, async () => {
+      const current = this.directorLedger(agent)
+      await this.appendDirectorLedger(agent, 'CREATE_PLAN', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        plans: [...current.plans, plan],
+      })
+    })
+    return immutable(plan)
+  }
+
+  /** Add one task to an approved Director plan; dependencies must stay inside that plan. */
+  async addDirectorTask(
+    agent: Agent,
+    planId: string,
+    input: {
+      readonly systemId: MissionTask['systemId']
+      readonly title: string
+      readonly dependsOn?: readonly string[]
+      readonly priority?: number
+      readonly maxAttempts?: number
+    },
+  ): Promise<DurableTaskLedger> {
+    const plan = this.directorPlan(agent, planId)
+    if (plan.status !== 'ACTIVE') fail('tasks can be added only to an active Mission Director plan', 'D_AI_INVALID_TRANSITION')
+    if (input.title.trim().length === 0) fail('Director task title is required', 'D_AI_INVALID_INPUT')
+    const dependencies = [...(input.dependsOn ?? [])]
+    const existing = this.taskLedger(agent)
+    for (const dependency of dependencies) {
+      const task = existing.tasks.find(item => item.id === dependency)
+      if (task === undefined || task.missionId !== plan.id) fail('Director task dependency must belong to the same plan', 'D_AI_INVALID_INPUT')
+    }
+    const priority = input.priority ?? 0
+    const maxAttempts = input.maxAttempts ?? 3
+    if (!Number.isSafeInteger(priority) || !Number.isSafeInteger(maxAttempts) || maxAttempts < 1) {
+      fail('invalid Director task priority or retry budget', 'D_AI_INVALID_INPUT')
+    }
+    return this.addDurableTasks(agent, [{
+      id: randomUUID(),
+      missionId: plan.id,
+      systemId: input.systemId,
+      title: input.title,
+      dependsOn: dependencies,
+      state: 'PENDING',
+      priority,
+      attempt: 0,
+      maxAttempts,
+    }])
+  }
+
+  /** Change explicit plan lifecycle state after human approval. */
+  async setDirectorPlanStatus(
+    agent: Agent,
+    planId: string,
+    status: DirectorPlan['status'],
+    signal?: AbortSignal,
+  ): Promise<DirectorLedger> {
+    this.authorize(agent)
+    const currentPlan = this.directorPlan(agent, planId)
+    if (currentPlan.status === status) return this.directorLedger(agent)
+    const outcome = await this.ctx.approval.request({
+      agent,
+      toolName: 'd_ai_director_plan_status',
+      reason: 'Change Mission Director plan ' + planId + ' status to ' + status,
+      ...(signal === undefined ? {} : { signal }),
+    })
+    if (outcome !== 'allowed-once') fail('human approval is required for Mission Director lifecycle changes')
+
+    return this.transact(agent, async () => {
+      const current = this.directorLedger(agent)
+      const plan = current.plans.find(item => item.id === planId)
+      if (plan === undefined) fail('unknown Mission Director plan', 'D_AI_INVALID_INPUT')
+      return this.appendDirectorLedger(agent, 'SET_STATUS', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        plans: current.plans.map(item => item.id === planId ? { ...item, status } : item),
+      })
+    })
+  }
+
+  /** Build a derived Director view from the plan plus authoritative Task Ledger state. */
+  directorPlanView(
+    agent: Agent,
+    planId: string,
+    maxTasks = 8,
+  ): Readonly<Record<string, unknown>> {
+    const plan = this.directorPlan(agent, planId)
+    const fullLedger = this.taskLedger(agent)
+    const tasks = fullLedger.tasks.filter(task => task.missionId === plan.id)
+
+    let phase: MissionPhase
+    if (plan.status === 'PAUSED') phase = 'PAUSED'
+    else if (plan.status === 'COMPLETE') phase = 'COMPLETE'
+    else if (tasks.length === 0) phase = 'PLANNING'
+    else if (tasks.every(task => task.state === 'COMPLETED' || task.state === 'CANCELLED')) phase = 'COMPLETE'
+    else if (tasks.some(task => task.state === 'WAITING_FOR_HUMAN')) phase = 'WAITING_FOR_HUMAN'
+    else if (tasks.some(task => task.state === 'BLOCKED_POLICY' || task.state === 'BLOCKED_BUDGET' || task.state === 'FAILED')) phase = 'BLOCKED'
+    else phase = 'EXECUTING'
+
+    const scopedLedger: DurableTaskLedger = {
+      ownerAgentId: agent.id,
+      revision: fullLedger.revision,
+      tasks,
+    }
+    const next = selectDurableRunnableTasks(scopedLedger, maxTasks, this.budgetLedger(agent).profiles)
+    return immutable({
+      plan,
+      phase,
+      tasks,
+      next,
+    })
+  }
 
   /** Record one externally produced model evaluation against a governed dataset. */
   async recordModelEvaluation(
@@ -2647,6 +2808,59 @@ export class DAI extends Service {
         const states = ['PENDING', 'READY', 'RUNNING', 'WAITING_FOR_HUMAN', 'WAITING_FOR_TOOL', 'BLOCKED_POLICY', 'BLOCKED_BUDGET', 'PAUSED', 'FAILED', 'COMPLETED', 'CANCELLED'] as const
         if (!states.includes(args.next_state as typeof states[number])) fail('invalid durable task state', 'D_AI_INVALID_INPUT')
         return encoded(this.transitionDurableTask(owner(exec.agent), args.task_id, args.next_state as TaskState))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_director_read', description: 'Read durable cross-system Mission Director plans. Task state remains authoritative in the shared Task Ledger.',
+      parameters: {}, output,
+      execute: (_args, exec) => encoded(this.readDirector(owner(exec.agent))) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_director_plan_create', description: 'Create a cross-system Mission Director plan from an explicit user objective or after owner approval.',
+      parameters: {
+        objective: { type: 'string', required: true },
+        primary_system: { type: 'string', required: true },
+        stop_conditions: { type: 'string' },
+      }, output,
+      execute: (args, exec) => {
+        if (!SYSTEMS.some(system => system.id === args.primary_system)) fail('unknown primary D_AI system', 'D_AI_INVALID_INPUT')
+        const stopConditions = args.stop_conditions === undefined
+          ? []
+          : args.stop_conditions.split(/\n+/).map(value => value.trim()).filter(Boolean)
+        return encoded(this.createDirectorPlan(owner(exec.agent), {
+          objective: args.objective,
+          primarySystem: args.primary_system as DirectorPlan['primarySystem'],
+          stopConditions,
+        }, exec.signal))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_director_task_add', description: 'Add one task to an active Mission Director plan. Dependencies must reference tasks in the same plan.',
+      parameters: {
+        plan_id: { type: 'string', required: true },
+        system_id: { type: 'string', required: true },
+        title: { type: 'string', required: true },
+        depends_on: { type: 'string' },
+        priority: { type: 'number' },
+        max_attempts: { type: 'number' },
+      }, output,
+      execute: (args, exec) => {
+        if (!SYSTEMS.some(system => system.id === args.system_id)) fail('unknown D_AI system id', 'D_AI_INVALID_INPUT')
+        return encoded(this.addDirectorTask(owner(exec.agent), args.plan_id, {
+          systemId: args.system_id as MissionTask['systemId'],
+          title: args.title,
+          ...(args.depends_on === undefined ? {} : { dependsOn: args.depends_on.split(',').map(value => value.trim()).filter(Boolean) }),
+          ...(args.priority === undefined ? {} : { priority: args.priority }),
+          ...(args.max_attempts === undefined ? {} : { maxAttempts: args.max_attempts }),
+        }))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_director_plan_view', description: 'Read one Mission Director plan with derived phase, authoritative tasks and budget-aware next runnable work.',
+      parameters: { plan_id: { type: 'string', required: true }, max_tasks: { type: 'number' } }, output,
+      execute: (args, exec) => {
+        const maxTasks = args.max_tasks ?? 8
+        if (!Number.isSafeInteger(maxTasks) || maxTasks < 1 || maxTasks > 64) fail('max_tasks must be an integer from 1 to 64', 'D_AI_INVALID_INPUT')
+        return encoded(this.directorPlanView(owner(exec.agent), args.plan_id, maxTasks))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_director_plan_status', description: 'Pause, resume or explicitly complete a Mission Director plan after human approval.',
+      parameters: { plan_id: { type: 'string', required: true }, status: { type: 'string', required: true } }, output,
+      execute: (args, exec) => {
+        const statuses = ['ACTIVE', 'PAUSED', 'COMPLETE'] as const
+        if (!statuses.includes(args.status as typeof statuses[number])) fail('invalid Mission Director plan status', 'D_AI_INVALID_INPUT')
+        return encoded(this.setDirectorPlanStatus(owner(exec.agent), args.plan_id, args.status as DirectorPlan['status'], exec.signal))
       } }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_model_lifecycle_read', description: 'Read governed Local Intelligence Core model evaluations, promotion decisions and rollback pointers. No model artifact bytes are stored here.',
       parameters: {}, output,
