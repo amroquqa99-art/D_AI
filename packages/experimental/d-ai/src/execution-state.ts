@@ -10,6 +10,7 @@ export const taskLeaseSchema = z.object({
   taskId: identity,
   missionId: identity,
   holderId: identity,
+  fence: z.number().int().positive(),
   acquiredAt: z.string().datetime(),
   expiresAt: z.string().datetime(),
   releasedAt: z.string().datetime().optional(),
@@ -18,6 +19,8 @@ export const taskLeaseSchema = z.object({
 export const taskCheckpointSchema = z.object({
   id: identity,
   taskId: identity,
+  leaseId: identity,
+  fence: z.number().int().positive(),
   sequence: z.number().int().positive(),
   at: z.string().datetime(),
   summary: z.string().min(1).max(24000),
@@ -99,6 +102,7 @@ export function projectExecutionFact(state: ExecutionState, event: SessionEvent)
       if (fact.operation !== 'ACQUIRE_LEASE' || fact.ledger.leases.length !== 1 || fact.ledger.checkpoints.length !== 0) {
         throw new Error('execution ledger must begin by acquiring exactly one lease')
       }
+      if (fact.ledger.leases[0]!.fence !== 1) throw new Error('first task lease fence must be 1')
     } else if (fact.operation === 'ACQUIRE_LEASE') {
       if (JSON.stringify(fact.ledger.leases.slice(0, prior.leases.length)) !== JSON.stringify(prior.leases)) {
         throw new Error('prior task leases changed while acquiring lease')
@@ -107,6 +111,10 @@ export function projectExecutionFact(state: ExecutionState, event: SessionEvent)
         throw new Error('ACQUIRE_LEASE must append exactly one lease')
       }
       const lease = fact.ledger.leases.at(-1)!
+      const expectedFence = prior.leases
+        .filter(previous => previous.taskId === lease.taskId)
+        .reduce((max, previous) => Math.max(max, previous.fence), 0) + 1
+      if (lease.fence !== expectedFence) throw new Error('task lease fence is not monotonic')
       const acquired = Date.parse(lease.acquiredAt)
       const conflicting = prior.leases.some(previous =>
         previous.taskId === lease.taskId
@@ -119,7 +127,7 @@ export function projectExecutionFact(state: ExecutionState, event: SessionEvent)
       if (changed.length !== 1) throw new Error('RENEW_LEASE must update exactly one lease')
       const before = prior.leases[changed[0]!]!
       const after = fact.ledger.leases[changed[0]!]!
-      for (const field of ['id', 'taskId', 'missionId', 'holderId', 'acquiredAt', 'releasedAt'] as const) {
+      for (const field of ['id', 'taskId', 'missionId', 'holderId', 'fence', 'acquiredAt', 'releasedAt'] as const) {
         if (before[field] !== after[field]) throw new Error('immutable task lease field changed: ' + field)
       }
       if (before.releasedAt !== undefined) throw new Error('released lease cannot be renewed')
@@ -130,7 +138,7 @@ export function projectExecutionFact(state: ExecutionState, event: SessionEvent)
       if (changed.length !== 1) throw new Error('RELEASE_LEASE must update exactly one lease')
       const before = prior.leases[changed[0]!]!
       const after = fact.ledger.leases[changed[0]!]!
-      for (const field of ['id', 'taskId', 'missionId', 'holderId', 'acquiredAt', 'expiresAt'] as const) {
+      for (const field of ['id', 'taskId', 'missionId', 'holderId', 'fence', 'acquiredAt', 'expiresAt'] as const) {
         if (before[field] !== after[field]) throw new Error('immutable task lease field changed: ' + field)
       }
       if (before.releasedAt !== undefined || after.releasedAt === undefined) throw new Error('lease must transition from active to released')
@@ -141,6 +149,17 @@ export function projectExecutionFact(state: ExecutionState, event: SessionEvent)
       }
       if (fact.ledger.checkpoints.length !== prior.checkpoints.length + 1) throw new Error('CHECKPOINT must append exactly one checkpoint')
       const checkpoint = fact.ledger.checkpoints.at(-1)!
+      const lease = fact.ledger.leases.find(item =>
+        item.id === checkpoint.leaseId
+        && item.taskId === checkpoint.taskId
+        && item.fence === checkpoint.fence)
+      if (lease === undefined) throw new Error('task checkpoint references unknown lease fence')
+      const checkpointAt = Date.parse(checkpoint.at)
+      if (
+        checkpointAt < Date.parse(lease.acquiredAt)
+        || checkpointAt > Date.parse(lease.expiresAt)
+        || (lease.releasedAt !== undefined && checkpointAt > Date.parse(lease.releasedAt))
+      ) throw new Error('task checkpoint falls outside its lease lifetime')
       const priorSequence = prior.checkpoints
         .filter(item => item.taskId === checkpoint.taskId)
         .reduce((max, item) => Math.max(max, item.sequence), 0)
