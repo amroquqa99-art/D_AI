@@ -15,6 +15,8 @@ export interface OperationsDelegationConfig {
   readonly maxResultBytes: number
   readonly fusionModel?: string
   readonly adversarialModel?: string
+  readonly fusionProvider?: string
+  readonly adversarialProvider?: string
 }
 
 export interface OperationsWorkerOutput {
@@ -46,7 +48,7 @@ export async function runOperationsDelegates(
     throw new Error('Operations provider does not support required worker configuration')
   }
 
-  const runWorker = async (role: 'fusion' | 'adversarial', model?: string): Promise<OperationsWorkerOutput> => {
+  const runWorker = async (role: 'fusion' | 'adversarial', model?: string, llmProvider?: string): Promise<OperationsWorkerOutput> => {
     const controller = new AbortController()
     const childSignal = AbortSignal.any([signal, controller.signal])
     const label = 'operations-' + role + '-' + randomUUID()
@@ -69,7 +71,7 @@ export async function runOperationsDelegates(
         signal: childSignal,
         maxDepth: config.maxDepth,
         toolFilter: { allow: [...config.allowedTools] },
-        agentOptions: { maxTokens: config.maxOutputTokens, ...model === undefined ? {} : { model } },
+        agentOptions: { maxTokens: config.maxOutputTokens, ...llmProvider === undefined ? {} : { provider: llmProvider }, ...model === undefined ? {} : { model } },
         persona: role === 'fusion'
           ? 'Fuse the approved case information into an auditable operational picture. Separate observations, inferred relationships, confidence, gaps and alternative explanations. Produce analysis and options only; do not execute sensitive external actions.'
           : 'Independently challenge the operational picture. Search for missing entities, contradictory timelines, mistaken identity, alternative hypotheses, deceptive signals and information gaps. Do not inherit the fusion worker conclusion and do not execute external actions.',
@@ -91,8 +93,8 @@ export async function runOperationsDelegates(
     }
   }
 
-  const fusion = await runWorker('fusion', config.fusionModel)
+  const fusion = await runWorker('fusion', config.fusionModel, config.fusionProvider)
   signal.throwIfAborted()
-  const adversarial = await runWorker('adversarial', config.adversarialModel)
+  const adversarial = await runWorker('adversarial', config.adversarialModel, config.adversarialProvider)
   return { fusion, adversarial }
 }
