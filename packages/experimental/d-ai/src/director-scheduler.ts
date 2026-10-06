@@ -115,7 +115,6 @@ export function shouldWakeDirectorSchedule(
 export class DirectorScheduler {
   private readonly controller = new AbortController()
   private readonly active = new Set<string>()
-  private readonly idleUntil = new Map<string, number>()
   private readonly removePreStep: () => void
   private readonly loop: Promise<void>
 
@@ -140,7 +139,6 @@ export class DirectorScheduler {
       if (this.active.has(key)) return { kind: 'reject' }
 
       this.active.add(key)
-      this.idleUntil.delete(key)
       try {
         await this.runtime.runScheduledDirectorCycle(agent, source.scheduleId, signal)
       } catch (error) {
@@ -157,7 +155,12 @@ export class DirectorScheduler {
       return { kind: 'reject' }
     })
 
-    this.loop = this.run()
+    this.loop = this.run().catch((error: unknown) => {
+      this.ctx.logger.error(
+        'D_AI Director scheduler loop stopped unexpectedly: '
+        + (error instanceof Error ? error.message : String(error)),
+      )
+    })
   }
 
   private async run(): Promise<void> {
@@ -201,7 +204,6 @@ export class DirectorScheduler {
       for (const schedule of ledger.schedules) {
         const key = scheduleKey(agent.id, schedule.id)
         if (this.active.has(key)
-          || (this.idleUntil.get(key) ?? 0) > nowMs
           || hasPendingDirectorSchedulerWake(agent, schedule.id)) {
           continue
         }
@@ -218,14 +220,10 @@ export class DirectorScheduler {
             + ': '
             + (error instanceof Error ? error.message : String(error)),
           )
-          this.idleUntil.set(key, nowMs + schedule.intervalMs)
           continue
         }
 
-        if (!shouldWakeDirectorSchedule(schedule, plan, execution, nowMs)) {
-          this.idleUntil.set(key, nowMs + schedule.intervalMs)
-          continue
-        }
+        if (!shouldWakeDirectorSchedule(schedule, plan, execution, nowMs)) continue
 
         // Do not splice unattended work into a currently active turn or ahead
         // of already queued human/agent work. The next scan retries later.
@@ -235,7 +233,19 @@ export class DirectorScheduler {
           continue
         }
 
-        agent.followup(createDirectorSchedulerWake(schedule))
+        try {
+          agent.followup(createDirectorSchedulerWake(schedule))
+        } catch (error) {
+          // Agent disposal or a concurrent lifecycle transition must not kill
+          // the process-level scheduler loop. The next scan will reconsider
+          // the durable schedule if the owner is still live.
+          this.ctx.logger.warn(
+            'D_AI scheduler could not enqueue plan '
+            + schedule.planId
+            + ': '
+            + (error instanceof Error ? error.message : String(error)),
+          )
+        }
       }
     }
   }
