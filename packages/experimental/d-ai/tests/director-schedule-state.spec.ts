@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { projectDirectorScheduleFact, type DirectorScheduleFact, type DirectorScheduleState } from '../src/director-schedule-state.ts'
+import { directorScheduleStagnationReason, projectDirectorScheduleFact, type DirectorScheduleFact, type DirectorScheduleState } from '../src/director-schedule-state.ts'
 
 function event(fact: DirectorScheduleFact): never {
   return {
@@ -21,6 +21,10 @@ function schedule(overrides: Partial<DirectorScheduleFact['ledger']['schedules']
     intervalMs: overrides.intervalMs ?? 1000,
     maxTasksPerCycle: overrides.maxTasksPerCycle ?? 4,
     maxParallelTasks: overrides.maxParallelTasks ?? 1,
+    maxConsecutiveFailures: overrides.maxConsecutiveFailures ?? 0,
+    maxConsecutiveIdleCycles: overrides.maxConsecutiveIdleCycles ?? 0,
+    consecutiveFailures: overrides.consecutiveFailures ?? 0,
+    consecutiveIdleCycles: overrides.consecutiveIdleCycles ?? 0,
     leaseTtlMs: overrides.leaseTtlMs ?? 60000,
     nextWakeAt: overrides.nextWakeAt ?? '2026-10-07T00:00:01.000Z',
     createdAt: overrides.createdAt ?? '2026-10-07T00:00:00.000Z',
@@ -124,16 +128,29 @@ describe('D_AI Director schedule projection', () => {
   })
 
   it('records a task failure without misclassifying it as scheduler failure', () => {
-    const state = projectDirectorScheduleFact(baseState(), event({
+    const created = projectDirectorScheduleFact(baseState(), event({
       version: 1,
       operation: 'UPSERT',
       actorId: 'owner',
       ledger: {
         ownerAgentId: 'owner',
         revision: 1,
+        schedules: [schedule()],
+      },
+    }))
+
+    const state = projectDirectorScheduleFact(created, event({
+      version: 1,
+      operation: 'RECORD_CYCLE',
+      actorId: 'owner',
+      ledger: {
+        ownerAgentId: 'owner',
+        revision: 2,
         schedules: [schedule({
+          nextWakeAt: '2026-10-07T00:00:03.000Z',
+          updatedAt: '2026-10-07T00:00:02.000Z',
           lastCycle: {
-            attemptedAt: '2026-10-07T00:00:00.000Z',
+            attemptedAt: '2026-10-07T00:00:02.000Z',
             outcome: 'TASK_FAILED',
             executedTasks: 1,
             phase: 'BLOCKED',
@@ -145,6 +162,221 @@ describe('D_AI Director schedule projection', () => {
     expect(state.failure).toBeUndefined()
     expect(state.ledgers[0]?.schedules[0]?.lastCycle?.outcome).toBe('TASK_FAILED')
     expect(state.ledgers[0]?.schedules[0]?.lastCycle?.error).toBeUndefined()
+    expect(state.ledgers[0]?.schedules[0]?.consecutiveFailures).toBe(0)
+    expect(state.ledgers[0]?.schedules[0]?.consecutiveIdleCycles).toBe(0)
+  })
+
+  it('increments and resets stagnation counters from authoritative cycle outcomes', () => {
+    const created = projectDirectorScheduleFact(baseState(), event({
+      version: 1,
+      operation: 'UPSERT',
+      actorId: 'owner',
+      ledger: {
+        ownerAgentId: 'owner',
+        revision: 1,
+        schedules: [schedule({
+          maxConsecutiveFailures: 2,
+          maxConsecutiveIdleCycles: 2,
+        })],
+      },
+    }))
+
+    const failed = projectDirectorScheduleFact(created, event({
+      version: 1,
+      operation: 'RECORD_CYCLE',
+      actorId: 'owner',
+      ledger: {
+        ownerAgentId: 'owner',
+        revision: 2,
+        schedules: [schedule({
+          maxConsecutiveFailures: 2,
+          maxConsecutiveIdleCycles: 2,
+          consecutiveFailures: 1,
+          nextWakeAt: '2026-10-07T00:00:03.000Z',
+          updatedAt: '2026-10-07T00:00:02.000Z',
+          lastCycle: {
+            attemptedAt: '2026-10-07T00:00:02.000Z',
+            outcome: 'FAILED',
+            executedTasks: 0,
+            phase: 'EXECUTING',
+            error: 'fixture failure',
+          },
+        })],
+      },
+    }))
+    expect(failed.failure).toBeUndefined()
+    expect(failed.ledgers[0]?.schedules[0]).toMatchObject({
+      consecutiveFailures: 1,
+      consecutiveIdleCycles: 0,
+    })
+
+    const idle = projectDirectorScheduleFact(failed, event({
+      version: 1,
+      operation: 'RECORD_CYCLE',
+      actorId: 'owner',
+      ledger: {
+        ownerAgentId: 'owner',
+        revision: 3,
+        schedules: [schedule({
+          maxConsecutiveFailures: 2,
+          maxConsecutiveIdleCycles: 2,
+          consecutiveFailures: 0,
+          consecutiveIdleCycles: 1,
+          nextWakeAt: '2026-10-07T00:00:05.000Z',
+          updatedAt: '2026-10-07T00:00:04.000Z',
+          lastCycle: {
+            attemptedAt: '2026-10-07T00:00:04.000Z',
+            outcome: 'IDLE',
+            executedTasks: 0,
+            phase: 'EXECUTING',
+          },
+        })],
+      },
+    }))
+    expect(idle.failure).toBeUndefined()
+    expect(idle.ledgers[0]?.schedules[0]).toMatchObject({
+      consecutiveFailures: 0,
+      consecutiveIdleCycles: 1,
+    })
+
+    const executed = projectDirectorScheduleFact(idle, event({
+      version: 1,
+      operation: 'RECORD_CYCLE',
+      actorId: 'owner',
+      ledger: {
+        ownerAgentId: 'owner',
+        revision: 4,
+        schedules: [schedule({
+          maxConsecutiveFailures: 2,
+          maxConsecutiveIdleCycles: 2,
+          consecutiveFailures: 0,
+          consecutiveIdleCycles: 0,
+          nextWakeAt: '2026-10-07T00:00:07.000Z',
+          updatedAt: '2026-10-07T00:00:06.000Z',
+          lastCycle: {
+            attemptedAt: '2026-10-07T00:00:06.000Z',
+            outcome: 'EXECUTED',
+            executedTasks: 1,
+            phase: 'EXECUTING',
+          },
+        })],
+      },
+    }))
+    expect(executed.failure).toBeUndefined()
+    expect(executed.ledgers[0]?.schedules[0]).toMatchObject({
+      consecutiveFailures: 0,
+      consecutiveIdleCycles: 0,
+    })
+  })
+
+  it('derives explicit stagnation reasons and treats zero thresholds as disabled', () => {
+    expect(directorScheduleStagnationReason(schedule({
+      maxConsecutiveFailures: 0,
+      consecutiveFailures: 99,
+    }))).toBeUndefined()
+
+    expect(directorScheduleStagnationReason(schedule({
+      maxConsecutiveFailures: 2,
+      consecutiveFailures: 2,
+    }))).toBe('FAILURE_LIMIT')
+
+    expect(directorScheduleStagnationReason(schedule({
+      maxConsecutiveIdleCycles: 3,
+      consecutiveIdleCycles: 3,
+    }))).toBe('IDLE_LIMIT')
+  })
+
+  it('rejects fabricated counter updates but permits an explicit full reset through UPSERT', () => {
+    const created = projectDirectorScheduleFact(baseState(), event({
+      version: 1,
+      operation: 'UPSERT',
+      actorId: 'owner',
+      ledger: {
+        ownerAgentId: 'owner',
+        revision: 1,
+        schedules: [schedule({
+          maxConsecutiveFailures: 3,
+        })],
+      },
+    }))
+
+    const failed = projectDirectorScheduleFact(created, event({
+      version: 1,
+      operation: 'RECORD_CYCLE',
+      actorId: 'owner',
+      ledger: {
+        ownerAgentId: 'owner',
+        revision: 2,
+        schedules: [schedule({
+          maxConsecutiveFailures: 3,
+          consecutiveFailures: 1,
+          nextWakeAt: '2026-10-07T00:00:03.000Z',
+          updatedAt: '2026-10-07T00:00:02.000Z',
+          lastCycle: {
+            attemptedAt: '2026-10-07T00:00:02.000Z',
+            outcome: 'FAILED',
+            executedTasks: 0,
+            phase: 'EXECUTING',
+            error: 'fixture failure',
+          },
+        })],
+      },
+    }))
+    expect(failed.failure).toBeUndefined()
+
+    const fabricated = projectDirectorScheduleFact(failed, event({
+      version: 1,
+      operation: 'UPSERT',
+      actorId: 'owner',
+      ledger: {
+        ownerAgentId: 'owner',
+        revision: 3,
+        schedules: [schedule({
+          maxConsecutiveFailures: 3,
+          consecutiveFailures: 2,
+          nextWakeAt: '2026-10-07T00:00:04.000Z',
+          updatedAt: '2026-10-07T00:00:03.000Z',
+          lastCycle: failed.ledgers[0]!.schedules[0]!.lastCycle,
+        })],
+      },
+    }))
+    expect(fabricated.failure).toContain('may only preserve or reset stagnation counters')
+
+    const reset = projectDirectorScheduleFact(failed, event({
+      version: 1,
+      operation: 'UPSERT',
+      actorId: 'owner',
+      ledger: {
+        ownerAgentId: 'owner',
+        revision: 3,
+        schedules: [schedule({
+          maxConsecutiveFailures: 3,
+          consecutiveFailures: 0,
+          consecutiveIdleCycles: 0,
+          nextWakeAt: '2026-10-07T00:00:04.000Z',
+          updatedAt: '2026-10-07T00:00:03.000Z',
+          lastCycle: failed.ledgers[0]!.schedules[0]!.lastCycle,
+        })],
+      },
+    }))
+    expect(reset.failure).toBeUndefined()
+    expect(reset.ledgers[0]?.schedules[0]?.consecutiveFailures).toBe(0)
+  })
+
+  it('rejects historical cycle state on initial schedule creation', () => {
+    const invalid = projectDirectorScheduleFact(baseState(), event({
+      version: 1,
+      operation: 'UPSERT',
+      actorId: 'owner',
+      ledger: {
+        ownerAgentId: 'owner',
+        revision: 1,
+        schedules: [schedule({
+          consecutiveFailures: 1,
+        })],
+      },
+    }))
+    expect(invalid.failure).toContain('cannot contain historical cycle state')
   })
 
   it('prevents cycle receipts from mutating schedule configuration', () => {
