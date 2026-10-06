@@ -176,7 +176,7 @@ export interface LocalIntelligenceCoreManifest {
  */
 export const LOCAL_INTELLIGENCE_CORE: LocalIntelligenceCoreManifest = Object.freeze({
   id: 'local-intelligence-core',
-  status: 'FOUNDATION',
+  status: 'PARTIAL',
   role: 'Primary future specialized model for D_AI planning, tool use, evidence reasoning and cross-system work.',
   dataPolicy: 'explicit-eligibility-only',
   stages: Object.freeze([
