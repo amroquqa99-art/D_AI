@@ -28,8 +28,8 @@ Verification is tracked separately because the current branch CI runner is faili
 | Operations & Intelligence | durable entities/relations/timeline/gaps/options, fusion/adversarial agents | INTEGRATED | CI_PENDING | Collaborative case workspace, richer ingestion/geo integrations |
 | Innovation & Discovery | candidates, mechanisms, falsification tests, experiment handoff/results, explorer/critic | INTEGRATED | CI_PENDING | Prior-art connectors, deterministic math/simulation integrations |
 | Task DAG / Task Ledger | durable typed task graph, transitions, retry accounting, replay | INTEGRATED | CI_PENDING | 1000-task bounded-concurrency/fairness acceptance |
-| Mission Director | durable plans, planner agent, task creation/view/status, single-task/bounded-cycle executor, approval-gated durable unattended schedules and native-turn wake loop | INTEGRATED | CI_PENDING | full native acceptance, multi-worker scheduling, long-horizon saturation/stagnation/fairness policy |
-| Durable execution | fenced leases, heartbeat renewal, checkpoint lineage, release/recovery, deterministic v1→v2 replay migration and unattended root-Agent wake coordination; heartbeat cancellation/cleanup regressions fixed | INTEGRATED | PRE_SCHEDULER_LOCAL_UNIT_PASS / CI_PENDING | multi-worker pool, native scheduler acceptance, crash/restart stress and live recovery proof |
+| Mission Director | durable plans, planner agent, task creation/view/status, single-task/bounded-cycle executor, approval-gated durable unattended schedules, native-turn wake loop, cross-schedule fairness ordering and bounded in-process concurrent cycles | INTEGRATED | CI_PENDING | full native acceptance, same-plan parallel workers, distributed/multi-process scheduling and stagnation policy |
+| Durable execution | fenced leases, heartbeat renewal, checkpoint lineage, release/recovery, deterministic v1→v2 replay migration, unattended root-Agent wake coordination and bounded in-process concurrent cycles; heartbeat cancellation/cleanup regressions fixed | INTEGRATED | PRE_SCHEDULER_LOCAL_UNIT_PASS / CI_PENDING | same-plan worker pool, distributed scheduling, native scheduler acceptance, crash/restart stress and live recovery proof |
 | External side-effect idempotency | durable reservation/dispatch/commit/unknown/reconcile journal + fenced connector gateway; no production mutable connector | INTEGRATED | CI_PENDING | connector-level adoption, live idempotency/reconciliation acceptance and provider-specific semantics |
 | Resource budgets / VoI | durable scoped limits/usage, budget-aware scheduler, VoI primitives | INTEGRATED | CI_PENDING | automatic metering on every relevant model/tool/data boundary |
 | Capability control plane | scoped grants/denies, native approval, audit hash chain | INTEGRATED | CI_PENDING | institutional ABAC/admin UI and organization/multi-user model |
@@ -65,7 +65,7 @@ The active branch is executing [ADR 0002](ADRS/0002-runtime-decomposition.md):
 - public package exports extracted to `public-api.ts`;
 - native tool result/error boundary centralized in `tool-support.ts`;
 - domain and shared-core tool registration split into bounded-context `*-tools.ts` modules;
-- the native D_AI tool surface is characterized as 74 unique `d_ai_*` tools in integration-test source.
+- the native D_AI tool surface is characterized as 77 unique `d_ai_*` tools in integration-test source.
 
 The refactor is behavior-preserving by intent and remains verification-pending until the executable gate is restored.
 
