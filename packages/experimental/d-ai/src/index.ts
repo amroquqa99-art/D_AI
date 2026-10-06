@@ -34,6 +34,14 @@ import { innovationFactSchema, innovationProjection } from './innovation-state.t
 import type { InnovationCandidate, InnovationExperiment, InnovationFact, InnovationProject, InnovationState } from './innovation-state.ts'
 import { runInnovationDelegates } from './innovation-orchestration.ts'
 import type { InnovationDelegationConfig } from './innovation-orchestration.ts'
+import { taskLedgerFactSchema, taskLedgerProjection } from './task-ledger-state.ts'
+import type { DurableTaskLedger, TaskLedgerFact, TaskLedgerState } from './task-ledger-state.ts'
+import { controlPlaneFactSchema, controlPlaneProjection } from './control-plane-state.ts'
+import type { ControlPlane, ControlPlaneFact, ControlPlaneState } from './control-plane-state.ts'
+import { appendAuditRecord as appendAuditRecordInternal, createAuditChain as createAuditChainInternal } from './audit-log.ts'
+import { validateGrant as validateGrantInternal } from './capability-grants.ts'
+import type { CapabilityGrant } from './capability-grants.ts'
+import type { MissionTask, TaskState } from './task-dag.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
 export { getSystemManifest, listSystemManifests, LOCAL_INTELLIGENCE_CORE } from './systems.ts'
@@ -78,6 +86,10 @@ export { innovationFactSchema, innovationProjection, projectInnovationFact } fro
 export type { InnovationCandidate, InnovationExperiment, InnovationFact, InnovationProject, InnovationState } from './innovation-state.ts'
 export { runInnovationDelegates } from './innovation-orchestration.ts'
 export type { InnovationDelegationConfig, InnovationDelegates, InnovationWorkerOutput } from './innovation-orchestration.ts'
+export { taskLedgerFactSchema, taskLedgerProjection, projectTaskLedgerFact } from './task-ledger-state.ts'
+export type { DurableTaskLedger, TaskLedgerFact, TaskLedgerState } from './task-ledger-state.ts'
+export { controlPlaneFactSchema, controlPlaneProjection, projectControlPlaneFact } from './control-plane-state.ts'
+export type { ControlPlane, ControlPlaneFact, ControlPlaneState } from './control-plane-state.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
@@ -211,6 +223,8 @@ export class DAI extends Service {
     ctx.effect(() => ctx.sessionProjections.register(cyberProjection), 'dai.cyberProjection()')
     ctx.effect(() => ctx.sessionProjections.register(operationsProjection), 'dai.operationsProjection()')
     ctx.effect(() => ctx.sessionProjections.register(innovationProjection), 'dai.innovationProjection()')
+    ctx.effect(() => ctx.sessionProjections.register(taskLedgerProjection), 'dai.taskLedgerProjection()')
+    ctx.effect(() => ctx.sessionProjections.register(controlPlaneProjection), 'dai.controlPlaneProjection()')
     ctx.effect(() => async () => { await Promise.all([...this.tails.values()]); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
   }
