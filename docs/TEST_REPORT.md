@@ -8,11 +8,12 @@ This document separates **historical verified evidence** from the **current bran
 
 - Branch: `dai/v2-core-foundation`
 - Pull request: #15 (draft)
-- Latest scheduler-code D_AI check inspected before this documentation update:
-  - workflow run `37532703605`
-  - job `112505811309`
+- Latest D_AI check inspected before this documentation update:
+  - workflow run `37535402015`
+  - job `112514916395`
   - conclusion: FAILURE
-  - executed steps: **none** (`steps: []`)
+  - executed steps: **none** (`steps: null`)
+  - job log download: `BlobNotFound`, consistent with the runner never starting
 
 ### Interpretation
 
@@ -89,7 +90,7 @@ The active branch now contains substantially more runtime code than the verified
 
 - six native domain slices: Investigation, Scientific Research, Investor, Cybersecurity, Operations & Intelligence, Innovation & Discovery;
 - durable Task DAG / Task Ledger;
-- Mission Director plans, isolated planner, single-task/bounded-cycle execution and an approval-gated durable unattended scheduler whose process loop only enqueues typed wake messages while actual mutation executes inside a native Agent turn;
+- Mission Director plans, isolated planner, single-task/bounded-cycle execution, approval-gated unattended scheduling, fair/bounded cross-owner wake coordination, exact-task claims and budget-safe same-plan parallel worker waves whose mutations remain inside native Agent turns;
 - durable execution leases/checkpoints/expired-lease recovery plus fail-closed heartbeat renewal during Director work;
 - monotonic per-task lease fencing: renew/checkpoint/executor state changes/release require exact `taskId + leaseId + fence`; legacy execution facts migrate deterministically from v1 to fenced v2 and ambiguous history fails closed;
 - durable external side-effect idempotency journal and connector gateway with safe pre-dispatch rebind, replay suppression after commit, conservative `OUTCOME_UNKNOWN` handling and human reconciliation; no production mutable connector is enabled;
@@ -107,7 +108,7 @@ The active branch now contains substantially more runtime code than the verified
 
 ### Characterization added during decomposition
 
-The branch includes an integration characterization test that expects exactly **77 unique `d_ai_*` native tools**, including bounded Director cycle execution plus unattended schedule read/set surfaces. Native integration tests cover Director cycles, cross-system policy blocking, scoped wall-clock metering and Session restart. New scheduler coverage additionally includes schedule-projection invariants, due/runnable admission, expired-lease wake recovery, approval denial, no-parent-LLM scheduler turns, cycle receipts, restart replay, and a Loader-composed runtime path. Those new tests are authored and remain pending execution. The focused local receipt above covers unit/projection tests for heartbeat behavior, budget admission, monotonic lease fences, execution v1→v2 normalization, side-effect journal lifecycle and replay suppression; it does not replace native integration evidence.
+The branch includes an integration characterization test that expects exactly **77 unique `d_ai_*` native tools**, including bounded Director cycle execution plus unattended schedule read/set surfaces. Native integration tests cover Director cycles, cross-system policy blocking, scoped wall-clock metering and Session restart. New scheduler/parallelism coverage additionally includes schedule-projection invariants, due/runnable admission, expired-lease wake recovery, approval denial, no-parent-LLM scheduler turns, fair ordering, bounded concurrent-cycle admission, budget-safe wave planning, a barrier-based runtime proof that two same-plan child executors overlap, cycle receipts, partial-failure accounting, restart replay, and a Loader-composed runtime path. Those new tests are authored and remain pending execution. The focused local receipt above covers unit/projection tests for heartbeat behavior, budget admission, monotonic lease fences, execution v1→v2 normalization, side-effect journal lifecycle and replay suppression; it does not replace native integration evidence.
 
 ## Current required gate
 
@@ -140,7 +141,7 @@ A failure must be treated as code/test evidence and fixed before further maturit
 - real Local Intelligence Core model artifact/training job;
 - live browser Control Center;
 - institutional multi-user deployment;
-- multi-process/distributed unattended worker infrastructure and scheduler crash/fault-injection acceptance; the single-process root-Agent wake coordinator is implemented but not yet verified by the current gate;
+- distributed/multi-process unattended worker infrastructure and scheduler crash/fault-injection acceptance; the single-process root-Agent coordinator and same-plan worker waves are implemented but not yet verified by the current gate;
 - live token/cost/data-access/human-attention metering (current automatic metering is wall-clock only at the Director task boundary).
 
 Fixture or mock execution is labeled as such and does not satisfy live-provider acceptance.
