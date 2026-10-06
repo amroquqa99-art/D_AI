@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
+import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import Persistence from '@deepseek-ai/dsh-session-persistence-jsonl'
@@ -51,6 +52,8 @@ async function temporary<T>(run: (root: string) => Promise<T>): Promise<T> {
 
 describe('D_AI durable task and control plane', () => {
   it('persists task transitions plus human-approved grants and audit across restart', async () => temporary(async root => {
+    let ctxRef: Context | undefined
+    let agentRef: Agent | undefined
     const script: ConstructorParameters<typeof MockAdapter>[0] = [
       toolCallResponse('add', 'd_ai_task_add', {
         mission_id: 'mission-1',
@@ -78,8 +81,6 @@ describe('D_AI durable task and control plane', () => {
       textResponse('Core control state updated'),
     ]
 
-    let ctxRef: Context | undefined
-    let agentRef: Awaited<ReturnType<Context['agentLoop']['create']>> | undefined
     const first = await boot(root, script, 'allow')
     ctxRef = first.ctx
     agentRef = await first.ctx.agentLoop.create(SessionId('core-owner'), { provider: 'mock', model: 'fixture' })
