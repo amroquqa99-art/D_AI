@@ -35,6 +35,8 @@ export { createAuditChain, appendAuditRecord, verifyAuditChain } from './audit-l
 export type { AuditChain, AuditRecord, AuditEventInput, AuditAction } from './audit-log.ts'
 export { authorizeCrossSystemHandoff } from './cross-system.ts'
 export type { CrossSystemRequest, CrossSystemHandoff } from './cross-system.ts'
+export { evaluateModelPromotion, createModelReleasePointer } from './model-evaluation.ts'
+export type { ModelEvaluationMetrics, ModelEvaluationResult, PromotionPolicy, ModelPromotionDecision, ModelReleasePointer } from './model-evaluation.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
