@@ -110,6 +110,25 @@ describe('D_AI native missions (fixture model and fixture public source)', () =>
     } finally { await second.ctx.fiber.dispose() }
   }), 15000)
 
+  it('exposes the v2 system registry and Local Intelligence Core through native Agent tools', async () => temporary(async root => {
+    const { ctx, adapter } = await boot(root, [
+      toolCallResponse('systems', 'd_ai_systems_list', {}),
+      toolCallResponse('core', 'd_ai_local_core_status', {}),
+      textResponse('Registry inspected'),
+    ])
+    try {
+      const agent = await ctx.agentLoop.create(SessionId('owner'), { provider: 'mock', model: 'fixture' })
+      agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Inspect D_AI platform status' }], source: { kind: 'user' } }))
+      await agent.whenIdle()
+      expect(adapter.requests[0]?.tools?.map(tool => tool.name)).toEqual(expect.arrayContaining(['d_ai_systems_list', 'd_ai_local_core_status']))
+      const history = JSON.stringify(agent.session.snapshotEvents())
+      expect(history).toContain('operations-intelligence')
+      expect(history).toContain('innovation-discovery')
+      expect(history).toContain('local-intelligence-core')
+      expect(history).toContain('explicit-eligibility-only')
+    } finally { await ctx.fiber.dispose() }
+  }))
+
   it('denies a model-proposed independent mission despite a legitimate root identity', async () => temporary(async root => {
     const { ctx } = await boot(root, [toolCallResponse('bad', 'd_ai_mission_create', { objective: 'Unrelated autonomous new mission' }), textResponse('Approval required')])
     try {
