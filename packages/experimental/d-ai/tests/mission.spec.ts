@@ -129,6 +129,102 @@ describe('D_AI native missions (fixture model and fixture public source)', () =>
     } finally { await ctx.fiber.dispose() }
   }))
 
+  it('preserves the complete D_AI native tool surface across registrar refactors', async () => temporary(async root => {
+    const { ctx, adapter } = await boot(root, [textResponse('Tool surface inspected')])
+    try {
+      const agent = await ctx.agentLoop.create(SessionId('owner'), { provider: 'mock', model: 'fixture' })
+      agent.followup(createUserMessage({
+        content: [{ type: 'text', text: 'Inspect the available D_AI tools without executing them.' }],
+        source: { kind: 'user' },
+      }))
+      await agent.whenIdle()
+
+      const actual = (adapter.requests[0]?.tools ?? [])
+        .map(tool => tool.name)
+        .filter(name => name.startsWith('d_ai_'))
+        .sort()
+      const expected = [
+        'd_ai_add_claim',
+        'd_ai_budget_read',
+        'd_ai_budget_set',
+        'd_ai_capture_source',
+        'd_ai_control_grant',
+        'd_ai_control_read',
+        'd_ai_cross_system_handoff',
+        'd_ai_cyber_add_finding',
+        'd_ai_cyber_create',
+        'd_ai_cyber_delegate',
+        'd_ai_cyber_read',
+        'd_ai_cyber_record_remediation',
+        'd_ai_cyber_record_retest',
+        'd_ai_delegate',
+        'd_ai_director_execute_next',
+        'd_ai_director_generate_tasks',
+        'd_ai_director_plan_create',
+        'd_ai_director_plan_status',
+        'd_ai_director_plan_view',
+        'd_ai_director_read',
+        'd_ai_director_task_add',
+        'd_ai_evidence_add_edge',
+        'd_ai_evidence_add_node',
+        'd_ai_evidence_read',
+        'd_ai_execution_read',
+        'd_ai_execution_recover_expired',
+        'd_ai_innovation_add_candidate',
+        'd_ai_innovation_create',
+        'd_ai_innovation_delegate',
+        'd_ai_innovation_read',
+        'd_ai_innovation_record_result',
+        'd_ai_innovation_request_experiment',
+        'd_ai_investor_add_thesis',
+        'd_ai_investor_capture_source',
+        'd_ai_investor_create',
+        'd_ai_investor_delegate',
+        'd_ai_investor_read',
+        'd_ai_local_core_status',
+        'd_ai_mission_create',
+        'd_ai_mission_read',
+        'd_ai_model_evaluation_record',
+        'd_ai_model_lifecycle_read',
+        'd_ai_model_policy_set',
+        'd_ai_model_promotion_evaluate',
+        'd_ai_model_route',
+        'd_ai_model_upsert',
+        'd_ai_models_read',
+        'd_ai_operations_add_entity',
+        'd_ai_operations_add_gap',
+        'd_ai_operations_add_option',
+        'd_ai_operations_add_relationship',
+        'd_ai_operations_add_timeline',
+        'd_ai_operations_create',
+        'd_ai_operations_delegate',
+        'd_ai_operations_read',
+        'd_ai_platform_snapshot',
+        'd_ai_scheduler_next',
+        'd_ai_scientific_add_hypothesis',
+        'd_ai_scientific_create',
+        'd_ai_scientific_delegate',
+        'd_ai_scientific_read',
+        'd_ai_scientific_record_result',
+        'd_ai_scientific_request_experiment',
+        'd_ai_systems_list',
+        'd_ai_task_add',
+        'd_ai_task_checkpoint',
+        'd_ai_task_claim_next',
+        'd_ai_task_release_lease',
+        'd_ai_task_renew_lease',
+        'd_ai_task_transition',
+        'd_ai_tasks_read',
+        'd_ai_training_build_dataset',
+        'd_ai_training_read',
+        'd_ai_training_register_candidate',
+      ].sort()
+
+      expect(actual).toEqual(expected)
+      expect(new Set(actual).size).toBe(74)
+    } finally { await ctx.fiber.dispose() }
+  }))
+
   it('denies a model-proposed independent mission despite a legitimate root identity', async () => temporary(async root => {
     const { ctx } = await boot(root, [toolCallResponse('bad', 'd_ai_mission_create', { objective: 'Unrelated autonomous new mission' }), textResponse('Approval required')])
     try {
