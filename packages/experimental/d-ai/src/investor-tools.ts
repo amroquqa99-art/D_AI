@@ -1,13 +1,13 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { InvestmentThesis, InvestorSource } from './investor-state.ts'
+import type { InvestmentThesis, InvestorCase, InvestorSource, InvestorState } from './investor-state.ts'
 import { encodeToolResult, jsonToolOutput, rejectInvalidInput } from './tool-support.ts'
 import type { ToolOwnerResolver } from './tool-support.ts'
 
 export interface InvestorToolRuntime {
-  createInvestor(agent: Agent, objective: string, signal?: AbortSignal): Promise<unknown>
-  readInvestor(agent: Agent): unknown
+  createInvestor(agent: Agent, objective: string, signal?: AbortSignal): Promise<InvestorCase>
+  readInvestor(agent: Agent): InvestorState
   captureInvestorSource(
     agent: Agent,
     caseId: string,
