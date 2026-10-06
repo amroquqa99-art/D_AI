@@ -190,6 +190,8 @@ export type {
 } from './control-plane-state.ts'
 
 export { budgetProfilesForTask, selectDurableRunnableTasks } from './runtime-scheduler.ts'
+export { selectDirectorParallelWave } from './director-parallelism.ts'
+export type { DirectorParallelWave } from './director-parallelism.ts'
 export type {
   SchedulerSelection,
   SchedulerBlockedTask,
