@@ -15,6 +15,8 @@ export interface CyberDelegationConfig {
   readonly maxResultBytes: number
   readonly assessmentModel?: string
   readonly remediationModel?: string
+  readonly assessmentProvider?: string
+  readonly remediationProvider?: string
 }
 
 export interface CyberWorkerOutput {
@@ -47,7 +49,7 @@ export async function runCyberDelegates(
     throw new Error('Cybersecurity provider does not support required worker configuration')
   }
 
-  const runWorker = async (role: 'assessment' | 'remediation', model?: string): Promise<CyberWorkerOutput> => {
+  const runWorker = async (role: 'assessment' | 'remediation', model?: string, llmProvider?: string): Promise<CyberWorkerOutput> => {
     const controller = new AbortController()
     const childSignal = AbortSignal.any([signal, controller.signal])
     const label = 'cyber-' + role + '-' + randomUUID()
@@ -70,7 +72,7 @@ export async function runCyberDelegates(
         signal: childSignal,
         maxDepth: config.maxDepth,
         toolFilter: { allow: [...config.allowedTools] },
-        agentOptions: { maxTokens: config.maxOutputTokens, ...model === undefined ? {} : { model } },
+        agentOptions: { maxTokens: config.maxOutputTokens, ...llmProvider === undefined ? {} : { provider: llmProvider }, ...model === undefined ? {} : { model } },
         persona: role === 'assessment'
           ? 'Assess the explicitly authorized environment for defensive weaknesses, evidence, impact and remediation. Stay inside the supplied authorization scope. Prefer reproducible non-destructive verification and clearly separate observed facts from hypotheses.'
           : 'Independently review defensive findings and proposed remediation. Look for false positives, incomplete fixes, residual exposure and safe retest criteria. Stay inside the supplied authorization scope and do not broaden target access.',
@@ -92,8 +94,8 @@ export async function runCyberDelegates(
     }
   }
 
-  const assessment = await runWorker('assessment', config.assessmentModel)
+  const assessment = await runWorker('assessment', config.assessmentModel, config.assessmentProvider)
   signal.throwIfAborted()
-  const remediationReview = await runWorker('remediation', config.remediationModel)
+  const remediationReview = await runWorker('remediation', config.remediationModel, config.remediationProvider)
   return { assessment, remediationReview }
 }
