@@ -81,11 +81,19 @@ describe('D_AI durable shared core', () => {
         mission_id: 'mission-1',
         reason: 'Analyze company financial evidence inside the investigation',
       }),
+      toolCallResponse('budget', 'd_ai_budget_set', {
+        scope: 'MISSION',
+        scope_id: 'mission-1',
+        token_limit: 50000,
+        money_limit_usd: 25,
+        wall_clock_ms: 3600000,
+      }),
       textResponse('Shared core updated'),
     )
 
     let expectedLedger: ReturnType<typeof ctx.dai.readTaskLedger>
     let expectedControl: ReturnType<typeof ctx.dai.readControlPlane>
+    let expectedBudgets: ReturnType<typeof ctx.dai.readBudgets>
     try {
       agent.followup(createUserMessage({
         content: [{ type: 'text', text: 'Create the mission task and approved scoped capability grant.' }],
@@ -95,6 +103,7 @@ describe('D_AI durable shared core', () => {
 
       expectedLedger = ctx.dai.readTaskLedger(agent)
       expectedControl = ctx.dai.readControlPlane(agent)
+      expectedBudgets = ctx.dai.readBudgets(agent)
 
       expect(expectedLedger.ledgers[0]?.revision).toBe(3)
       expect(expectedLedger.ledgers[0]?.tasks[0]?.state).toBe('RUNNING')
@@ -117,6 +126,24 @@ describe('D_AI durable shared core', () => {
         missionId: 'mission-1',
         subjectId: 'investor',
       })
+
+      expect(expectedBudgets.ledgers[0]?.revision).toBe(1)
+      expect(expectedBudgets.ledgers[0]?.profiles[0]).toMatchObject({
+        scope: 'MISSION',
+        scopeId: 'mission-1',
+        limits: {
+          tokenLimit: 50000,
+          moneyLimitUsd: 25,
+          wallClockMs: 3600000,
+        },
+        usage: {
+          tokens: 0,
+          moneyUsd: 0,
+          wallClockMs: 0,
+          humanAttentionMinutes: 0,
+          dataAccessCostUsd: 0,
+        },
+      })
       await ctx.sessions.flush(agent.session)
     } finally {
       await ctx.fiber.dispose()
@@ -130,6 +157,7 @@ describe('D_AI durable shared core', () => {
       })
       expect(second.ctx.dai.readTaskLedger(handle.agent)).toEqual(expectedLedger!)
       expect(second.ctx.dai.readControlPlane(handle.agent)).toEqual(expectedControl!)
+      expect(second.ctx.dai.readBudgets(handle.agent)).toEqual(expectedBudgets!)
       await handle.dispose()
     } finally {
       await second.ctx.fiber.dispose()
