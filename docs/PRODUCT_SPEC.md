@@ -1,4 +1,4 @@
-# D_AI — Locked Product Specification (User-approved, 2026-10-03)
+# D_AI — Locked Product Specification v2 (User-approved, 2026-10-06)
 
 ## 0. Product identity
 D_AI is a locally hosted, multi-domain AI operating environment based on a source fork of the official DeepSeek Harness (`deepseek-ai/deepseek-harness`). It is NOT merely a standalone chatbot, prompt collection, orchestration diagram, or thin external wrapper. D_AI extends or, when justified, patches actual native Harness/Cordis packages, runtime services and web client. The initial user is a single owner; institutional deployment is a future evolution, so its security and tenant boundaries must be prepared now, without prematurely implementing an entire enterprise product. Domain systems are first-class code modules, each managed by a root System Agent that can spawn hierarchical specialist agents dynamically.
@@ -8,7 +8,7 @@ D_AI is a locally hosted, multi-domain AI operating environment based on a sourc
 - Owner autonomy: system may propose intermediate goals and novel research directions, but activating newly proposed independent missions needs owner approval. Sensitive external side effects require explicit approvals.
 - Engineering base: fork official DeepSeek Harness and rebuild D_AI within its native plugin/package/profile ecosystem; adjust core where necessary for real functionality, not arbitrary renaming. Low priority on frictionless upstream merges, but preserve provenance and maintain an `upstream` remote and documented patch log where practical. Design long-term capability interfaces so replacing Harness is possible later.
 - Earlier D_AI Kernel v0.1–v0.3 are untrusted prototypes, not an authoritative product foundation. Do not continue them blindly. Audit them if supplied and reuse only correct, tested ideas/code. Start from real upstream fork.
-- Systems, in priority order: (1) Investigative Research and OSINT, (2) Scientific Research, (3) Scientific Innovation, (4) Financial Analysis, (5) Cybersecurity (authorized, defensive, isolated). In addition, create real extensibility foundations and skeleton registration/contracts for the future AI Model Engineering & Research Laboratory.
+- First-class domain systems: (1) Investigation, (2) Scientific Research, (3) Investor, (4) Cybersecurity, (5) Operations & Intelligence, and (6) Innovation & Discovery. The Local Intelligence Core is a central platform component rather than a seventh domain system; model-engineering, evaluation and controlled training capabilities belong to that core.
 - Each system starts with one primary Manager Agent; dynamic subordinate hierarchy may descend as needed, with worker-role specialization. The primary can spawn assistants/sub-managers. No blanket one-model-one-agent allocation.
 - Make adding, removing, modifying or upgrading entire systems trivial through clear plugin contracts, manifests, migrations, tool profiles, eval suites and UI registration. A system creation wizard can generate a candidate system in a sandbox, test it, and submit it for user approval. No unreviewed auto-activation.
 - All systems may collaborate/share tools and information, governed by an auditable tool/evidence gateway; record the originating system/tool/evidence and permissions for every cross-system access. Owner may grant an agent access to another system's tool temporarily or permanently.
@@ -34,7 +34,8 @@ D_AI fork of DeepSeek Harness / Cordis
   Task dependency DAG + durable schedule / queue / worker pools / leases / retries
   Model/provider registry and evidence-based model router
   Scoped Tool Gateway, sandboxed tool builder and cross-system grants
-  Domain Systems: Investigative | Scientific Research | Innovation | Finance | Cyber
+  Domain Systems: Investigation | Scientific Research | Investor | Cybersecurity | Operations & Intelligence | Innovation & Discovery
+  Local Intelligence Core: governed data -> evaluation -> controlled training/adapters -> promotion/rollback
   Collaborative Rooms: linked missions, shared evidence, isolated strategies, attribution
   Evidence Graph / Provenance / Claim Verification / Artifacts / Knowledge Memory
   Reproducibility / Eval / Observability / Human Approval / Governance
@@ -55,14 +56,17 @@ Research gap/literature mapping across primary and grey literature, study design
 ### Innovation
 Hypothesis engines, counterexample/adversarial generation, formal mathematical checks (e.g., Lean/SymPy/SMT when installed), scientific simulations, engineering alternatives, experiments, novelty/prior-art analysis, verified claims, failure memory and reproducible artifact lineage. Outcomes: VERIFIED (within scope), REFUTED, OPEN, NEEDS EXPERIMENT. Do not call generated conjectures discoveries.
 
-### Finance
+### Investor
 Company accounts and filings, macro/micro market data, event/news/social signals with provenance, scenario/forecasting, historical simulation and backtest safeguards (look-ahead bias, survivorship bias, fees, slippage), portfolio/risk analysis and uncertainty. Owner approval gate for any real capital movement; no guaranteed returns.
 
 ### Cybersecurity
 Authorized vulnerability research, inventory, code/configuration review, threat modeling, controlled security testing and remediation. Written scope-of-authorization and isolated lab policies for active testing; human approvals for high-risk actions; no covert persistence, credential theft, real-world unauthorized intrusion, or audit evasion.
 
-## 4. Future AI Model Engineering and Research Laboratory (real foundation now)
-Scaffold a first-class domain contract and database/interface primitives, enable iterative future development. Preserve these planned modules and their interfaces:
+### Operations & Intelligence
+Authorized institutional case and operations intelligence: fuse field, investigative, cyber, financial and geospatial evidence into entity/network/timeline views; track intelligence gaps, exposure estimates, alternative hypotheses and auditable options. Sensitive external actions remain human-command decisions and require explicit policy/approval gates. The runtime must preserve provenance, authorization scope, classification and case boundaries for every cross-system handoff.
+
+## 4. Local Intelligence Core and Model Engineering Foundation
+The Local Intelligence Core is a central platform capability. Build governed data, evaluation, local inference, experiment lineage and controlled training/adapter primitives now; do not represent it as a seventh domain. Preserve these modules and interfaces:
 - Model Observatory: import/inspect/fingerprint/license/model lineage, base vs instruct comparisons, runtime profiles, local/cloud model backends, efficiency (quantization, caching, hardware/power-aware scheduling).
 - Experiment Protocol & Reproducibility: immutable experiment IDs, config/seeds/datasets/metrics/environment/version/compute traces, append-only observations, content-addressed artifacts and copy-on-write/delta storage, restart/replay.
 - Training & Controlled Interventions: SFT, LoRA/QLoRA, preference optimization when feasible, distillation, representation/activation steering, ablation, mechanistic comparison, reversible adapters and checkpoints; owner-reviewed model changes and responsible handling of safety-related research.
