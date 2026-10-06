@@ -107,7 +107,7 @@ describe('D_AI unattended Mission Director', () => {
         leaseTtlMs: 60000,
       })
 
-      scheduler = new DirectorScheduler(ctx, ctx.dai, { pollMs: 60000 })
+      scheduler = new DirectorScheduler(ctx, ctx.dai, { pollMs: 60000, maxConcurrentCycles: 1 })
       scheduler.scan(Date.now())
       await agent.whenIdle()
 
