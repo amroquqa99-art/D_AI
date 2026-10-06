@@ -81,7 +81,18 @@ describe('D_AI native missions (fixture model and fixture public source)', () =>
       manager.followup(createUserMessage({ content: [{ type: 'text', text: objective }], source: { kind: 'user' } }))
       await manager.whenIdle()
       expected = ctx.dai.read(manager)
-      expect(expected.missions[0]?.revision).toBe(4)
+      if (expected.missions[0]?.revision !== 4) {
+        const diagnosticEvents = manager.session.snapshotEvents().map(event => ({
+          type: event.type,
+          ...event.type === 'tool/result' ? { data: event.data } : {},
+        }))
+        const diagnosticRequests = adapter.requests.map(request => ({
+          provider: request.provider,
+          model: request.model,
+          tools: request.tools?.map(tool => tool.name),
+        }))
+        throw new Error(`Expected delegated revision 4; diagnostic=${JSON.stringify({ diagnosticRequests, diagnosticEvents })}`)
+      }
       expect(expected.missions[0]?.sources[0]?.hashEncoding).toBe('utf8-decoded-content')
       expect(expected.missions[0]?.claims[0]?.state).toBe('OBSERVED')
       expect(expected.missions[0]?.delegations[0]?.research.agentId).not.toBe(expected.missions[0]?.delegations[0]?.verification.agentId)
