@@ -6450,6 +6450,406 @@
       }
     },
     {
+      "key": "event:d_ai/cyber-fact",
+      "kind": "event",
+      "event": "d_ai/cyber-fact",
+      "surface": false,
+      "digest": "db4bbe69d3b98ce030a3d621a086600880dcae11373c4282a74f310ad23b5511",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 37,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 38,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "engagement",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 29,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 36,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "authorization",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "delegations",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "findings",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "objective",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 23,
+                "optional": false
+              },
+              {
+                "name": "system",
+                "type": 28,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "approvedBy",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "expiresAt",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "issuedAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "permittedActions",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "targetDescription",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 2
+          },
+          {
+            "kind": "array",
+            "element": 7
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "assessment",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "remediationReview",
+                "type": 8,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "agentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 10
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "evidence",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "remediation",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "remediationNote",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "retestEvidence",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "severity",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 17,
+                "optional": false
+              },
+              {
+                "name": "title",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "updatedAt",
+                "type": 2,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              12,
+              13,
+              14,
+              15,
+              16
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "CRITICAL"
+          },
+          {
+            "kind": "literal",
+            "value": "HIGH"
+          },
+          {
+            "kind": "literal",
+            "value": "INFO"
+          },
+          {
+            "kind": "literal",
+            "value": "LOW"
+          },
+          {
+            "kind": "literal",
+            "value": "MEDIUM"
+          },
+          {
+            "kind": "union",
+            "types": [
+              18,
+              19,
+              20,
+              21
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "RETEST_PASSED"
+          },
+          {
+            "kind": "literal",
+            "value": "ACCEPTED_RISK"
+          },
+          {
+            "kind": "literal",
+            "value": "OPEN"
+          },
+          {
+            "kind": "literal",
+            "value": "REMEDIATED"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "union",
+            "types": [
+              24,
+              25,
+              26,
+              27
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_REMEDIATION"
+          },
+          {
+            "kind": "literal",
+            "value": "ACTIVE"
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETE"
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "literal",
+            "value": "cybersecurity"
+          },
+          {
+            "kind": "union",
+            "types": [
+              30,
+              31,
+              32,
+              33,
+              34,
+              35
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "RETEST"
+          },
+          {
+            "kind": "literal",
+            "value": "STATUS"
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_FINDING"
+          },
+          {
+            "kind": "literal",
+            "value": "CREATE"
+          },
+          {
+            "kind": "literal",
+            "value": "DELEGATE"
+          },
+          {
+            "kind": "literal",
+            "value": "RECORD_REMEDIATION"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/cyber-fact"
+          }
+        ]
+      }
+    },
+    {
       "key": "event:d_ai/fact",
       "kind": "event",
       "event": "d_ai/fact",
@@ -6887,6 +7287,1888 @@
           {
             "kind": "literal",
             "value": "d_ai/fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/innovation-fact",
+      "kind": "event",
+      "event": "d_ai/innovation-fact",
+      "surface": false,
+      "digest": "29fda5c31bbb19c26792020bd8929ccc94d1394674088638eb84a0fed2bf5681",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 37,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 30,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 30,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 38,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "project",
+                "type": 10,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 36,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_CANDIDATE"
+          },
+          {
+            "kind": "literal",
+            "value": "CREATE"
+          },
+          {
+            "kind": "literal",
+            "value": "DELEGATE"
+          },
+          {
+            "kind": "literal",
+            "value": "RECORD_RESULT"
+          },
+          {
+            "kind": "literal",
+            "value": "REQUEST_EXPERIMENT"
+          },
+          {
+            "kind": "literal",
+            "value": "STATUS"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "candidates",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "delegations",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "experiments",
+                "type": 25,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "problem",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 30,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 31,
+                "optional": false
+              },
+              {
+                "name": "system",
+                "type": 35,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 12
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "description",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "falsificationTest",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "mechanism",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "noveltyStatus",
+                "type": 13,
+                "optional": false
+              },
+              {
+                "name": "state",
+                "type": 17,
+                "optional": false
+              },
+              {
+                "name": "title",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              14,
+              15,
+              16
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "UNKNOWN"
+          },
+          {
+            "kind": "literal",
+            "value": "KNOWN_VARIANT"
+          },
+          {
+            "kind": "literal",
+            "value": "POTENTIALLY_NOVEL"
+          },
+          {
+            "kind": "union",
+            "types": [
+              18,
+              19,
+              20,
+              21
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "VERIFIED_WITH_SCOPE"
+          },
+          {
+            "kind": "literal",
+            "value": "NEEDS_EXPERIMENT"
+          },
+          {
+            "kind": "literal",
+            "value": "OPEN"
+          },
+          {
+            "kind": "literal",
+            "value": "REFUTED"
+          },
+          {
+            "kind": "array",
+            "element": 23
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "critic",
+                "type": 24,
+                "optional": false
+              },
+              {
+                "name": "explorer",
+                "type": 24,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "agentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 26
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "artifactRef",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "completedAt",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "failureCriteria",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "objective",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "observation",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "protocol",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 27,
+                "optional": false
+              },
+              {
+                "name": "successCriteria",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "title",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              28,
+              29
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_HUMAN"
+          },
+          {
+            "kind": "literal",
+            "value": "RESULT_RECORDED"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "union",
+            "types": [
+              19,
+              32,
+              33,
+              34
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETE"
+          },
+          {
+            "kind": "literal",
+            "value": "ACTIVE"
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "literal",
+            "value": "innovation-discovery"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/innovation-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/investor-fact",
+      "kind": "event",
+      "event": "d_ai/investor-fact",
+      "surface": false,
+      "digest": "76e6d775ce1c281adfa3be99fd607a2dd1ec731b72b3bb9bbb2e6da1f3e74fb9",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 40,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 41,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "case",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 33,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 39,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "delegations",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "objective",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "sources",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 17,
+                "optional": false
+              },
+              {
+                "name": "system",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "theses",
+                "type": 23,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 5
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "fundamental",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "risk",
+                "type": 6,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "agentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "array",
+            "element": 9
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "capturedAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "category",
+                "type": 10,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "finalUrl",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "requestedUrl",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "sha256",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "statusCode",
+                "type": 7,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              11,
+              12,
+              13,
+              14,
+              15,
+              16
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "OTHER"
+          },
+          {
+            "kind": "literal",
+            "value": "SOCIAL"
+          },
+          {
+            "kind": "literal",
+            "value": "FILING"
+          },
+          {
+            "kind": "literal",
+            "value": "MACRO"
+          },
+          {
+            "kind": "literal",
+            "value": "MARKET"
+          },
+          {
+            "kind": "literal",
+            "value": "NEWS"
+          },
+          {
+            "kind": "union",
+            "types": [
+              18,
+              19,
+              20,
+              21
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_DATA"
+          },
+          {
+            "kind": "literal",
+            "value": "ACTIVE"
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETE"
+          },
+          {
+            "kind": "literal",
+            "value": "investor"
+          },
+          {
+            "kind": "array",
+            "element": 24
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "horizon",
+                "type": 25,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "invalidationConditions",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "rationale",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "state",
+                "type": 29,
+                "optional": false
+              },
+              {
+                "name": "statement",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              26,
+              27,
+              28
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "SHORT"
+          },
+          {
+            "kind": "literal",
+            "value": "LONG"
+          },
+          {
+            "kind": "literal",
+            "value": "MEDIUM"
+          },
+          {
+            "kind": "union",
+            "types": [
+              30,
+              31,
+              32
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "CLOSED"
+          },
+          {
+            "kind": "literal",
+            "value": "INVALIDATED"
+          },
+          {
+            "kind": "literal",
+            "value": "OPEN"
+          },
+          {
+            "kind": "union",
+            "types": [
+              34,
+              35,
+              36,
+              37,
+              38
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_THESIS"
+          },
+          {
+            "kind": "literal",
+            "value": "STATUS"
+          },
+          {
+            "kind": "literal",
+            "value": "CAPTURE_SOURCE"
+          },
+          {
+            "kind": "literal",
+            "value": "CREATE"
+          },
+          {
+            "kind": "literal",
+            "value": "DELEGATE"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/investor-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/operations-fact",
+      "kind": "event",
+      "event": "d_ai/operations-fact",
+      "surface": false,
+      "digest": "0fd8bb87a1f519f2174d94a827c0144ee5b2fa068dd17c910152b98e34b025dd",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 35,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 42,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 42,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 62,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "case",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 52,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 61,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "classification",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "delegations",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "entities",
+                "type": 12,
+                "optional": false
+              },
+              {
+                "name": "gaps",
+                "type": 22,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "objective",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "options",
+                "type": 33,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "relationships",
+                "type": 40,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 42,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 44,
+                "optional": false
+              },
+              {
+                "name": "system",
+                "type": 49,
+                "optional": false
+              },
+              {
+                "name": "timeline",
+                "type": 50,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              5,
+              6,
+              7,
+              8
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "INTERNAL"
+          },
+          {
+            "kind": "literal",
+            "value": "RESTRICTED"
+          },
+          {
+            "kind": "literal",
+            "value": "UNCLASSIFIED"
+          },
+          {
+            "kind": "literal",
+            "value": "CONFIDENTIAL"
+          },
+          {
+            "kind": "array",
+            "element": 10
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "adversarial",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "fusion",
+                "type": 11,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "agentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 13
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "label",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "summary",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 14,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "DEVICE"
+          },
+          {
+            "kind": "literal",
+            "value": "LOCATION"
+          },
+          {
+            "kind": "literal",
+            "value": "ORGANIZATION"
+          },
+          {
+            "kind": "literal",
+            "value": "OTHER"
+          },
+          {
+            "kind": "literal",
+            "value": "PERSON"
+          },
+          {
+            "kind": "literal",
+            "value": "ASSET"
+          },
+          {
+            "kind": "literal",
+            "value": "ACCOUNT"
+          },
+          {
+            "kind": "array",
+            "element": 23
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "priority",
+                "type": 24,
+                "optional": false
+              },
+              {
+                "name": "question",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "state",
+                "type": 29,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              25,
+              26,
+              27,
+              28
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "CRITICAL"
+          },
+          {
+            "kind": "literal",
+            "value": "HIGH"
+          },
+          {
+            "kind": "literal",
+            "value": "LOW"
+          },
+          {
+            "kind": "literal",
+            "value": "MEDIUM"
+          },
+          {
+            "kind": "union",
+            "types": [
+              30,
+              31,
+              32
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "OPEN"
+          },
+          {
+            "kind": "literal",
+            "value": "RESOLVED"
+          },
+          {
+            "kind": "literal",
+            "value": "SUPERSEDED"
+          },
+          {
+            "kind": "array",
+            "element": 34
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "description",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "expectedBenefit",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "requiresHumanApproval",
+                "type": 35,
+                "optional": false
+              },
+              {
+                "name": "risks",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "state",
+                "type": 36,
+                "optional": false
+              },
+              {
+                "name": "title",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "union",
+            "types": [
+              32,
+              37,
+              38,
+              39
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "PROPOSED"
+          },
+          {
+            "kind": "literal",
+            "value": "REJECTED"
+          },
+          {
+            "kind": "literal",
+            "value": "APPROVED"
+          },
+          {
+            "kind": "array",
+            "element": 41
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "confidence",
+                "type": 42,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "evidenceRefs",
+                "type": 43,
+                "optional": false
+              },
+              {
+                "name": "fromEntityId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "toEntityId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "array",
+            "element": 2
+          },
+          {
+            "kind": "union",
+            "types": [
+              45,
+              46,
+              47,
+              48
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ACTIVE"
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_DATA"
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETE"
+          },
+          {
+            "kind": "literal",
+            "value": "operations-intelligence"
+          },
+          {
+            "kind": "array",
+            "element": 51
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "details",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "evidenceRefs",
+                "type": 43,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "label",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "occurredAt",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              53,
+              54,
+              55,
+              56,
+              57,
+              58,
+              59,
+              60
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "CREATE"
+          },
+          {
+            "kind": "literal",
+            "value": "DELEGATE"
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_ENTITY"
+          },
+          {
+            "kind": "literal",
+            "value": "STATUS"
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_GAP"
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_OPTION"
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_RELATIONSHIP"
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_TIMELINE"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/operations-fact"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:d_ai/scientific-fact",
+      "kind": "event",
+      "event": "d_ai/scientific-fact",
+      "surface": false,
+      "digest": "afcdb4c7e70ad64a9bdc787f2b7c85532d2c484ae972c551f415b60fd235f892",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 34,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 35,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "operation",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "project",
+                "type": 10,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 33,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "ADD_HYPOTHESIS"
+          },
+          {
+            "kind": "literal",
+            "value": "CREATE"
+          },
+          {
+            "kind": "literal",
+            "value": "DELEGATE"
+          },
+          {
+            "kind": "literal",
+            "value": "RECORD_RESULT"
+          },
+          {
+            "kind": "literal",
+            "value": "REQUEST_EXPERIMENT"
+          },
+          {
+            "kind": "literal",
+            "value": "STATUS"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "delegations",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "experiments",
+                "type": 14,
+                "optional": false
+              },
+              {
+                "name": "hypotheses",
+                "type": 21,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "ownerAgentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "question",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "revision",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 28,
+                "optional": false
+              },
+              {
+                "name": "system",
+                "type": 32,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 12
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "literature",
+                "type": 13,
+                "optional": false
+              },
+              {
+                "name": "methodology",
+                "type": 13,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "agentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "content",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 15
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "artifactRef",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "budgetUsd",
+                "type": 16,
+                "optional": true
+              },
+              {
+                "name": "completedAt",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "expectedEvidence",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "objective",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "observation",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "protocol",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 17,
+                "optional": false
+              },
+              {
+                "name": "title",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "union",
+            "types": [
+              18,
+              19,
+              20
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "WAITING_FOR_HUMAN"
+          },
+          {
+            "kind": "literal",
+            "value": "PROPOSED"
+          },
+          {
+            "kind": "literal",
+            "value": "RESULT_RECORDED"
+          },
+          {
+            "kind": "array",
+            "element": 22
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "actorId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "rationale",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "state",
+                "type": 23,
+                "optional": false
+              },
+              {
+                "name": "statement",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              24,
+              25,
+              26,
+              27
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "OPEN"
+          },
+          {
+            "kind": "literal",
+            "value": "REFUTED"
+          },
+          {
+            "kind": "literal",
+            "value": "SUPERSEDED"
+          },
+          {
+            "kind": "literal",
+            "value": "SUPPORTED_WITH_SCOPE"
+          },
+          {
+            "kind": "union",
+            "types": [
+              18,
+              29,
+              30,
+              31
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "COMPLETE"
+          },
+          {
+            "kind": "literal",
+            "value": "ACTIVE"
+          },
+          {
+            "kind": "literal",
+            "value": "PAUSED"
+          },
+          {
+            "kind": "literal",
+            "value": "scientific-research"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "d_ai/scientific-fact"
           }
         ]
       }
@@ -22237,6 +24519,16 @@
   ],
   "types": [
     {
+      "digest": "0068b5f8b941718de8ef6bf5025029ac61faf2bcaa4c9ab37026e9952daa75d9",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "00d31429889a5f8b861a96f03eb95afd63f2ae5ace7833afca41472457a22291",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "0116b1f89c05221d56b0ba35c83d302bf4857bc7277d247e9bbaf74b27d2c66e",
       "names": [],
       "sources": []
@@ -22271,6 +24563,11 @@
       "sources": []
     },
     {
+      "digest": "05233edfb243e6dc30bf86a043340909f22c04753e3643b69166e5e16b518a82",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "05a2796621b1ee6c03ef7abe560b25116bb4da4d592312117242a78415a32b04",
       "names": [],
       "sources": []
@@ -22283,6 +24580,11 @@
       "sources": [
         "packages/interaction/user-approval/src/index.ts:67"
       ]
+    },
+    {
+      "digest": "062a917fedf3d0c40a674f0a658218e902a514513c989764bb42241ee0518f40",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "0657d3ca5ac4e7bf79b00bcf860b1c7159d01a9da137497221ec2f1776e365f7",
@@ -22336,6 +24638,11 @@
       ]
     },
     {
+      "digest": "0a70f21a4c227ec3ce1bd5febcc0378d2655691fb42c77b639a460b92223cc90",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "0a8a062bc9c3c0d97fd97742262f2ea53dd32297f834e81114870d38ac3dc6da",
       "names": [],
       "sources": []
@@ -22381,6 +24688,11 @@
       "sources": []
     },
     {
+      "digest": "0bfc78b239836ef5e0f49c89371de44335c91f3f3e170ffd19dc5c5ecb2bfb16",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "0c4205180f75b9ee1e0d878bd9a9851628b5dc18448486389d9c5fdc3f1ccda3",
       "schema": {
         "root": 0,
@@ -22395,6 +24707,11 @@
       "sources": []
     },
     {
+      "digest": "0c745a6fdefbae0c51a68d3810d32892291a00696c975c939c1e2edbec2e1c26",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "0d47a8f3d847243c4488e755ad4cab7a04ac5d4621b9c81865524cf3f4d8536f",
       "names": [],
       "sources": [
@@ -22403,6 +24720,11 @@
     },
     {
       "digest": "0e10d7c096b47e61defe372a5fc8bd37d835199410eac44367f95c45082498bd",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "0e791720ece8ae91142d8caab99fbe386af2ca46722c6fb92e246f6981aa66be",
       "names": [],
       "sources": []
     },
@@ -22438,7 +24760,17 @@
       ]
     },
     {
+      "digest": "0f6471d3301c7194f5a3cd0c142161e5082e3fe19e7f76f528dc3a92cbc2ccf5",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "0f8512903d94f57a4748fa1a2092e64342856796684e6b8343db685b192745ce",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "0fd8bb87a1f519f2174d94a827c0144ee5b2fa068dd17c910152b98e34b025dd",
       "names": [],
       "sources": []
     },
@@ -22491,6 +24823,11 @@
       ]
     },
     {
+      "digest": "12529e917b223d4f66651a9364dce20f591576278bc8efbe1b3d915e8b5d35bc",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "12a0cfa619ac4a5fc6c3e8e359c8dae15769edc61497a575935c78d5842f8e42",
       "names": [],
       "sources": []
@@ -22505,12 +24842,22 @@
       ]
     },
     {
+      "digest": "12fd33d121485a3c505a7fd73b29c660c795d48f2627f18e5b5f7335aa054925",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "1379f0b72275994d20f1ddca2d60a96ab16ec80397ca9f1af21bdc67ba5c269c",
       "names": [],
       "sources": []
     },
     {
       "digest": "13d3d180f977bf78081d487ffa0ecb75857349bcab29a5a3fb48189fca2a6176",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "140919a543461bfead07f9193c9befa4be0e9061cc6f1d460b5ebdbcb043979c",
       "names": [],
       "sources": []
     },
@@ -22559,6 +24906,11 @@
       "sources": []
     },
     {
+      "digest": "162083f9ef57684dc9d675a1a794d36ae14d62580dabd70ab7403f5ebdd42233",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "16d0507cb94b4cfc84a87446b1ba7652d6ec1d65ee1684789e747e30d542800e",
       "names": [],
       "sources": []
@@ -22577,6 +24929,11 @@
     },
     {
       "digest": "186159f5f6f67a0b8cd095b8fe55bef42d4f25ca1a1c248f859867af2ece0467",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "18c1bf1f711925d2857d6370ef82ea6346b2597613d3bdd0fdede7110884e3fa",
       "names": [],
       "sources": []
     },
@@ -22619,7 +24976,17 @@
       "sources": []
     },
     {
+      "digest": "19744f3d01e04cf0bf363eb1ee64baa4524b3607628d6fd4957feec519f4bc5f",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "1986c2664009c99155e44795676c887fa67f7c55cd2d5e6b648ff763e0ab033a",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "1a08cf88ff6ac1640e9742895b25b2aa0958646039b09f9247a007a92d525fc3",
       "names": [],
       "sources": []
     },
@@ -22639,6 +25006,16 @@
     },
     {
       "digest": "1ab2ef1296f157ba96998f179bb5daa9d21a82480da2901127aeab2730797c92",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "1abdb11f20523486660182de6ce9276227e65a31e75cbb7bcb9c9d86c64fab50",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "1af3539abe05b8418f3978f98c6694526291080ee0e53610cbd771ad2fbfd411",
       "names": [],
       "sources": []
     },
@@ -22686,7 +25063,7 @@
         "packages/experimental/d-ai/src/state.ts#MissionFact"
       ],
       "sources": [
-        "packages/experimental/d-ai/src/state.ts:52"
+        "packages/experimental/d-ai/src/state.ts:45"
       ]
     },
     {
@@ -22774,6 +25151,11 @@
       ]
     },
     {
+      "digest": "1fb47385b4a937da5bb524c6d5a7d230f3046a320eabf767bc82f244b823dc4d",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "1fdad624334d354820dfb3a26e28d0bc9fc1b62a33f87bab63f715b3f4391bfd",
       "names": [],
       "sources": []
@@ -22859,6 +25241,11 @@
       "sources": []
     },
     {
+      "digest": "26079701895638c624fef3dc6391ac672e8093b0913668f5780fe81484d275ed",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "26718e15e7e395bce9642dba5bbe09b3b1a4ce2213d20d566cd9207d7fc5fb78",
       "names": [],
       "sources": []
@@ -22888,12 +25275,22 @@
       "sources": []
     },
     {
+      "digest": "278011a899c74ba99f82185cc9c24ea97e71301aebe0e0366c44e03783efe909",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "27b3a05564a9ef1a6a6a2e220a8f7971cbec515a50271f57f52df69a8ebba5a6",
       "names": [],
       "sources": []
     },
     {
       "digest": "27f08cecab7cacdc27a248d791d0055a37773363f053fef59e19def3dbe49a50",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "27f382d68928c45b6bb163966c8310fc86355bdebfaa494747105ad4394fa40c",
       "names": [],
       "sources": []
     },
@@ -22925,6 +25322,16 @@
       "sources": []
     },
     {
+      "digest": "29fda5c31bbb19c26792020bd8929ccc94d1394674088638eb84a0fed2bf5681",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "2a6dc070f65f7e43a1897dd530a6d4df9aa58b8316eca5627bc544c0441d2ec5",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "2aad1179f957631477b582e57cd8f538cb82618fc3fb816bde1171154235b065",
       "names": [],
       "sources": []
@@ -22940,6 +25347,11 @@
       "sources": [
         "packages/llm/llm/src/types.ts:455"
       ]
+    },
+    {
+      "digest": "2adf2f4a373579e3c85ca3f53927b5879f31e5e509fccb6c84f7fbae12a804d0",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "2aed07493b1c65b6d00de5586da1e743cf501684b9ad43a1765fb4007d4ea456",
@@ -22958,6 +25370,11 @@
     },
     {
       "digest": "2ce09816fd523d2aebbd876217ee9a484adcff19cb759d92537270f4efba2d78",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "2d1130624bda91164eb8511b47c6f829815710472c89ffd680c838a284ad797c",
       "names": [],
       "sources": []
     },
@@ -22997,6 +25414,15 @@
       ]
     },
     {
+      "digest": "2ec36ba725e8448cd409960de1f53568fe6740557d4e52ab486e123021060dd6",
+      "names": [
+        "packages/experimental/d-ai/src/innovation-state.ts#InnovationFact"
+      ],
+      "sources": [
+        "packages/experimental/d-ai/src/innovation-state.ts:65"
+      ]
+    },
+    {
       "digest": "2f1e6a7ebace43d727ae138ddcd352eb3813960009e5805b8c5ac84300c97716",
       "names": [
         "packages/attachment/attachment/src/types.ts#ImageMediaType"
@@ -23018,6 +25444,21 @@
       "sources": [
         "packages/core/tools/src/types.ts:11"
       ]
+    },
+    {
+      "digest": "3079120eff223901ad9f3beebc7ab17fbbf8bbec269604f17be66bb62b492c4e",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "30a7aeaa6a9a5935229bc6f7a428f270697b4ab899c990037bd3f28f228240db",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "30cab51ec8b7536edde24042bda51bbafbd05df9384cdd8dbf6a13a640baeb4b",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "30d5a537b296685770b1241c4b4bbde19d5a31ff81aa23df73fab5e90b8fc65f",
@@ -23100,6 +25541,11 @@
       "sources": []
     },
     {
+      "digest": "37200395845a0b73c2b5284e1864dfd28da32910de181ac1855bfdc4d45cc3b3",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "374fdd68aee5ff844e378c0cbdd961d247a0f22e4ade0bb03d800cd2a46a2b8b",
       "names": [],
       "sources": [
@@ -23138,7 +25584,17 @@
       ]
     },
     {
+      "digest": "3960c002753f55ac5d48ef0493c87438077f11cae519e9fda05f2390fd856eb3",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "3abae7324356f155cb42450c00b806d134ec93bd6439d2063b8d724162d58604",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "3acdc29aac971f6e9f182d7825442ba8d16fb820f3ee822f7167aab2cb35b6e0",
       "names": [],
       "sources": []
     },
@@ -23173,6 +25629,11 @@
     },
     {
       "digest": "3bdb8dc6989655b0d4ec361edafb8e2629bc263e1ea591819414fdafc1a413b3",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "3be78caf68e15777593f7b2b07f446d9e866233b6269e7f5c774e6aa63f2d64c",
       "names": [],
       "sources": []
     },
@@ -23215,6 +25676,11 @@
       "sources": [
         "packages/feedback/message-feedback/src/types.ts:20"
       ]
+    },
+    {
+      "digest": "3dd5afef61106a2ba38d0bb3d0f779bd043f7a834ec4feede19e0d36695f91b6",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "3e0eff5946255ff05d88a10839c60305135801f97794ea48d409f8503303317e",
@@ -23268,6 +25734,16 @@
       "sources": []
     },
     {
+      "digest": "4216e8268eedbc8bfac0ca095781d862202c343eef77476ff4de54e3ce0efed5",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "42d5fb2a219dd3e01700754a9e858e96e9dbd9fa7c01c48cc8841350cb21f699",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "42e0916e0dda5f6d1e7bb05d8514717147c036a79c9f36085683469516c1fd3f",
       "names": [],
       "sources": []
@@ -23302,11 +25778,26 @@
       "sources": []
     },
     {
+      "digest": "45d970e729f586898d220a111020a2e9b5905c3cf25e0cce799f6b8218e25826",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "45f2a07ea94573123b6ae14db787a40062dec3834f36d8be92c523d40ba28448",
       "names": [],
       "sources": [
         "packages/interaction/user-approval/src/types.ts:44"
       ]
+    },
+    {
+      "digest": "45fceab5262028b2bffcaff94be67459a870341df4533f114c88d94cdecb7f0b",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "46e776c83560ac5f4ef0af1a59e569b9fbc9c0358fa0affa703ee5592169ff3e",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "477614bca595a9e7adb5a1870be446b9a8684f3ba8950259d6289f2d3b74f028",
@@ -23328,6 +25819,11 @@
       "sources": [
         "packages/llm/llm/src/types.ts:452"
       ]
+    },
+    {
+      "digest": "483a97152525f882460e73b22f5f3a0d1921d5faae0db345b99b568750d2eee0",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "487b65c37bfedb8b72088c4107a0a90a6249701f6b26745f6d98f9b8a22b07c7",
@@ -23353,6 +25849,11 @@
     },
     {
       "digest": "49dab019d00e8c26f27ad2ccff7b604d69e323ae4d17e0d2a7b6b8a830b1ade2",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "4a56b0cf1edf1305d027f45a015a1a0b08175517f445b6fae1b571341ea8e5f2",
       "names": [],
       "sources": []
     },
@@ -23406,6 +25907,11 @@
       ]
     },
     {
+      "digest": "4c6802e68b8e0a94f9198cb9d90817154bb4ec41a455927275bd1597b10815fd",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "4cd48f3e5108bd6ebedf7301c3638839b8b2b9db8dbd493974177fbdeb91a01b",
       "names": [
         "packages/api/session-controller/src/types.ts#SessionRequestId",
@@ -23457,6 +25963,11 @@
         "packages/webhook/webhook/src/brand.ts:9",
         "packages/workflow/workflow/src/types.ts:13"
       ]
+    },
+    {
+      "digest": "4d4954a5fcf57159e96137e8484e4a7dba0b885c21c3abea1bccc6323b6bd153",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "4e011753f8263f436efaabfbb3b4db53a98fc55342c5ded2daf7208b217be159",
@@ -23515,6 +26026,11 @@
       "sources": []
     },
     {
+      "digest": "50cfab19b656ef7cbf0b2e256895e52ee5bc2c1b3785ead9ab57f4fbf068fc9f",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "511801b0a6470d98566e8385d3dffddb2b67f79fcf73ed6056f46c3cc0a245a7",
       "names": [],
       "sources": []
@@ -23567,6 +26083,16 @@
       ]
     },
     {
+      "digest": "538479c0761e06b3823d3452e32061b3d451c6fb9821d607abd54402c659037f",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "5387cc83417b26e7e57b6801dd727a78a7f9dbe483858bb59289b8d4df7bae55",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "53cf1704ae0709c7678bcf070c83c619fc48ca1b5c173b74cfa8702f22a8e492",
       "names": [],
       "sources": []
@@ -23577,6 +26103,11 @@
       "sources": [
         "packages/core/session/src/types.ts:355"
       ]
+    },
+    {
+      "digest": "553efa0e9ff3fe268f2087ff65c714d55866adddeb367e021b0cfafba2e19518",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "557e148d30b79ee48645850832b30c717d7c3b64641deb5d6133b8b4e91ee0b8",
@@ -23739,12 +26270,22 @@
       ]
     },
     {
+      "digest": "5e195c474d693f5d7ab2b61b114fca709caae3c25a6ba99d5cc778ca19e52c9b",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "5e6db6e24948d4a853c71cb9fabd252ad051ce93d4672c1266cf837c1c17b84e",
       "names": [],
       "sources": []
     },
     {
       "digest": "5ebce1317eacd2c148456627a09668e927ee15c204f0643f5ea76b46b54a2647",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "5ee7340fc68926ed3f8f6ae87fe2b8935ca6ccabd6398ab334b19ec084b1bb2d",
       "names": [],
       "sources": []
     },
@@ -23773,6 +26314,11 @@
     },
     {
       "digest": "5fb32ca2edf4a04e732bc705a06ca3c2c8ec1f2c0756ca4f4b3bc2a35f1fa85a",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "60399cac56265aa4eb9b6ce013f6a968e32b115a13373c996e5706254d34af6e",
       "names": [],
       "sources": []
     },
@@ -23812,6 +26358,11 @@
       "sources": []
     },
     {
+      "digest": "646c684819fecc446ca855f8c48898fac20a6e7b502afaed6f75ff2c996ce309",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "6487b10ba7542f3c447b1e41a1c6a590b7bfafe0b9b66b49f34028da85bb970f",
       "names": [
         "packages/subagent/subagent/src/descriptor.ts#ContinuableSubagentDescriptorData"
@@ -23830,6 +26381,11 @@
       ]
     },
     {
+      "digest": "6599931bbc2d3d14c8f0843e55138b58c492ae20451a1278aed6a9d7160e2f2d",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "65a8400e451e667e5b6e34df72ceb81fca8c12330330fa72083ad40279b189ad",
       "names": [
         "packages/llm/llm/src/message.ts#SystemPromptMessageSource"
@@ -23846,6 +26402,11 @@
       "sources": [
         "packages/llm/llm/src/types.ts:473"
       ]
+    },
+    {
+      "digest": "67285d04e2e54e275436d4bb28ef2c35081bf47d27bddc9bd28d0eef1a3c5969",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "672c4aa2a9b736e3d6e5da6346d2e2ed5e3573f2d0baafa18e7407c9f3fee3db",
@@ -23874,6 +26435,15 @@
       "digest": "688e853dc149f0d30b31765c12ec7e3be74169bdf1a4c6463a10b945d50cc1b8",
       "names": [],
       "sources": []
+    },
+    {
+      "digest": "68d16fb4ceaf37def1621e4bcbe68f8278178a237fadfaebe43b5aacbd25138a",
+      "names": [
+        "packages/experimental/d-ai/src/cyber-state.ts#CyberFact"
+      ],
+      "sources": [
+        "packages/experimental/d-ai/src/cyber-state.ts:60"
+      ]
     },
     {
       "digest": "68f44f59e91c41395076cb77265981a601680ec8a381bbbeb6ab754ffdc94573",
@@ -23965,7 +26535,22 @@
       "sources": []
     },
     {
+      "digest": "6d4ff8484006680e2f9435ecdb5c7552b2e03b855ef5cdf5b348f4968ed4658b",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "6dea78283b5223cffbdf223710557ef2d07c4e5d6338ac8223ac5b2895f6ab83",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "6e055587d6eda8a8a1ea876cd9f1d2962cb23c6f510f2f87429f47b3a29a7457",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "6e08bee8ec01af62286a60116597068f9566eed6502aedef6a6b1450bb97df80",
       "names": [],
       "sources": []
     },
@@ -24001,6 +26586,15 @@
       ]
     },
     {
+      "digest": "6f2ac01ea994febbba094bd257760041aef454a34dfeb53080fdba23e73e93b4",
+      "names": [
+        "packages/experimental/d-ai/src/investor-state.ts#InvestorFact"
+      ],
+      "sources": [
+        "packages/experimental/d-ai/src/investor-state.ts:62"
+      ]
+    },
+    {
       "digest": "6f44f32be9bcd9a8bf075c3b575b06c8ed63446386e5b0995c7b73762e68ddae",
       "names": [],
       "sources": []
@@ -24021,6 +26615,16 @@
     },
     {
       "digest": "6f9e00383836275e46c0a9915767f9bb561be5fc30aae490174908a93e99a912",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "702d8bb2ae78bc36cf9ff30dac1412d231b48ddf3211b423a938e3c58c080635",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "7035d2a841bbc8b6aec20474d5418b735fb5721e0be08b5c36c92cb0b061eb11",
       "names": [],
       "sources": []
     },
@@ -24052,6 +26656,11 @@
     },
     {
       "digest": "72ec79127a9c0d0241b1106a74cc2b24c81ce467170f1c3c93f7b71a9496d227",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "736756d968be20369bec065b802440a614c2fb2bae2a231fcab50785e4fa990b",
       "names": [],
       "sources": []
     },
@@ -24091,7 +26700,32 @@
       "sources": []
     },
     {
+      "digest": "76b41eb2099d2b323f0ededc3b9eda92f1de86f0974577ce978e4c502fbf7ce1",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "76e6d775ce1c281adfa3be99fd607a2dd1ec731b72b3bb9bbb2e6da1f3e74fb9",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "77cc684c4669e6e0af42efa2dcea82c75a5ff520a56b907a277eb5efb49c7d62",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "780cc431bc1f249d01d00cac07f70676ec37637405278780eca73e379ced6176",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "78a9be340090b735a39980e7222ce730c972fbcf1de7c9e0aef2125884b7caee",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "78bb392af64ef9813d0da6a6d9200cfb7d9f2e980547d0a6d317c1d279235eab",
       "names": [],
       "sources": []
     },
@@ -24101,6 +26735,11 @@
       "sources": [
         "packages/core/session/src/types.ts:212"
       ]
+    },
+    {
+      "digest": "79c507f8946081219800fe34551d94ca18f7756a538b9725437096d88eea5eba",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "79ddc907312f97cf9553d4841e8b3fc937097bd8d97900a790efad3c05255e99",
@@ -24116,6 +26755,11 @@
     },
     {
       "digest": "7af85bf70d4eafce63e739adae38ea85501e68df3a0e22f97f3a0be90fd9e4cb",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "7beb3cf0ea71170fc15617f18b0013eb36c40409840601d655610f2387748fff",
       "names": [],
       "sources": []
     },
@@ -24166,6 +26810,11 @@
       "sources": []
     },
     {
+      "digest": "7e6ef3b37201a14e79ca642551ce9bf12116a73b24d3aab73bb97affda5f98d6",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "7eaef7a763ba5b949b8464bc8add8980a3a5ab566014b69787aeba71e5dfe07b",
       "names": [],
       "sources": []
@@ -24199,6 +26848,11 @@
       ]
     },
     {
+      "digest": "8019977b09a69fc435b8afd6f79bea1b3c20b1b4bc39d14e8b468a62158b3a59",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "8064c03c87c357fd1575cb9395ce86e6dcbe2d275bf7717864a02cddf01827d5",
       "names": [
         "packages/llm/llm/src/types.ts#ContentBlock"
@@ -24218,6 +26872,16 @@
       "sources": []
     },
     {
+      "digest": "80aa42d2b5c5ca572697c50ff54a071f39c5a000f943db422f54f29abf1336be",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "80b338b5556f2a51fe6ed33eb4333af4d587afce0a6012b1c6395891fe16058b",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "811229eedcec57979dbadca7dbea832a59f8580cff30cb217fca5e2da16314bd",
       "names": [],
       "sources": []
@@ -24232,6 +26896,11 @@
       ]
     },
     {
+      "digest": "81637ef6ae15c345c204003f897644b84f8f79a48924395e0b5a66f8d12ec92e",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "82470020b5bfcb1a843e2aa05602af7d37df99e82d01f015c7c589ba054fd89d",
       "names": [],
       "sources": []
@@ -24243,6 +26912,11 @@
     },
     {
       "digest": "829a2fb3be6efd4ba36aef8ed2d381a4c6fb2a0aaf50c823a6f3f8290786b809",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "82ea67ea0361e6d15c8540e9eda54b797d15513ecccc2bf77551cafac191f046",
       "names": [],
       "sources": []
     },
@@ -24317,6 +26991,11 @@
     },
     {
       "digest": "8620189c8e33582708ece48fd2d20dc4d57912486a17bdbb9aea4c44f7018062",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "86a238ffb6c1f393a336efaa35341a0e9220d37d2d1825dbe3d494f82e2deaad",
       "names": [],
       "sources": []
     },
@@ -24417,6 +27096,11 @@
       "sources": []
     },
     {
+      "digest": "8e1167170369351bffc743d1e4467c8064feb9added0b421aff6b5bc8714af07",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "8e31bb958e9b015e6f8407eaade32217068159e816f3cc99c3ad76eb889732e0",
       "names": [],
       "sources": [
@@ -24438,6 +27122,11 @@
       "sources": []
     },
     {
+      "digest": "8e822e86a3d7364386c7aa0b9f9c45f3b97581a70dfe84181fa84646d97a070f",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "8e8e91646a5cae3fc78f7532a0013ff2088ae47077642c2edd507a508209b8af",
       "names": [
         "packages/schedule/schedule/src/types.ts#OneShotScheduleDispatchChange"
@@ -24445,6 +27134,11 @@
       "sources": [
         "packages/schedule/schedule/src/types.ts:237"
       ]
+    },
+    {
+      "digest": "8e98436bb3b88408c3d69ce6a76f0227b12e03e726051e670e6e982d3422ffb9",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "8f324cea3916c0517261e88167def8efb3a9994c1135e23d40ed9fd48f8c7bd4",
@@ -24470,6 +27164,20 @@
     },
     {
       "digest": "904bf499d98be4a3a5f836fcac533b6c4899569b018071e6604e1d32657d00fd",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "92630687be907da92d7259e85394c79b6800120607fb916accb2edaae716f86f",
+      "names": [
+        "packages/experimental/d-ai/src/scientific-state.ts#ScientificFact"
+      ],
+      "sources": [
+        "packages/experimental/d-ai/src/scientific-state.ts:62"
+      ]
+    },
+    {
+      "digest": "92b700556d2231eef1dd7330bc0b1260c3e978dfb17f2bbc6adb47a7496d4536",
       "names": [],
       "sources": []
     },
@@ -24517,6 +27225,11 @@
       "sources": []
     },
     {
+      "digest": "94aa17b2100013f6739b4264ec66b2663e184060ba78c066a514340f2984ee72",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "94c56aeb1564ad735eb773d88636b40761d063efa1610f1308004d32923f5378",
       "names": [],
       "sources": []
@@ -24527,6 +27240,11 @@
       "sources": [
         "packages/llm/llm/src/types.ts:454"
       ]
+    },
+    {
+      "digest": "95bb5db71a61ad7a57eab7134237d8ff915f33409580f0137fe469bda42107bd",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "95c0e88fcf0bafb2087f912ad9e2369de6ae6530cc0c4c2772c96205b57f7f60",
@@ -24553,6 +27271,11 @@
       ]
     },
     {
+      "digest": "98684a71146e659a22a191ba5b882edb9c47924b29a6612d39b4fe8efd08ad23",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "9890113e97dd3541787bfe6704f2b223d3a890b5325ca0acae2b0398909b413e",
       "names": [],
       "sources": [
@@ -24571,6 +27294,11 @@
     },
     {
       "digest": "998f22585a5d73ec005365e203f07fc3b3a029e82323fdda3fd7f13b0a9639d0",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "99aa89010772c864cb6d356a6bb50def058065e4b2a0a17333bd5b240df96515",
       "names": [],
       "sources": []
     },
@@ -24630,7 +27358,37 @@
       "sources": []
     },
     {
+      "digest": "9ba5b38da4e4e34426416a32e0b2a348fef9ce20137455b64f7f3f1da774ef78",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "9bd04aed0315eb7a40c80fcfbcd246eb298e6d4d17b508e5f1a40a16487325ab",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "9c5a17bac6481290870f6cc1aac5cad721d2484339df2d196cd3c81b0767d6c2",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "9c621cf2b61631fdc6bcdd3cca9b183dd6034cbec6753a4a4516accc32ebc233",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "9c76d66d3ef93b118943848874aedc0fcfec7dfaa034d7be7f5262f25c09dae9",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "9cf649385063c5474cb087c3f2d4d921d87b4382017f4150b776aec2e87173c7",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "9cfb95e3150c486f133cf1500f7e40b2529853e28f0a254e35581cee10ac19a1",
       "names": [],
       "sources": []
     },
@@ -24723,6 +27481,11 @@
     },
     {
       "digest": "a2be0f0cb59f0d4a06557d45847d1938aced238baa77a6da416e590b8b958553",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "a2d3fd66862ec7f378a5259f4f80cfea304c74d691208a6ab7dad86a4297034f",
       "names": [],
       "sources": []
     },
@@ -24842,6 +27605,16 @@
       ]
     },
     {
+      "digest": "a9aed5b96e4f9639a875e3ac80c65231649e8af4bc29ff35b5b1da735e84e14f",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "a9f386c873aa39faf263075ff4012fb7282dceb3f3a2248292c9f2afcb626451",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "aa0957eca50aeb28bcd2e6930b95809926edacb550c8c340ba526ba6b861b3d8",
       "names": [],
       "sources": []
@@ -24889,6 +27662,11 @@
       "sources": []
     },
     {
+      "digest": "abcede92254fa719512e56b86bdc7949855ce5a6fbc7df7cb46df01cedd62fe2",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "ad0c38a0adb82a94c925456df41586d9b5f9202fca18593eae2213d4445b4585",
       "names": [],
       "sources": [
@@ -24902,6 +27680,11 @@
     },
     {
       "digest": "ad3b56aa2fc1ad4250e7399295d34a8eae592e1907e85852e2291b2e498a30bc",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "ad64cca0b406b315b51e445b15530b2580f143631293dcabdae762ae951e8c55",
       "names": [],
       "sources": []
     },
@@ -24954,7 +27737,17 @@
       "sources": []
     },
     {
+      "digest": "af099b08ef02a345c50ce0b793803499085c67315eb385860c8eb505bef8d431",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "af6e173f7be819bcd0a5c8d77918649c10ce761d8a184ff472f2e01ce64eb2e0",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "afcdb4c7e70ad64a9bdc787f2b7c85532d2c484ae972c551f415b60fd235f892",
       "names": [],
       "sources": []
     },
@@ -24983,6 +27776,11 @@
       ]
     },
     {
+      "digest": "b124ae60fca1ef3057b532d12eebab902481378ba5a0b2cfc1e7b5384b7517c4",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "b158f3ff6923714807c0d73882f0b05dc87f8fa85c9e90814852d48bbc866081",
       "names": [
         "packages/core/session/src/types.ts#RequestContext"
@@ -24993,6 +27791,16 @@
     },
     {
       "digest": "b1664fa89f8eab49a14e7e3168d8bc4da4aa9fd76332f6c4a053d839e5276ae7",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "b176578779af9c98f8276de34d8d861fa5cd6c92e678a6baaca1625eda819005",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "b1890acf672554b05f83ebc8421343aea81032d9624a082397e0780c03bdde91",
       "names": [],
       "sources": []
     },
@@ -25043,6 +27851,11 @@
       "sources": []
     },
     {
+      "digest": "b4bfceebd3bebe9d9a0adf4e1f3baf146e0c5bfbfdf01c0983e3d5067018b22e",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "b4ec0af39fd52ed971990e42f04e5be3204882e555c409eb330f8238eec21569",
       "names": [],
       "sources": []
@@ -25078,6 +27891,11 @@
     },
     {
       "digest": "b57ae1b37e52bee0a21cbdace168dc6a15582bcda8c306dad962c5dcc8a8e28b",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "b5cfc2e45faa33ddef006e4710d2c3503c77531cf501b1b3fc081a9c4172a116",
       "names": [],
       "sources": []
     },
@@ -25188,6 +28006,16 @@
       "sources": []
     },
     {
+      "digest": "ba0cb3d682b452d40cb4d46408db8d6928e874172a5eadf3850dae103cecc149",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "ba38a27f87442c3c2307d9a913d3bacb46a28c4cc4c09bcd7c44940655bd5afe",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "ba4c40b4381e0dcdfab8fc9fc75b5c9b3e8f09ef56deeb1bec8e703b0ef8cd6d",
       "names": [],
       "sources": []
@@ -25235,12 +28063,22 @@
       "sources": []
     },
     {
+      "digest": "bd17b811dd802f84ffc68813c778f354de7544bfe8dd09ffa8cc19c109101a4e",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "bd499eac047efe091a4df7382eadd06d25cf0cb31fee3981e8b24d85762841cd",
       "names": [],
       "sources": []
     },
     {
       "digest": "bf16d2e98a7f13894ded2cffe5ce857bf473954a0e3c0ed9bc7739e2e1c7b78a",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "bf9f3c0408bc0e1b51589cc42762499b963c8a7706e3c182873329a270ae5efe",
       "names": [],
       "sources": []
     },
@@ -25263,6 +28101,11 @@
       ]
     },
     {
+      "digest": "c17dcdb0d4901cfad0413ca77d83f354a193300003f1770f99b3cd4d2d079427",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "c1f0f17b6493b85db6453bb30e01b208d703731b25bc1e68e5d4fc72eea9cdea",
       "names": [
         "packages/llm/llm/src/types.ts#ToolCallBlock"
@@ -25282,6 +28125,16 @@
       "sources": []
     },
     {
+      "digest": "c22260c6408a8bef800800988c50e029c8c28df8030787646a1034ae75570d8d",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "c22e2d44e25ba7615c77c72334ff50e2084bb97d28b61d0357ec351266b1c751",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "c2a89a042dbade119c128e33153a4ff8ea04e5303eb480bfa5ae9de53ef32099",
       "names": [],
       "sources": []
@@ -25297,6 +28150,11 @@
     },
     {
       "digest": "c43b119ce579b3e9983a0d3adc4ba402ebb9ba773d89738a2dab01ecf5813943",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "c472a199af28c846466c6555c3ab8fd7b82ea11bf371c816e76e5c6270c1758f",
       "names": [],
       "sources": []
     },
@@ -25332,7 +28190,22 @@
       ]
     },
     {
+      "digest": "c629202686a25aa84763c355a937cff4bf00106486b488c310395f5a3d47b1e7",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "c634e2e5a422380d96cec9b2e26b518a4ceed8fda7b59a4612ba60d9146c0986",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "c748fb42c80a120038a8c587af80ec39924803c401364db11c8974d5bf6d0262",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "c7c198a471c87d4a9a9e3cf8f185bd4240ac2a726aa28a315ba9431701529703",
       "names": [],
       "sources": []
     },
@@ -25343,6 +28216,11 @@
     },
     {
       "digest": "c99e20441bf15341e9db54385e558e5c03d21dff2eb1ac08ccbf47c2d8747954",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "c9a65b47b4ccd7c8910b950605b3bfd726cecf02dc8eded7fe48e4af707fc155",
       "names": [],
       "sources": []
     },
@@ -25423,7 +28301,17 @@
       ]
     },
     {
+      "digest": "d02ce16fce65b44e238bcd538bc94751ad50d5952a1d8874ef3d038cc03c0c57",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "d0fbb0ca1bbba059830826f33f801da1aced35a2504376d61e020bdfec8d50c0",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "d1b524d018e5d505491bd0b7bdebc0b89b938b9329d7d2c13da69174a79c2f7a",
       "names": [],
       "sources": []
     },
@@ -25443,11 +28331,21 @@
       "sources": []
     },
     {
+      "digest": "d3d624e37ea1052962bada8b73812e962b8234b861a758f0f8d42c2f5d4d67b7",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "d4b739491689cc6bb13d07ffac1a32239875abda364c0d5edd8f74faf5e9c00d",
       "names": [],
       "sources": [
         "packages/llm/llm/src/types.ts:457"
       ]
+    },
+    {
+      "digest": "d4cf8b5e039ee8ecc852f35d26f2079ff757faf001c9f7fb1965a18fbfb36fb6",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "d4e4d575abeb4b72d616dc65c17ac0eaa943cc135609395044c38d5afcb10e31",
@@ -25461,6 +28359,11 @@
     },
     {
       "digest": "d63b8b8ffad9c02fd80c43a17df4f240c1fe8118ecca9de34f9d5871838ab5b9",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "d6497b4a7c93346dfcdbe9133d2957137c3dcfc02f954dc0e7cf8768ba8a7f12",
       "names": [],
       "sources": []
     },
@@ -25480,6 +28383,11 @@
       "sources": []
     },
     {
+      "digest": "d8b5c4015911a3d47e07d9defd4bb6eaf998f6d85e8737bea38dd9a41b6f81f0",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "d9196086e41e4dd5c2ce87f5c25529c8112a1731d258cf0728747d41a9ee3241",
       "names": [],
       "sources": []
@@ -25494,6 +28402,11 @@
       ]
     },
     {
+      "digest": "d9d6416c1fb641a0e1c1cff4e1fa7d81beb7ba538fbac0a7c9e05d8c00644977",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "d9edf1862e4471d6ad8a106a3f4160e0643874368707d50ecd8e27e5ee7a2567",
       "names": [],
       "sources": []
@@ -25505,6 +28418,11 @@
     },
     {
       "digest": "db06ef35b27a38425046b2228fa6bce9582abe140d781d363137eb2f4d233a1c",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "db4bbe69d3b98ce030a3d621a086600880dcae11373c4282a74f310ad23b5511",
       "names": [],
       "sources": []
     },
@@ -25580,6 +28498,11 @@
       ]
     },
     {
+      "digest": "dfddab0464a32d8631652cf4effdb6745a65e2576f2b410d06fb9afc3dd4ba9b",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "e0a787e6ec76c7c94fecbc501b489164ab0293db05bc947914077ad01e674f05",
       "names": [],
       "sources": []
@@ -25611,6 +28534,11 @@
     },
     {
       "digest": "e31572180d6b28b73f073ad30ae19d5d82982d3daf984723984e23da1e7c459a",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "e36515ab23064a3cc81939252b3d2b0f8478f3e31d460a7caf9ace07ee52fa72",
       "names": [],
       "sources": []
     },
@@ -25673,6 +28601,11 @@
       "sources": []
     },
     {
+      "digest": "e66a43f663e143a5eeeafebc6e6e0c23840616777e8c023f29d36e506291637a",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "e72269f931559e901e5e8fe1cfcbd0669fb795f43cc038ff39fba62f60403c33",
       "names": [],
       "sources": [
@@ -25696,6 +28629,11 @@
     },
     {
       "digest": "e7e8f1318170b8284f16ab45a557afd4675c96071c0f2a456636481dab20b427",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "e85e322fdec4ef254f80c4a622b3325e50a549e69285bea5f40f327e542cd83d",
       "names": [],
       "sources": []
     },
@@ -25724,7 +28662,17 @@
       ]
     },
     {
+      "digest": "eb6a095b58c1fce3ca126fbe8539820be6ac69fa27c81054601753e073a61165",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "ebb768d85ec87fb68e42fc14fd7d8535b5ac11791b14d04c6770180f0a719bf8",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "ebe9016eeb09ab16a10af837e82e601a80222271a48eb103f0e92fbb4fd38dc0",
       "names": [],
       "sources": []
     },
@@ -25741,6 +28689,11 @@
       ]
     },
     {
+      "digest": "ed77e45989cfdd8394f0d1296883e44a9ccf5109045c16d466a46e52ae256ebd",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "edbbfff1128099fda7b792c56330d2cb04debc9790988e66d1c3f4026e813e0e",
       "names": [],
       "sources": []
@@ -25752,6 +28705,11 @@
     },
     {
       "digest": "ee577a0cc18664c9daee50e9455153321155604f8f1817362f8f4a4b6fb9e1ad",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "ee746f91c45b5ecb9e141c2f440aa2a6f68ff89aaccec3762fb4a6898e5c18b9",
       "names": [],
       "sources": []
     },
@@ -25779,6 +28737,16 @@
     },
     {
       "digest": "ef4f00923b9edbae15c7ef05320280bf61147ca17146cf59690359bfd5e5da45",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "ef6918ff0e690f79b58953d488b18636311bc6a3d9c6fff65fa5bd3fdc41c7fc",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "f00704ae72dc0b945cc74ce6240b7565b8f1e873a60fe7ca52731fa5b489e1b5",
       "names": [],
       "sources": []
     },
@@ -25909,6 +28877,11 @@
       "sources": []
     },
     {
+      "digest": "f80d3eed47147cd3d19e7bbbc6a147b1de57247e686d7b62a22c7d1b566ddf0b",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "f88f1b7b6bb733f685f5fb6a8744a5db9199fa53c90463ea1a33bad51153671d",
       "names": [],
       "sources": []
@@ -25955,6 +28928,15 @@
       "sources": []
     },
     {
+      "digest": "fab6cf98b079e0b4e11553b936dab74a286bae0ef4aeb41e273c70d7561635f1",
+      "names": [
+        "packages/experimental/d-ai/src/operations-state.ts#OperationsFact"
+      ],
+      "sources": [
+        "packages/experimental/d-ai/src/operations-state.ts:96"
+      ]
+    },
+    {
       "digest": "fb5e0517050d2c6d40e5b8145db1f7c5ca7044d5d50fada6ff80e0b22c6ca973",
       "names": [],
       "sources": []
@@ -25982,6 +28964,16 @@
       "sources": [
         "packages/skill/tool-skill/src/index.ts:34"
       ]
+    },
+    {
+      "digest": "fc687d05247ae190ac8b4e291a88d66b9ce351c822977cd316f61dbf8aa068b0",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "fce15502fe783cb6a3dc96092ea8d86dac2a6768af3274e10a1dd99fee849b44",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "fcf427290c6213c2a7feb57492d832ce324f5b9737a759f424dab69e6bd101a0",
@@ -26038,6 +29030,11 @@
     },
     {
       "digest": "fee1caf8ab6a65c1bc981f5a1730164490f22a2a89ffa3d0b76f1f432c44c8b5",
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "ffbf8825c24722f26baa8049bf7406c6ae5a78a7b63429b380af10d8482ac3f8",
       "names": [],
       "sources": []
     }
