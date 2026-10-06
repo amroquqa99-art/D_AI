@@ -3,6 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { DirectorLedger, DirectorPlan, DirectorState } from './director-state.ts'
+import type { DirectorScheduleLedger, DirectorScheduleState } from './director-schedule-state.ts'
 import type { DirectorPlanningResult } from './director-orchestration.ts'
 import type { TaskExecutionResult } from './director-executor.ts'
 import type { DirectorCycleResult, DirectorPlanRuntimeView } from './director-runtime.ts'
@@ -58,6 +59,19 @@ export interface TasksDirectorToolRuntime {
     status: DirectorPlan['status'],
     signal?: AbortSignal,
   ): Promise<DirectorLedger>
+  readDirectorSchedule(agent: Agent): DirectorScheduleState
+  setDirectorSchedule(
+    agent: Agent,
+    planId: string,
+    input: {
+      readonly enabled: boolean
+      readonly intervalMs?: number
+      readonly maxTasksPerCycle?: number
+      readonly leaseTtlMs?: number
+      readonly startImmediately?: boolean
+    },
+    signal?: AbortSignal,
+  ): Promise<DirectorScheduleLedger>
 }
 
 export function registerTasksDirectorTools(
@@ -279,6 +293,57 @@ export function registerTasksDirectorTools(
         owner(exec.agent),
         args.plan_id,
         maxTasks,
+      ))
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'd_ai_director_schedule_read',
+    description: 'Read durable unattended Mission Director schedules and their latest cycle receipts.',
+    parameters: {},
+    output: jsonToolOutput,
+    execute: (_args, exec) => encodeToolResult(runtime.readDirectorSchedule(owner(exec.agent))),
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'd_ai_director_schedule_set',
+    description: 'Enable, update or disable unattended execution for one Mission Director plan. Configuration changes require human approval.',
+    parameters: {
+      plan_id: { type: 'string', required: true },
+      enabled: { type: 'boolean', required: true },
+      interval_ms: { type: 'number' },
+      max_tasks_per_cycle: { type: 'number' },
+      lease_ttl_ms: { type: 'number' },
+      start_immediately: { type: 'boolean' },
+    },
+    output: jsonToolOutput,
+    execute: (args, exec) => {
+      if (args.interval_ms !== undefined
+        && (!Number.isSafeInteger(args.interval_ms) || args.interval_ms < 10)) {
+        rejectInvalidInput('interval_ms must be an integer of at least 10 ms')
+      }
+      if (args.max_tasks_per_cycle !== undefined
+        && (!Number.isSafeInteger(args.max_tasks_per_cycle)
+          || args.max_tasks_per_cycle < 1
+          || args.max_tasks_per_cycle > 8)) {
+        rejectInvalidInput('max_tasks_per_cycle must be an integer from 1 to 8')
+      }
+      if (args.lease_ttl_ms !== undefined
+        && (!Number.isSafeInteger(args.lease_ttl_ms) || args.lease_ttl_ms < 1)) {
+        rejectInvalidInput('lease_ttl_ms must be a positive integer')
+      }
+
+      return encodeToolResult(runtime.setDirectorSchedule(
+        owner(exec.agent),
+        args.plan_id,
+        {
+          enabled: args.enabled,
+          ...(args.interval_ms === undefined ? {} : { intervalMs: args.interval_ms }),
+          ...(args.max_tasks_per_cycle === undefined ? {} : { maxTasksPerCycle: args.max_tasks_per_cycle }),
+          ...(args.lease_ttl_ms === undefined ? {} : { leaseTtlMs: args.lease_ttl_ms }),
+          ...(args.start_immediately === undefined ? {} : { startImmediately: args.start_immediately }),
+        },
+        exec.signal,
       ))
     },
   }))
