@@ -1,4 +1,5 @@
 import type { Agent } from '@deepseek-ai/dsh-agent'
+import { HarnessError } from '@deepseek-ai/dsh-llm'
 
 export type ToolOwnerResolver = (agent: Agent | undefined) => Agent
 
@@ -25,4 +26,9 @@ export async function encodeToolResult(
   value: unknown | Promise<unknown>,
 ): Promise<JsonToolResult> {
   return { json: JSON.stringify(await value) }
+}
+
+/** Reject malformed tool-boundary input with a stable runtime code. */
+export function rejectInvalidInput(message: string): never {
+  throw new HarnessError(message, 'D_AI_INVALID_INPUT')
 }
