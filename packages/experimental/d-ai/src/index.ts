@@ -896,6 +896,54 @@ export class DAI extends Service {
     this.ctx.tools.register(defineTool({ name: 'd_ai_investor_delegate', description: 'Run fresh independent fundamental and adversarial-risk Agents for the approved Investor case.',
       parameters: { case_id: { type: 'string', required: true } }, output, timeoutMs: this.investorDelegation.timeoutMs * 2 + 10000,
       execute: (args, exec) => encoded(this.delegateInvestor(owner(exec.agent), args.case_id, exec.signal)) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_cyber_create', description: 'Create an authorized defensive Cybersecurity engagement with an explicit target scope and permitted actions.',
+      parameters: {
+        objective: { type: 'string', required: true },
+        target_description: { type: 'string', required: true },
+        permitted_actions: { type: 'string', required: true },
+        approved_by: { type: 'string', required: true },
+        issued_at: { type: 'string', required: true },
+        expires_at: { type: 'string' },
+      }, output,
+      execute: (args, exec) => {
+        const permittedActions = args.permitted_actions.split(/[\n,]+/).map(value => value.trim()).filter(Boolean)
+        return encoded(this.createCybersecurity(owner(exec.agent), args.objective, {
+          targetDescription: args.target_description,
+          permittedActions,
+          approvedBy: args.approved_by,
+          issuedAt: args.issued_at,
+          ...(args.expires_at === undefined ? {} : { expiresAt: args.expires_at }),
+        }, exec.signal))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_cyber_read', description: 'Read authorized Cybersecurity engagements, scope, findings, remediation, retests and review outputs.', parameters: {}, output,
+      execute: (_args, exec) => encoded(this.readCybersecurity(owner(exec.agent))) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_cyber_add_finding', description: 'Append a defensive finding with observed evidence and remediation guidance.',
+      parameters: {
+        engagement_id: { type: 'string', required: true },
+        title: { type: 'string', required: true },
+        severity: { type: 'string', required: true },
+        evidence: { type: 'string', required: true },
+        remediation: { type: 'string', required: true },
+      }, output,
+      execute: (args, exec) => {
+        const severities = ['INFO', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const
+        if (!severities.includes(args.severity as typeof severities[number])) fail('invalid cyber finding severity', 'D_AI_INVALID_INPUT')
+        return encoded(this.addCyberFinding(owner(exec.agent), args.engagement_id, {
+          title: args.title,
+          severity: args.severity as CyberFinding['severity'],
+          evidence: args.evidence,
+          remediation: args.remediation,
+        }))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_cyber_record_remediation', description: 'Record remediation applied by an engineer for a known defensive finding.',
+      parameters: { engagement_id: { type: 'string', required: true }, finding_id: { type: 'string', required: true }, remediation_note: { type: 'string', required: true } }, output,
+      execute: (args, exec) => encoded(this.recordCyberRemediation(owner(exec.agent), args.engagement_id, args.finding_id, args.remediation_note)) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_cyber_record_retest', description: 'Record evidence from an authorized safe retest after remediation.',
+      parameters: { engagement_id: { type: 'string', required: true }, finding_id: { type: 'string', required: true }, retest_evidence: { type: 'string', required: true } }, output,
+      execute: (args, exec) => encoded(this.recordCyberRetest(owner(exec.agent), args.engagement_id, args.finding_id, args.retest_evidence)) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_cyber_delegate', description: 'Run fresh independent defensive assessment and remediation-review Agents inside the recorded authorization scope.',
+      parameters: { engagement_id: { type: 'string', required: true } }, output, timeoutMs: this.cyberDelegation.timeoutMs * 2 + 10000,
+      execute: (args, exec) => encoded(this.delegateCybersecurity(owner(exec.agent), args.engagement_id, exec.signal)) }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_mission_create', description: 'Create an explicitly user-requested investigative mission. Never activate a new independent mission proposed by a model without owner approval.',
       parameters: { objective: { type: 'string', required: true } }, output,
       execute: (args, exec) => encoded(this.create(owner(exec.agent), args.objective, exec.signal)) }))
