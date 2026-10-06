@@ -31,6 +31,10 @@ export { createEvidenceGraph, addEvidenceNode, addEvidenceEdge, neighbors, claim
 export type { EvidenceGraph, EvidenceNode, EvidenceEdge, EvidenceNodeKind, EvidenceEdgeKind, ClaimTension } from './evidence-graph.ts'
 export { routeModels, chooseModel } from './model-router.ts'
 export type { ModelProfile, ModelLocation, ModelCapability, RoutingRequest, RoutedModel } from './model-router.ts'
+export { createAuditChain, appendAuditRecord, verifyAuditChain } from './audit-log.ts'
+export type { AuditChain, AuditRecord, AuditEventInput, AuditAction } from './audit-log.ts'
+export { authorizeCrossSystemHandoff } from './cross-system.ts'
+export type { CrossSystemRequest, CrossSystemHandoff } from './cross-system.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
