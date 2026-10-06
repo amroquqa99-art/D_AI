@@ -1,7 +1,6 @@
 /** Native D_AI mission service, investigative tools, and auditable Session facts. */
 import { createHash, randomUUID } from 'node:crypto'
 import { Context, Service } from '@deepseek-ai/cordis'
-import z from '@deepseek-ai/schemastery'
 import { z as schema } from 'zod'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
@@ -72,6 +71,8 @@ import type { DirectorPlanningResult } from './director-orchestration.ts'
 import { runDirectorTaskExecutor } from './director-executor.ts'
 import type { TaskExecutionResult } from './director-executor.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
+import { buildRuntimeConfiguration, configSchema } from './config.ts'
+import type { Config } from './config.ts'
 
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
 export { getSystemManifest, listSystemManifests, LOCAL_INTELLIGENCE_CORE } from './systems.ts'
@@ -142,32 +143,7 @@ export { runDirectorTaskExecutor } from './director-executor.ts'
 export type { TaskExecutionConfig, TaskExecutionOutcome, TaskExecutionResult } from './director-executor.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
-/** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
-export interface Config {
-  subagentProvider?: string
-  maxDepth?: number
-  maxOutputTokens?: number
-  maxRequestsPerChild?: number
-  timeoutMs?: number
-  maxSourceBytes?: number
-  maxMissionBytes?: number
-  maxSources?: number
-  researchModel?: string
-  verificationModel?: string
-  literatureModel?: string
-  methodologyModel?: string
-  fundamentalModel?: string
-  riskModel?: string
-  cyberAssessmentModel?: string
-  cyberRemediationModel?: string
-  operationsFusionModel?: string
-  operationsAdversarialModel?: string
-  innovationExplorerModel?: string
-  innovationCriticModel?: string
-  allowedTools?: string[]
-  maxResultBytes?: number
-}
-
+export type { Config } from './config.ts'
 const indexSpec = defineDomain({ name: 'd_ai_mission_index', version: 1, tables: {
   missions: domainTable(schema.object({ id: schema.string(), rootSessionId: schema.string() }).strict()),
 } })
@@ -190,16 +166,7 @@ function fail(message: string, code = 'D_AI_POLICY_DENIED'): never { throw new H
 /** Single-owner native service; raw Session history is authoritative, index is discoverability only. */
 export class DAI extends Service {
   static inject = ['agents', 'sessions', 'sessionProjections', 'storageDomain', 'web', 'subagents', 'tools', 'approval']
-  static Config: z<Config> = z.object({
-    subagentProvider: z.string().default('spawn'), maxDepth: z.number().step(1).min(1).default(3),
-    maxOutputTokens: z.number().step(1).min(1).default(4096), maxRequestsPerChild: z.number().step(1).min(1).default(8),
-    timeoutMs: z.number().step(1).min(1).default(120000), maxSourceBytes: z.number().step(1).min(1).default(200000),
-    maxMissionBytes: z.number().step(1).min(1).default(2000000), maxSources: z.number().step(1).min(1).default(32),
-    researchModel: z.string(), verificationModel: z.string(), literatureModel: z.string(), methodologyModel: z.string(),
-    fundamentalModel: z.string(), riskModel: z.string(), cyberAssessmentModel: z.string(), cyberRemediationModel: z.string(),
-    operationsFusionModel: z.string(), operationsAdversarialModel: z.string(), innovationExplorerModel: z.string(), innovationCriticModel: z.string(),
-    allowedTools: z.array(z.string()).default(['web_search', 'web_fetch']), maxResultBytes: z.number().step(1).min(1).default(65536),
-  })
+  static Config = configSchema
   private readonly limits: { maxSourceBytes: number; maxMissionBytes: number; maxSources: number }
   private readonly delegation: InvestigationDelegationConfig
   private readonly scientificDelegation: ScientificDelegationConfig
@@ -213,59 +180,14 @@ export class DAI extends Service {
 
   constructor(ctx: Context, config: Config = {}) {
     super(ctx, 'dai')
-    this.limits = { maxSourceBytes: config.maxSourceBytes ?? 200000, maxMissionBytes: config.maxMissionBytes ?? 2000000, maxSources: config.maxSources ?? 32 }
-    this.delegation = {
-      provider: config.subagentProvider ?? 'spawn', maxDepth: config.maxDepth ?? 3,
-      allowedTools: config.allowedTools ?? ['web_search', 'web_fetch'], maxResultBytes: config.maxResultBytes ?? 65536,
-      maxOutputTokens: config.maxOutputTokens ?? 4096, maxRequestsPerChild: config.maxRequestsPerChild ?? 8,
-      timeoutMs: config.timeoutMs ?? 120000,
-      ...(config.researchModel === undefined ? {} : { researchModel: config.researchModel }),
-      ...(config.verificationModel === undefined ? {} : { verificationModel: config.verificationModel }),
-    }
-    this.scientificDelegation = {
-      provider: config.subagentProvider ?? 'spawn', maxDepth: config.maxDepth ?? 3,
-      allowedTools: config.allowedTools ?? ['web_search', 'web_fetch'], maxResultBytes: config.maxResultBytes ?? 65536,
-      maxOutputTokens: config.maxOutputTokens ?? 4096, maxRequestsPerChild: config.maxRequestsPerChild ?? 8,
-      timeoutMs: config.timeoutMs ?? 120000,
-      ...(config.literatureModel === undefined ? {} : { literatureModel: config.literatureModel }),
-      ...(config.methodologyModel === undefined ? {} : { methodologyModel: config.methodologyModel }),
-    }
-    this.investorDelegation = {
-      provider: config.subagentProvider ?? 'spawn', maxDepth: config.maxDepth ?? 3,
-      allowedTools: config.allowedTools ?? ['web_search', 'web_fetch'], maxResultBytes: config.maxResultBytes ?? 65536,
-      maxOutputTokens: config.maxOutputTokens ?? 4096, maxRequestsPerChild: config.maxRequestsPerChild ?? 8,
-      timeoutMs: config.timeoutMs ?? 120000,
-      ...(config.fundamentalModel === undefined ? {} : { fundamentalModel: config.fundamentalModel }),
-      ...(config.riskModel === undefined ? {} : { riskModel: config.riskModel }),
-    }
-    this.cyberDelegation = {
-      provider: config.subagentProvider ?? 'spawn', maxDepth: config.maxDepth ?? 3,
-      allowedTools: config.allowedTools ?? [], maxResultBytes: config.maxResultBytes ?? 65536,
-      maxOutputTokens: config.maxOutputTokens ?? 4096, maxRequestsPerChild: config.maxRequestsPerChild ?? 8,
-      timeoutMs: config.timeoutMs ?? 120000,
-      ...(config.cyberAssessmentModel === undefined ? {} : { assessmentModel: config.cyberAssessmentModel }),
-      ...(config.cyberRemediationModel === undefined ? {} : { remediationModel: config.cyberRemediationModel }),
-    }
-    this.operationsDelegation = {
-      provider: config.subagentProvider ?? 'spawn', maxDepth: config.maxDepth ?? 3,
-      allowedTools: config.allowedTools ?? ['web_search', 'web_fetch'], maxResultBytes: config.maxResultBytes ?? 65536,
-      maxOutputTokens: config.maxOutputTokens ?? 4096, maxRequestsPerChild: config.maxRequestsPerChild ?? 8,
-      timeoutMs: config.timeoutMs ?? 120000,
-      ...(config.operationsFusionModel === undefined ? {} : { fusionModel: config.operationsFusionModel }),
-      ...(config.operationsAdversarialModel === undefined ? {} : { adversarialModel: config.operationsAdversarialModel }),
-    }
-    this.innovationDelegation = {
-      provider: config.subagentProvider ?? 'spawn', maxDepth: config.maxDepth ?? 3,
-      allowedTools: config.allowedTools ?? ['web_search', 'web_fetch'], maxResultBytes: config.maxResultBytes ?? 65536,
-      maxOutputTokens: config.maxOutputTokens ?? 4096, maxRequestsPerChild: config.maxRequestsPerChild ?? 8,
-      timeoutMs: config.timeoutMs ?? 120000,
-      ...(config.innovationExplorerModel === undefined ? {} : { explorerModel: config.innovationExplorerModel }),
-      ...(config.innovationCriticModel === undefined ? {} : { criticModel: config.innovationCriticModel }),
-    }
-    for (const [key, value] of Object.entries({ ...this.limits, maxDepth: this.delegation.maxDepth,
-      maxOutputTokens: this.delegation.maxOutputTokens, maxRequestsPerChild: this.delegation.maxRequestsPerChild, timeoutMs: this.delegation.timeoutMs })) {
-      if (!Number.isSafeInteger(value) || value < 1) throw new TypeError(`${key} must be a positive safe integer`)
-    }
+    const runtime = buildRuntimeConfiguration(config)
+    this.limits = runtime.limits
+    this.delegation = runtime.delegations.investigation
+    this.scientificDelegation = runtime.delegations.scientific
+    this.investorDelegation = runtime.delegations.investor
+    this.cyberDelegation = runtime.delegations.cyber
+    this.operationsDelegation = runtime.delegations.operations
+    this.innovationDelegation = runtime.delegations.innovation
     this.index = ctx.storageDomain.open(indexSpec)
     ctx.effect(() => ctx.sessionProjections.register(missionProjection), 'dai.projection()')
     ctx.effect(() => ctx.sessionProjections.register(scientificProjection), 'dai.scientificProjection()')
