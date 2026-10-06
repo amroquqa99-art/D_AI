@@ -6,8 +6,6 @@ import {
   createModelReleasePointer,
   evaluateModelPromotion,
   type ModelEvaluationResult,
-  type ModelPromotionDecision,
-  type ModelReleasePointer,
   type PromotionPolicy,
 } from './model-evaluation.ts'
 
