@@ -162,6 +162,21 @@ export class DAI extends Service {
     return mission
   }
 
+  /** Read durable Scientific Research projects for the exact live owner Agent. */
+  readScientific(agent: Agent): ScientificState {
+    this.authorize(agent)
+    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiScientificResearch')
+    if (state === undefined) fail('Scientific Research projection is not mounted', 'D_AI_PROJECTION_MISSING')
+    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
+    return immutable(state)
+  }
+
+  private scientificProject(agent: Agent, id: string): ScientificProject {
+    const project = this.readScientific(agent).projects.find(item => item.id === id)
+    if (project === undefined || project.ownerAgentId !== agent.id) fail('scientific project is absent or not owned by this Agent')
+    return project
+  }
+
   private async transact<T>(agent: Agent, operation: () => Promise<T>): Promise<T> {
     this.authorize(agent)
     const prior = this.tails.get(agent.id) ?? Promise.resolve()
@@ -188,6 +203,16 @@ export class DAI extends Service {
     agent.session.append('d_ai/fact', fact)
     await this.ctx.sessions.flush(agent.session)
     return immutable(fact.mission)
+  }
+
+  private async appendScientific(agent: Agent, operation: ScientificFact['operation'], project: ScientificProject): Promise<ScientificProject> {
+    this.authorize(agent)
+    const fact = immutable(scientificFactSchema.parse({ version: 1, operation, actorId: agent.id, project }))
+    if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('scientific project storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+    this.requireOpenTurn(agent)
+    agent.session.append('d_ai/scientific-fact', fact)
+    await this.ctx.sessions.flush(agent.session)
+    return immutable(fact.project)
   }
 
   /**
