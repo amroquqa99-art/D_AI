@@ -22,4 +22,7 @@ export interface DirectorCycleResult {
   readonly phase: MissionPhase
   readonly limitReached: boolean
   readonly next: SchedulerSelection
+  readonly waves: number
+  readonly peakParallelism: number
+  readonly serializedByBudgetProfileIds: readonly string[]
 }
