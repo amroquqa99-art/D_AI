@@ -65,6 +65,7 @@ export interface CyberState {
 
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
+    /** Complete post-change authorized Cybersecurity engagement fact retaining immutable authorization scope, findings, remediation, retest and review state. */
     'd_ai/cyber-fact': CyberFact
   }
 }
