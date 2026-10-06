@@ -39,9 +39,9 @@ export function authorizeCrossSystemHandoff(
     actorId: request.actorId,
     systemId: request.toSystem,
     capability: request.capability,
-    taskId: request.taskId,
     missionId: request.missionId,
-    projectId: request.projectId,
+    ...(request.taskId === undefined ? {} : { taskId: request.taskId }),
+    ...(request.projectId === undefined ? {} : { projectId: request.projectId }),
     at: request.at,
   })
   if (!authorization.allowed || authorization.grantId === undefined) {
@@ -55,7 +55,7 @@ export function authorizeCrossSystemHandoff(
     action: 'CROSS_SYSTEM_HANDOFF',
     systemId: request.fromSystem,
     missionId: request.missionId,
-    taskId: request.taskId,
+    ...(request.taskId === undefined ? {} : { taskId: request.taskId }),
     subjectId: request.toSystem,
     details: {
       capability: request.capability,
