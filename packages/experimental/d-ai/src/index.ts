@@ -432,6 +432,126 @@ export class DAI extends Service {
     }
   }
 
+  /** Create a user-requested Investor analysis case. */
+  async createInvestor(agent: Agent, objective: string, signal?: AbortSignal): Promise<InvestorCase> {
+    this.authorize(agent)
+    const boundary = this.requireOpenTurn(agent)
+    const explicit = agent.session.snapshotEvents().slice(boundary + 1).some(event =>
+      event.type === 'user/message' && event.data.source.kind === 'user'
+      && event.data.content.filter(block => block.type === 'text').map(block => block.text).join('\n').trim() === objective.trim())
+    if (!explicit) {
+      const outcome = await this.ctx.approval.request({
+        agent,
+        toolName: 'd_ai_investor_create',
+        reason: 'Activate independent Investor case: ' + objective,
+        ...(signal === undefined ? {} : { signal }),
+      })
+      if (outcome !== 'allowed-once') fail('owner approval is required for this independent investor case')
+    }
+    if (objective.trim().length === 0) fail('investment objective must contain text', 'D_AI_INVALID_INPUT')
+    return this.transact(agent, async () => this.appendInvestor(agent, 'CREATE', {
+      id: randomUUID(),
+      system: 'investor',
+      objective,
+      ownerAgentId: agent.id,
+      status: 'ACTIVE',
+      revision: 1,
+      createdAt: new Date().toISOString(),
+      sources: [],
+      theses: [],
+      delegations: [],
+    }))
+  }
+
+  /** Capture an authorized investment source with immutable provenance. */
+  async captureInvestorSource(
+    agent: Agent,
+    id: string,
+    url: string,
+    category: InvestorSource['category'],
+    signal: AbortSignal,
+  ): Promise<InvestorCase> {
+    this.investorCase(agent, id)
+    const parsed = new URL(url)
+    if (!['https:', 'http:'].includes(parsed.protocol) || parsed.username || parsed.password) fail('investor source URL must be credential-free HTTP(S)', 'D_AI_INVALID_INPUT')
+    const result = await this.ctx.web.fetch({ url }, signal)
+    signal.throwIfAborted()
+    if (result.statusCode < 200 || result.statusCode >= 300) fail('investor source retrieval failed with HTTP ' + result.statusCode, 'D_AI_RETRIEVAL_FAILED')
+    if (Buffer.byteLength(result.body.content, 'utf8') > this.limits.maxSourceBytes) fail('investor source exceeds captured-content budget', 'D_AI_BUDGET_EXCEEDED')
+
+    return this.transact(agent, async () => {
+      const value = this.investorCase(agent, id)
+      if (value.sources.length >= this.limits.maxSources) fail('investor source-count budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+      const source: InvestorSource = {
+        id: randomUUID(),
+        category,
+        requestedUrl: url,
+        finalUrl: result.url,
+        capturedAt: new Date().toISOString(),
+        statusCode: result.statusCode,
+        content: result.body.content,
+        sha256: createHash('sha256').update(result.body.content, 'utf8').digest('hex'),
+        actorId: agent.id,
+      }
+      return this.appendInvestor(agent, 'CAPTURE_SOURCE', {
+        ...value,
+        revision: value.revision + 1,
+        sources: [...value.sources, source],
+      })
+    })
+  }
+
+  /** Append an explicit investment thesis with its own invalidation conditions. */
+  async addInvestmentThesis(
+    agent: Agent,
+    id: string,
+    input: { statement: string; horizon: InvestmentThesis['horizon']; rationale: string; invalidationConditions: string },
+  ): Promise<InvestorCase> {
+    if ([input.statement, input.rationale, input.invalidationConditions].some(value => value.trim().length === 0)) {
+      fail('investment thesis, rationale and invalidation conditions are required', 'D_AI_INVALID_INPUT')
+    }
+    return this.transact(agent, async () => {
+      const value = this.investorCase(agent, id)
+      const thesis: InvestmentThesis = {
+        id: randomUUID(),
+        statement: input.statement,
+        horizon: input.horizon,
+        rationale: input.rationale,
+        invalidationConditions: input.invalidationConditions,
+        state: 'OPEN',
+        actorId: agent.id,
+        createdAt: new Date().toISOString(),
+      }
+      return this.appendInvestor(agent, 'ADD_THESIS', {
+        ...value,
+        revision: value.revision + 1,
+        theses: [...value.theses, thesis],
+      })
+    })
+  }
+
+  /** Run independent fundamental and adversarial-risk Investor workers. */
+  async delegateInvestor(agent: Agent, id: string, signal: AbortSignal): Promise<InvestorCase> {
+    const value = this.investorCase(agent, id)
+    const key = agent.id + ':investor'
+    if (this.delegating.has(key)) fail('an investor delegation is already running for this owner', 'D_AI_BUSY')
+    this.delegating.add(key)
+    try {
+      const result = await runInvestorDelegates(this.ctx, agent, value.objective, signal, this.investorDelegation)
+      signal.throwIfAborted()
+      return await this.transact(agent, async () => {
+        const current = this.investorCase(agent, id)
+        return this.appendInvestor(agent, 'DELEGATE', {
+          ...current,
+          revision: current.revision + 1,
+          delegations: [...current.delegations, result],
+        })
+      })
+    } finally {
+      this.delegating.delete(key)
+    }
+  }
+
   /**
    * Fetch and retain an immutable, bounded decoded source through the native web provider.
    * @param agent - exact mission owner root Agent.
