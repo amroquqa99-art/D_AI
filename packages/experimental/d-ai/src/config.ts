@@ -32,6 +32,7 @@ export interface Config {
   maxResultBytes?: number
   directorSchedulerEnabled?: boolean
   directorSchedulerPollMs?: number
+  directorSchedulerMaxConcurrentCycles?: number
 }
 
 export interface DAILimits {
@@ -52,6 +53,7 @@ export interface DelegationConfiguration {
 export interface DirectorSchedulerConfiguration {
   readonly enabled: boolean
   readonly pollMs: number
+  readonly maxConcurrentCycles: number
 }
 
 export interface RuntimeConfiguration {
@@ -89,6 +91,7 @@ export const configSchema: z<Config> = z.object({
   maxResultBytes: z.number().step(1).min(1).default(65536),
   directorSchedulerEnabled: z.boolean().default(true),
   directorSchedulerPollMs: z.number().step(1).min(10).default(1000),
+  directorSchedulerMaxConcurrentCycles: z.number().step(1).min(1).max(32).default(1),
 })
 
 function positiveSafeInteger(name: string, value: number): number {
@@ -166,8 +169,15 @@ export function buildRuntimeConfiguration(config: Config = {}): RuntimeConfigura
   const scheduler: DirectorSchedulerConfiguration = {
     enabled: config.directorSchedulerEnabled ?? true,
     pollMs: positiveSafeInteger('directorSchedulerPollMs', config.directorSchedulerPollMs ?? 1000),
+    maxConcurrentCycles: positiveSafeInteger(
+      'directorSchedulerMaxConcurrentCycles',
+      config.directorSchedulerMaxConcurrentCycles ?? 1,
+    ),
   }
   if (scheduler.pollMs < 10) throw new TypeError('directorSchedulerPollMs must be at least 10 ms')
+  if (scheduler.maxConcurrentCycles > 32) {
+    throw new TypeError('directorSchedulerMaxConcurrentCycles must be at most 32')
+  }
 
   return Object.freeze({
     limits: Object.freeze(limits),
