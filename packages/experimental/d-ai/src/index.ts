@@ -63,7 +63,7 @@ import { createModelReleasePointer as createModelReleasePointerInternal, evaluat
 import type { ModelEvaluationResult, PromotionPolicy } from './model-evaluation.ts'
 import { directorFactSchema } from './director-state.ts'
 import type { DirectorFact, DirectorLedger, DirectorPlan, DirectorState } from './director-state.ts'
-import type { MissionPhase } from './mission-director.ts'
+import { deriveMissionPhase } from './mission-director.ts'
 import { runDirectorPlanner } from './director-orchestration.ts'
 import type { DirectorPlanningResult } from './director-orchestration.ts'
 import { runDirectorTaskExecutor } from './director-executor.ts'
@@ -861,14 +861,7 @@ export class DAI extends Service {
     const fullLedger = this.taskLedger(agent)
     const tasks = fullLedger.tasks.filter(task => task.missionId === plan.id)
 
-    let phase: MissionPhase
-    if (plan.status === 'PAUSED') phase = 'PAUSED'
-    else if (plan.status === 'COMPLETE') phase = 'COMPLETE'
-    else if (tasks.length === 0) phase = 'PLANNING'
-    else if (tasks.every(task => task.state === 'COMPLETED' || task.state === 'CANCELLED')) phase = 'COMPLETE'
-    else if (tasks.some(task => task.state === 'WAITING_FOR_HUMAN')) phase = 'WAITING_FOR_HUMAN'
-    else if (tasks.some(task => task.state === 'BLOCKED_POLICY' || task.state === 'BLOCKED_BUDGET' || task.state === 'FAILED')) phase = 'BLOCKED'
-    else phase = 'EXECUTING'
+    const phase = deriveMissionPhase(plan.status, tasks)
 
     const scopedLedger: DurableTaskLedger = {
       ownerAgentId: agent.id,
