@@ -1,37 +1,40 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { BudgetProfile } from './budget-state.ts'
+import type { BudgetLedger, BudgetProfile, BudgetState } from './budget-state.ts'
 import type { CapabilityGrant } from './capability-grants.ts'
+import type { ControlPlane, ControlPlaneState } from './control-plane-state.ts'
 import type { EvidenceEdge, EvidenceNode } from './evidence-graph.ts'
+import type { EvidenceStore, EvidenceStoreState } from './evidence-store-state.ts'
+import type { SchedulerSelection } from './runtime-scheduler.ts'
 import type { ResourceBudget } from './resource-value.ts'
 import { SYSTEMS } from './state.ts'
 import { encodeToolResult, jsonToolOutput, rejectInvalidInput } from './tool-support.ts'
 import type { ToolOwnerResolver } from './tool-support.ts'
 
 export interface EvidenceControlToolRuntime {
-  readEvidenceStore(agent: Agent): unknown
+  readEvidenceStore(agent: Agent): EvidenceStoreState
   addSharedEvidenceNode(
     agent: Agent,
     input: Omit<EvidenceNode, 'id' | 'createdAt'>,
-  ): Promise<unknown>
+  ): Promise<EvidenceStore>
   addSharedEvidenceEdge(
     agent: Agent,
     input: Omit<EvidenceEdge, 'id' | 'createdAt' | 'actorId'>,
-  ): Promise<unknown>
-  readBudgets(agent: Agent): unknown
+  ): Promise<EvidenceStore>
+  readBudgets(agent: Agent): BudgetState
   setResourceBudget(
     agent: Agent,
     input: { scope: BudgetProfile['scope']; scopeId: string; limits: ResourceBudget },
     signal?: AbortSignal,
-  ): Promise<unknown>
-  selectRunnableTasks(agent: Agent, maxTasks: number): unknown
-  readControlPlane(agent: Agent): unknown
+  ): Promise<BudgetLedger>
+  selectRunnableTasks(agent: Agent, maxTasks: number): SchedulerSelection
+  readControlPlane(agent: Agent): ControlPlaneState
   grantCapability(
     agent: Agent,
     input: Omit<CapabilityGrant, 'id' | 'issuedBy' | 'issuedAt'>,
     signal?: AbortSignal,
-  ): Promise<unknown>
+  ): Promise<ControlPlane>
   authorizeDurableCrossSystemHandoff(
     agent: Agent,
     input: {
@@ -43,7 +46,7 @@ export interface EvidenceControlToolRuntime {
       taskId?: string
       reason: string
     },
-  ): Promise<unknown>
+  ): Promise<ControlPlane>
 }
 
 export function registerEvidenceControlTools(
