@@ -14,6 +14,9 @@
 - تثبيت مواصفة D_AI v2: ستة أنظمة First-Class (التحقيق، البحث العلمي، المستثمر، الأمن السيبراني، العمليات والاستخبارات، الابتكار والاكتشاف) مع فصل Local Intelligence Core كنواة منصة مركزية.
 - إضافة System Registry أصلي داخل `packages/experimental/d-ai/src/systems.ts` يعرّف manager/tool profiles/memory/evidence/cross-system/risk/approval gates وحالة التنفيذ الحقيقية لكل نظام.
 - إضافة اختبارات بنيوية تقفل عدد الأنظمة الستة وتمنع اعتبار النواة المحلية نظامًا سابعًا.
+- إضافة Task DAG foundation عامة للأنظمة مع كشف الدورات والاعتماديات والمهام القابلة للتشغيل وانتقالات الحالة وحدود إعادة المحاولة.
+- إضافة Training Data Governance للنواة المحلية: opt-in/ownership/license/secrets/personal-data/quality/human approval مع Dataset lineage وholdout منفصل.
+- إصلاح `pnpm-lock.yaml` المتضرر بإعادة توليده من manifests الحالية والتحقق منه فعليًا عبر `pnpm install --frozen-lockfile` داخل GitHub Actions.
 
 - دمج حزمة المواصفات المرجعية الأربعة وقراءة متطلباتها.
 - بناء إضافة native للنظام من ترويسات Node v24.19.0 التي تم التحقق من بصمتها.
