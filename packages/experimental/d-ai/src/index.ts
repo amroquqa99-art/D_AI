@@ -1213,6 +1213,7 @@ export class DAI extends Service {
   async runScheduledDirectorCycle(
     agent: Agent,
     scheduleId: string,
+    expectedDueAt: string,
     signal: AbortSignal,
   ): Promise<ScheduledDirectorCycleResult> {
     this.authorize(agent)
@@ -1221,7 +1222,13 @@ export class DAI extends Service {
     const plan = this.directorPlan(agent, schedule.planId)
     const attemptedAt = new Date().toISOString()
 
-    if (!schedule.enabled || plan.status !== 'ACTIVE') {
+    // A queued wake is a capability token for one exact durable due time.
+    // Reconfiguration or disablement invalidates the old token rather than
+    // letting stale background work execute under new settings.
+    if (!schedule.enabled
+      || plan.status !== 'ACTIVE'
+      || schedule.nextWakeAt !== expectedDueAt
+      || Date.parse(schedule.nextWakeAt) > Date.parse(attemptedAt)) {
       return immutableSnapshot({
         scheduleId,
         planId: schedule.planId,
