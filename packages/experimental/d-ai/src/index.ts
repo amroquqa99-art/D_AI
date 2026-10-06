@@ -75,25 +75,13 @@ import { mountDaiProjections } from './runtime-projections.ts'
 import { registerDaiTools } from './runtime-tools.ts'
 import { DaiRuntimeKernel } from './runtime-kernel.ts'
 import { failDai } from './runtime-errors.ts'
+import { DaiProjectionReader, immutableSnapshot } from './runtime-state.ts'
 
 export * from './public-api.ts'
 
 const indexSpec = defineDomain({ name: 'd_ai_mission_index', version: 1, tables: {
   missions: domainTable(schema.object({ id: schema.string(), rootSessionId: schema.string() }).strict()),
 } })
-
-/** Freeze plugin-owned facts because native Session only freezes its core message payloads. */
-function immutable<T>(value: T): T {
-  const copy = structuredClone(value)
-  function freeze(item: unknown): void {
-    if (item !== null && typeof item === 'object') {
-      for (const child of Object.values(item)) freeze(child)
-      Object.freeze(item)
-    }
-  }
-  freeze(copy)
-  return copy
-}
 
 const fail = failDai
 
@@ -109,12 +97,14 @@ export class DAI extends Service {
   private readonly operationsDelegation: OperationsDelegationConfig
   private readonly innovationDelegation: InnovationDelegationConfig
   private readonly kernel: DaiRuntimeKernel
+  private readonly projections: DaiProjectionReader
   private readonly delegating = new Set<string>()
   private readonly index: ReturnType<Context['storageDomain']['open']>
 
   constructor(ctx: Context, config: Config = {}) {
     super(ctx, 'dai')
     this.kernel = new DaiRuntimeKernel(ctx)
+    this.projections = new DaiProjectionReader(ctx, this.kernel)
     const runtime = buildRuntimeConfiguration(config)
     this.limits = runtime.limits
     this.delegation = runtime.delegations.investigation
@@ -145,11 +135,7 @@ export class DAI extends Service {
    * @returns detached immutable projected missions.
    */
   read(agent: Agent): MissionState {
-    this.authorize(agent)
-    const state = this.ctx.sessionProjections.stateOf(agent.session, 'dai')
-    if (state === undefined) fail('D_AI projection is not mounted', 'D_AI_PROJECTION_MISSING')
-    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
-    return immutable(state)
+    return this.projections.read(agent, 'dai')
   }
 
   private mission(agent: Agent, id: string): Mission {
@@ -160,11 +146,7 @@ export class DAI extends Service {
 
   /** Read durable Scientific Research projects for the exact live owner Agent. */
   readScientific(agent: Agent): ScientificState {
-    this.authorize(agent)
-    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiScientificResearch')
-    if (state === undefined) fail('Scientific Research projection is not mounted', 'D_AI_PROJECTION_MISSING')
-    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
-    return immutable(state)
+    return this.projections.read(agent, 'daiScientificResearch')
   }
 
   private scientificProject(agent: Agent, id: string): ScientificProject {
@@ -175,11 +157,7 @@ export class DAI extends Service {
 
   /** Read durable Investor cases for the exact live owner Agent. */
   readInvestor(agent: Agent): InvestorState {
-    this.authorize(agent)
-    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiInvestor')
-    if (state === undefined) fail('Investor projection is not mounted', 'D_AI_PROJECTION_MISSING')
-    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
-    return immutable(state)
+    return this.projections.read(agent, 'daiInvestor')
   }
 
   private investorCase(agent: Agent, id: string): InvestorCase {
@@ -190,11 +168,7 @@ export class DAI extends Service {
 
   /** Read durable authorized Cybersecurity engagements for the exact live owner Agent. */
   readCybersecurity(agent: Agent): CyberState {
-    this.authorize(agent)
-    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiCybersecurity')
-    if (state === undefined) fail('Cybersecurity projection is not mounted', 'D_AI_PROJECTION_MISSING')
-    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
-    return immutable(state)
+    return this.projections.read(agent, 'daiCybersecurity')
   }
 
   private cyberEngagement(agent: Agent, id: string): CyberEngagement {
@@ -205,11 +179,7 @@ export class DAI extends Service {
 
   /** Read durable Operations & Intelligence cases for the exact live owner Agent. */
   readOperations(agent: Agent): OperationsState {
-    this.authorize(agent)
-    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiOperationsIntelligence')
-    if (state === undefined) fail('Operations & Intelligence projection is not mounted', 'D_AI_PROJECTION_MISSING')
-    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
-    return immutable(state)
+    return this.projections.read(agent, 'daiOperationsIntelligence')
   }
 
   private operationsCase(agent: Agent, id: string): OperationsCase {
@@ -220,11 +190,7 @@ export class DAI extends Service {
 
   /** Read durable Innovation & Discovery projects for the exact live owner Agent. */
   readInnovation(agent: Agent): InnovationState {
-    this.authorize(agent)
-    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiInnovationDiscovery')
-    if (state === undefined) fail('Innovation & Discovery projection is not mounted', 'D_AI_PROJECTION_MISSING')
-    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
-    return immutable(state)
+    return this.projections.read(agent, 'daiInnovationDiscovery')
   }
 
   private innovationProject(agent: Agent, id: string): InnovationProject {
@@ -235,11 +201,7 @@ export class DAI extends Service {
 
   /** Read durable shared task ledgers for the exact live owner Agent. */
   readTaskLedger(agent: Agent): TaskLedgerState {
-    this.authorize(agent)
-    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiTaskLedger')
-    if (state === undefined) fail('Task ledger projection is not mounted', 'D_AI_PROJECTION_MISSING')
-    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
-    return immutable(state)
+    return this.projections.read(agent, 'daiTaskLedger')
   }
 
   private taskLedger(agent: Agent): DurableTaskLedger {
@@ -253,11 +215,7 @@ export class DAI extends Service {
 
   /** Read durable cross-system Mission Director plans. */
   readDirector(agent: Agent): DirectorState {
-    this.authorize(agent)
-    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiDirector')
-    if (state === undefined) fail('Mission Director projection is not mounted', 'D_AI_PROJECTION_MISSING')
-    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
-    return immutable(state)
+    return this.projections.read(agent, 'daiDirector')
   }
 
   private directorLedger(agent: Agent): DirectorLedger {
@@ -277,11 +235,7 @@ export class DAI extends Service {
 
   /** Read governed Local Intelligence Core evaluation/promotion lifecycle. */
   readModelLifecycle(agent: Agent): ModelLifecycleState {
-    this.authorize(agent)
-    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiModelLifecycle')
-    if (state === undefined) fail('Model-lifecycle projection is not mounted', 'D_AI_PROJECTION_MISSING')
-    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
-    return immutable(state)
+    return this.projections.read(agent, 'daiModelLifecycle')
   }
 
   private modelLifecycleLedger(agent: Agent): ModelLifecycleLedger {
@@ -296,11 +250,7 @@ export class DAI extends Service {
 
   /** Read governed Local Intelligence Core training metadata and dataset lineage. */
   readTraining(agent: Agent): TrainingState {
-    this.authorize(agent)
-    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiTraining')
-    if (state === undefined) fail('Training-governance projection is not mounted', 'D_AI_PROJECTION_MISSING')
-    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
-    return immutable(state)
+    return this.projections.read(agent, 'daiTraining')
   }
 
   private trainingLedger(agent: Agent): TrainingLedger {
@@ -315,11 +265,7 @@ export class DAI extends Service {
 
   /** Read the durable D_AI model registry and role routing policies. */
   readModelRegistry(agent: Agent): ModelRegistryState {
-    this.authorize(agent)
-    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiModelRegistry')
-    if (state === undefined) fail('Model-registry projection is not mounted', 'D_AI_PROJECTION_MISSING')
-    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
-    return immutable(state)
+    return this.projections.read(agent, 'daiModelRegistry')
   }
 
   private modelRegistry(agent: Agent): ModelRegistry {
@@ -334,11 +280,7 @@ export class DAI extends Service {
 
   /** Read durable long-running task leases and checkpoints. */
   readExecution(agent: Agent): ExecutionState {
-    this.authorize(agent)
-    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiExecution')
-    if (state === undefined) fail('Execution projection is not mounted', 'D_AI_PROJECTION_MISSING')
-    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
-    return immutable(state)
+    return this.projections.read(agent, 'daiExecution')
   }
 
   private executionLedger(agent: Agent): ExecutionLedger {
@@ -353,11 +295,7 @@ export class DAI extends Service {
 
   /** Read the durable shared Evidence/Knowledge Graph for the owner. */
   readEvidenceStore(agent: Agent): EvidenceStoreState {
-    this.authorize(agent)
-    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiEvidenceStore')
-    if (state === undefined) fail('Evidence-store projection is not mounted', 'D_AI_PROJECTION_MISSING')
-    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
-    return immutable(state)
+    return this.projections.read(agent, 'daiEvidenceStore')
   }
 
   private evidenceStore(agent: Agent): EvidenceStore {
@@ -372,11 +310,7 @@ export class DAI extends Service {
 
   /** Read durable scoped resource budgets and accumulated usage. */
   readBudgets(agent: Agent): BudgetState {
-    this.authorize(agent)
-    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiBudgets')
-    if (state === undefined) fail('Budget projection is not mounted', 'D_AI_PROJECTION_MISSING')
-    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
-    return immutable(state)
+    return this.projections.read(agent, 'daiBudgets')
   }
 
   private budgetLedger(agent: Agent): BudgetLedger {
@@ -391,7 +325,7 @@ export class DAI extends Service {
   /** Read the deterministic scheduler admission set from the durable task ledger. */
   selectRunnableTasks(agent: Agent, maxTasks: number): ReturnType<typeof selectDurableRunnableTasks> {
     this.authorize(agent)
-    return immutable(selectDurableRunnableTasks(this.taskLedger(agent), maxTasks, this.budgetLedger(agent).profiles))
+    return immutableSnapshot(selectDurableRunnableTasks(this.taskLedger(agent), maxTasks, this.budgetLedger(agent).profiles))
   }
 
   /** Build one read-only platform snapshot for control-center/dashboard consumers. */
@@ -411,7 +345,7 @@ export class DAI extends Service {
     const taskStates: Record<string, number> = {}
     for (const task of taskLedger.tasks) taskStates[task.state] = (taskStates[task.state] ?? 0) + 1
 
-    return immutable({
+    return immutableSnapshot({
       generatedAt: new Date().toISOString(),
       systems: SYSTEMS,
       localIntelligenceCore: LOCAL_INTELLIGENCE_CORE,
@@ -497,11 +431,7 @@ export class DAI extends Service {
 
   /** Read durable capability grants and audit records for the exact live owner Agent. */
   readControlPlane(agent: Agent): ControlPlaneState {
-    this.authorize(agent)
-    const state = this.ctx.sessionProjections.stateOf(agent.session, 'daiControlPlane')
-    if (state === undefined) fail('Control-plane projection is not mounted', 'D_AI_PROJECTION_MISSING')
-    if (state.failure !== undefined) fail(state.failure, 'D_AI_CORRUPT_STATE')
-    return immutable(state)
+    return this.projections.read(agent, 'daiControlPlane')
   }
 
   private controlPlane(agent: Agent): ControlPlane {
@@ -525,152 +455,152 @@ export class DAI extends Service {
 
   private async append(agent: Agent, operation: MissionFact['operation'], mission: Mission): Promise<Mission> {
     this.authorize(agent)
-    const fact = immutable(factSchema.parse({ version: 1, operation, actorId: agent.id, mission }))
+    const fact = immutableSnapshot(factSchema.parse({ version: 1, operation, actorId: agent.id, mission }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('mission storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/fact', fact)
     await this.ctx.sessions.flush(agent.session)
-    return immutable(fact.mission)
+    return immutableSnapshot(fact.mission)
   }
 
   private async appendScientific(agent: Agent, operation: ScientificFact['operation'], project: ScientificProject): Promise<ScientificProject> {
     this.authorize(agent)
-    const fact = immutable(scientificFactSchema.parse({ version: 1, operation, actorId: agent.id, project }))
+    const fact = immutableSnapshot(scientificFactSchema.parse({ version: 1, operation, actorId: agent.id, project }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('scientific project storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/scientific-fact', fact)
     await this.ctx.sessions.flush(agent.session)
-    return immutable(fact.project)
+    return immutableSnapshot(fact.project)
   }
 
   private async appendInvestor(agent: Agent, operation: InvestorFact['operation'], value: InvestorCase): Promise<InvestorCase> {
     this.authorize(agent)
-    const fact = immutable(investorFactSchema.parse({ version: 1, operation, actorId: agent.id, case: value }))
+    const fact = immutableSnapshot(investorFactSchema.parse({ version: 1, operation, actorId: agent.id, case: value }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('investor case storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/investor-fact', fact)
     await this.ctx.sessions.flush(agent.session)
-    return immutable(fact.case)
+    return immutableSnapshot(fact.case)
   }
 
   private async appendCyber(agent: Agent, operation: CyberFact['operation'], engagement: CyberEngagement): Promise<CyberEngagement> {
     this.authorize(agent)
-    const fact = immutable(cyberFactSchema.parse({ version: 1, operation, actorId: agent.id, engagement }))
+    const fact = immutableSnapshot(cyberFactSchema.parse({ version: 1, operation, actorId: agent.id, engagement }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('cybersecurity engagement storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/cyber-fact', fact)
     await this.ctx.sessions.flush(agent.session)
-    return immutable(fact.engagement)
+    return immutableSnapshot(fact.engagement)
   }
 
   private async appendOperations(agent: Agent, operation: OperationsFact['operation'], value: OperationsCase): Promise<OperationsCase> {
     this.authorize(agent)
-    const fact = immutable(operationsFactSchema.parse({ version: 1, operation, actorId: agent.id, case: value }))
+    const fact = immutableSnapshot(operationsFactSchema.parse({ version: 1, operation, actorId: agent.id, case: value }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('operations case storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/operations-fact', fact)
     await this.ctx.sessions.flush(agent.session)
-    return immutable(fact.case)
+    return immutableSnapshot(fact.case)
   }
 
   private async appendInnovation(agent: Agent, operation: InnovationFact['operation'], project: InnovationProject): Promise<InnovationProject> {
     this.authorize(agent)
-    const fact = immutable(innovationFactSchema.parse({ version: 1, operation, actorId: agent.id, project }))
+    const fact = immutableSnapshot(innovationFactSchema.parse({ version: 1, operation, actorId: agent.id, project }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('innovation project storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/innovation-fact', fact)
     await this.ctx.sessions.flush(agent.session)
-    return immutable(fact.project)
+    return immutableSnapshot(fact.project)
   }
 
   private async appendTaskLedger(agent: Agent, operation: TaskLedgerFact['operation'], ledger: DurableTaskLedger): Promise<DurableTaskLedger> {
     this.authorize(agent)
-    const fact = immutable(taskLedgerFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
+    const fact = immutableSnapshot(taskLedgerFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('task ledger storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/task-ledger-fact', fact)
     await this.ctx.sessions.flush(agent.session)
-    return immutable(fact.ledger)
+    return immutableSnapshot(fact.ledger)
   }
 
   private async appendControlPlane(agent: Agent, operation: ControlPlaneFact['operation'], control: ControlPlane): Promise<ControlPlane> {
     this.authorize(agent)
-    const fact = immutable(controlPlaneFactSchema.parse({ version: 1, operation, actorId: agent.id, control }))
+    const fact = immutableSnapshot(controlPlaneFactSchema.parse({ version: 1, operation, actorId: agent.id, control }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('control-plane storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/control-plane-fact', fact)
     await this.ctx.sessions.flush(agent.session)
-    return immutable(fact.control)
+    return immutableSnapshot(fact.control)
   }
 
   private async appendBudgetLedger(agent: Agent, operation: BudgetFact['operation'], ledger: BudgetLedger): Promise<BudgetLedger> {
     this.authorize(agent)
-    const fact = immutable(budgetFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
+    const fact = immutableSnapshot(budgetFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('budget ledger storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/budget-fact', fact)
     await this.ctx.sessions.flush(agent.session)
-    return immutable(fact.ledger)
+    return immutableSnapshot(fact.ledger)
   }
 
   private async appendEvidenceStore(agent: Agent, operation: EvidenceStoreFact['operation'], store: EvidenceStore): Promise<EvidenceStore> {
     this.authorize(agent)
-    const fact = immutable(evidenceStoreFactSchema.parse({ version: 1, operation, actorId: agent.id, store }))
+    const fact = immutableSnapshot(evidenceStoreFactSchema.parse({ version: 1, operation, actorId: agent.id, store }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('evidence store storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/evidence-store-fact', fact)
     await this.ctx.sessions.flush(agent.session)
-    return immutable(fact.store)
+    return immutableSnapshot(fact.store)
   }
 
   private async appendExecutionLedger(agent: Agent, operation: ExecutionFact['operation'], ledger: ExecutionLedger): Promise<ExecutionLedger> {
     this.authorize(agent)
-    const fact = immutable(executionFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
+    const fact = immutableSnapshot(executionFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('execution ledger storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/execution-fact', fact)
     await this.ctx.sessions.flush(agent.session)
-    return immutable(fact.ledger)
+    return immutableSnapshot(fact.ledger)
   }
 
   private async appendModelRegistry(agent: Agent, operation: ModelRegistryFact['operation'], registry: ModelRegistry): Promise<ModelRegistry> {
     this.authorize(agent)
-    const fact = immutable(modelRegistryFactSchema.parse({ version: 1, operation, actorId: agent.id, registry }))
+    const fact = immutableSnapshot(modelRegistryFactSchema.parse({ version: 1, operation, actorId: agent.id, registry }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('model registry storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/model-registry-fact', fact)
     await this.ctx.sessions.flush(agent.session)
-    return immutable(fact.registry)
+    return immutableSnapshot(fact.registry)
   }
 
   private async appendTrainingLedger(agent: Agent, operation: TrainingFact['operation'], ledger: TrainingLedger): Promise<TrainingLedger> {
     this.authorize(agent)
-    const fact = immutable(trainingFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
+    const fact = immutableSnapshot(trainingFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('training ledger storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/training-fact', fact)
     await this.ctx.sessions.flush(agent.session)
-    return immutable(fact.ledger)
+    return immutableSnapshot(fact.ledger)
   }
 
   private async appendModelLifecycle(agent: Agent, operation: ModelLifecycleFact['operation'], ledger: ModelLifecycleLedger): Promise<ModelLifecycleLedger> {
     this.authorize(agent)
-    const fact = immutable(modelLifecycleFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
+    const fact = immutableSnapshot(modelLifecycleFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('model lifecycle storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/model-lifecycle-fact', fact)
     await this.ctx.sessions.flush(agent.session)
-    return immutable(fact.ledger)
+    return immutableSnapshot(fact.ledger)
   }
 
   private async appendDirectorLedger(agent: Agent, operation: DirectorFact['operation'], ledger: DirectorLedger): Promise<DirectorLedger> {
     this.authorize(agent)
-    const fact = immutable(directorFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
+    const fact = immutableSnapshot(directorFactSchema.parse({ version: 1, operation, actorId: agent.id, ledger }))
     if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) fail('Mission Director ledger storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
     this.requireOpenTurn(agent)
     agent.session.append('d_ai/director-fact', fact)
     await this.ctx.sessions.flush(agent.session)
-    return immutable(fact.ledger)
+    return immutableSnapshot(fact.ledger)
   }
 
 
@@ -726,7 +656,7 @@ export class DAI extends Service {
         plans: [...current.plans, plan],
       })
     })
-    return immutable(plan)
+    return immutableSnapshot(plan)
   }
 
   /** Add one task to an approved Director plan; dependencies must stay inside that plan. */
@@ -802,7 +732,7 @@ export class DAI extends Service {
     )
     signal.throwIfAborted()
     const ledger = await this.addDurableTasks(agent, planning.tasks)
-    return immutable({ planning, ledger })
+    return immutableSnapshot({ planning, ledger })
   }
 
   /**
@@ -866,7 +796,7 @@ export class DAI extends Service {
         execution.artifactRefs,
       )
       await this.transitionDurableTask(agent, claimed.task.id, execution.outcome)
-      return immutable({ task: claimed.task, execution })
+      return immutableSnapshot({ task: claimed.task, execution })
     } catch (error) {
       const latest = this.taskLedger(agent).tasks.find(task => task.id === claimed.task.id)
       if (latest?.state === 'RUNNING') {
@@ -937,7 +867,7 @@ export class DAI extends Service {
       tasks,
     }
     const next = selectDurableRunnableTasks(scopedLedger, maxTasks, this.budgetLedger(agent).profiles)
-    return immutable({
+    return immutableSnapshot({
       plan,
       phase,
       tasks,
@@ -1273,7 +1203,7 @@ export class DAI extends Service {
     const policy = registry.policies.find(item => item.systemId === systemId && item.role === role)
     if (policy === undefined) fail('no model routing policy exists for this system/role', 'D_AI_INVALID_INPUT')
     try {
-      return immutable(chooseModelInternal(registry.models as readonly ModelProfile[], {
+      return immutableSnapshot(chooseModelInternal(registry.models as readonly ModelProfile[], {
         requiredCapabilities: policy.requiredCapabilities as readonly ModelCapability[],
         minContextTokens: policy.minContextTokens,
         localOnly: policy.localOnly,
@@ -1352,7 +1282,7 @@ export class DAI extends Service {
         checkpoints: [...executions.checkpoints],
       })
 
-      return immutable({ task: running, lease })
+      return immutableSnapshot({ task: running, lease })
     })
   }
 
@@ -1377,7 +1307,7 @@ export class DAI extends Service {
         leases: current.leases.map((item, itemIndex) => itemIndex === actualIndex ? renewed : item),
         checkpoints: [...current.checkpoints],
       })
-      return immutable(renewed)
+      return immutableSnapshot(renewed)
     })
   }
 
@@ -1421,7 +1351,7 @@ export class DAI extends Service {
         leases: [...current.leases],
         checkpoints: [...current.checkpoints, checkpoint],
       })
-      return immutable(checkpoint)
+      return immutableSnapshot(checkpoint)
     })
   }
 
@@ -1441,7 +1371,7 @@ export class DAI extends Service {
         leases: current.leases.map((item, itemIndex) => itemIndex === index ? released : item),
         checkpoints: [...current.checkpoints],
       })
-      return immutable(released)
+      return immutableSnapshot(released)
     })
   }
 
@@ -1528,7 +1458,7 @@ export class DAI extends Service {
         }
       }
 
-      return immutable({
+      return immutableSnapshot({
         recoveredTaskIds: [...recovered].sort(),
         retryExhaustedTaskIds: [...exhausted].sort(),
       })
