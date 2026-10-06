@@ -78,6 +78,23 @@ describe('D_AI runtime architecture boundaries', () => {
     expect(kernel).toContain('async transact<T>')
   })
 
+  it('centralizes typed projection reads and immutable snapshots', async () => {
+    const [index, state] = await Promise.all([
+      source('index.ts'),
+      source('runtime-state.ts'),
+    ])
+
+    expect(index).toContain('new DaiProjectionReader(ctx, this.kernel)')
+    expect(index).not.toContain('sessionProjections.stateOf(')
+    expect(index).not.toContain('structuredClone(value)')
+
+    expect(state).toContain('SessionProjectionStateMap')
+    expect(state).toContain('class DaiProjectionReader')
+    expect(state).toContain('immutableSnapshot')
+    expect(state).toContain("'D_AI_PROJECTION_MISSING'")
+    expect(state).toContain("'D_AI_CORRUPT_STATE'")
+  })
+
   it('keeps domain tool adapters outside domain state and orchestration modules', async () => {
     const domainCore = [
       'state.ts',
