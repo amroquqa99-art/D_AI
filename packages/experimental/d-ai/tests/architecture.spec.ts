@@ -12,7 +12,18 @@ describe('D_AI runtime architecture boundaries', () => {
     expect(index).not.toContain("from '@deepseek-ai/dsh-tools'")
     expect(index).not.toContain('defineTool(')
 
-    const requiredRegistrars = [
+    expect(index).toContain('registerDaiTools(this.ctx, this, owner')
+    expect(index).not.toContain('registerScientificTools(')
+    expect(index).not.toContain('registerInvestorTools(')
+    expect(index).not.toContain('registerCyberTools(')
+    expect(index).not.toContain('registerOperationsTools(')
+    expect(index).not.toContain('registerInnovationTools(')
+    expect(index).not.toContain('registerInvestigationTools(')
+  })
+
+  it('centralizes bounded-context tool composition in runtime-tools', async () => {
+    const runtimeTools = await source('runtime-tools.ts')
+    const registrars = [
       'registerPlatformTools',
       'registerTasksDirectorTools',
       'registerModelsTrainingTools',
@@ -25,9 +36,11 @@ describe('D_AI runtime architecture boundaries', () => {
       'registerInnovationTools',
       'registerInvestigationTools',
     ]
-    for (const registrar of requiredRegistrars) {
-      expect(index).toContain(registrar + '(this.ctx, this, owner')
+
+    for (const registrar of registrars) {
+      expect(runtimeTools).toContain(registrar + '(')
     }
+    expect(runtimeTools).not.toContain('defineTool(')
   })
 
   it('keeps deployment configuration and projection registration out of the composition root', async () => {
