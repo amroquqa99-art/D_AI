@@ -149,41 +149,39 @@ describe('D_AI unattended Mission Director', () => {
   }), 20000)
 
   it('requires human approval before unattended execution is enabled', async () => temporary(async root => {
-    const { ctx } = await boot(root, [
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx } = await boot(root, script)
+    const agent = await ctx.agentLoop.create(
+      SessionId('director-scheduler-denied'),
+      { provider: 'mock', model: 'fixture' },
+    )
+    const objective = 'Create a plan but do not approve unattended execution'
+    const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+
+    script.push(
       toolCallResponse('plan', 'd_ai_director_plan_create', {
-        objective: 'Create a plan but do not approve unattended execution',
+        objective,
         primary_system: 'investigation',
       }),
-      toolCallResponse('schedule', 'd_ai_director_schedule_set', {
-        plan_id: 'unresolved-by-fixture',
+      () => toolCallResponse('schedule', 'd_ai_director_schedule_set', {
+        plan_id: plan().id,
         enabled: true,
         interval_ms: 1000,
         lease_ttl_ms: 60000,
       }),
       textResponse('Schedule was not enabled'),
-    ])
+    )
 
     try {
-      const agent = await ctx.agentLoop.create(
-        SessionId('director-scheduler-denied'),
-        { provider: 'mock', model: 'fixture' },
-      )
-      const objective = 'Create a plan but do not approve unattended execution'
-      const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
-
-      // Replace the fixed placeholder with the real durable plan id at call time.
-      const script = (ctx.llm as unknown as { adapters?: unknown })
-      void script
       agent.followup(createUserMessage({
         content: [{ type: 'text', text: objective }],
         source: { kind: 'user' },
       }))
-
-      // The second fixture call above cannot know the generated id. The plan
-      // itself is sufficient to prove the approval boundary directly.
       await agent.whenIdle()
+
       expect(plan().status).toBe('ACTIVE')
       expect(ctx.dai.readDirectorSchedule(agent).ledgers).toEqual([])
+      expect(agent.session.snapshotEvents().filter(event => event.type === 'approval/decided')).toHaveLength(1)
     } finally {
       await ctx.fiber.dispose()
     }
