@@ -1,13 +1,13 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { InnovationCandidate } from './innovation-state.ts'
+import type { InnovationCandidate, InnovationProject, InnovationState } from './innovation-state.ts'
 import { encodeToolResult, jsonToolOutput, rejectInvalidInput } from './tool-support.ts'
 import type { ToolOwnerResolver } from './tool-support.ts'
 
 export interface InnovationToolRuntime {
-  createInnovation(agent: Agent, problem: string, signal?: AbortSignal): Promise<unknown>
-  readInnovation(agent: Agent): unknown
+  createInnovation(agent: Agent, problem: string, signal?: AbortSignal): Promise<InnovationProject>
+  readInnovation(agent: Agent): InnovationState
   addInnovationCandidate(
     agent: Agent,
     projectId: string,
