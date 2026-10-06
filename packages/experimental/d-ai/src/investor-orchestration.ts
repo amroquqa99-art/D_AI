@@ -15,6 +15,8 @@ export interface InvestorDelegationConfig {
   readonly maxResultBytes: number
   readonly fundamentalModel?: string
   readonly riskModel?: string
+  readonly fundamentalProvider?: string
+  readonly riskProvider?: string
 }
 
 export interface InvestorWorkerOutput {
@@ -46,7 +48,7 @@ export async function runInvestorDelegates(
     throw new Error('Investor provider does not support required worker configuration')
   }
 
-  const runWorker = async (role: 'fundamental' | 'risk', model?: string): Promise<InvestorWorkerOutput> => {
+  const runWorker = async (role: 'fundamental' | 'risk', model?: string, llmProvider?: string): Promise<InvestorWorkerOutput> => {
     const controller = new AbortController()
     const childSignal = AbortSignal.any([signal, controller.signal])
     const label = 'investor-' + role + '-' + randomUUID()
@@ -69,7 +71,7 @@ export async function runInvestorDelegates(
         signal: childSignal,
         maxDepth: config.maxDepth,
         toolFilter: { allow: [...config.allowedTools] },
-        agentOptions: { maxTokens: config.maxOutputTokens, ...model === undefined ? {} : { model } },
+        agentOptions: { maxTokens: config.maxOutputTokens, ...llmProvider === undefined ? {} : { provider: llmProvider }, ...model === undefined ? {} : { model } },
         persona: role === 'fundamental'
           ? 'Independently analyze the approved investment objective from fundamentals, filings, cash flows, valuation, competitive position, macro context and explicitly sourced evidence. Separate observed data from assumptions and do not guarantee returns.'
           : 'Independently attack the approved investment thesis. Search for downside cases, hidden leverage, accounting quality issues, concentration, liquidity, macro sensitivity, contrary evidence and explicit invalidation conditions. Do not inherit the fundamental worker conclusion.',
@@ -91,8 +93,8 @@ export async function runInvestorDelegates(
     }
   }
 
-  const fundamental = await runWorker('fundamental', config.fundamentalModel)
+  const fundamental = await runWorker('fundamental', config.fundamentalModel, config.fundamentalProvider)
   signal.throwIfAborted()
-  const risk = await runWorker('risk', config.riskModel)
+  const risk = await runWorker('risk', config.riskModel, config.riskProvider)
   return { fundamental, risk }
 }
