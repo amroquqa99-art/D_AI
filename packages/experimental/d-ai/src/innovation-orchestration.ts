@@ -15,6 +15,8 @@ export interface InnovationDelegationConfig {
   readonly maxResultBytes: number
   readonly explorerModel?: string
   readonly criticModel?: string
+  readonly explorerProvider?: string
+  readonly criticProvider?: string
 }
 
 export interface InnovationWorkerOutput {
@@ -46,7 +48,7 @@ export async function runInnovationDelegates(
     throw new Error('Innovation provider does not support required worker configuration')
   }
 
-  const runWorker = async (role: 'explorer' | 'critic', model?: string): Promise<InnovationWorkerOutput> => {
+  const runWorker = async (role: 'explorer' | 'critic', model?: string, llmProvider?: string): Promise<InnovationWorkerOutput> => {
     const controller = new AbortController()
     const childSignal = AbortSignal.any([signal, controller.signal])
     const label = 'innovation-' + role + '-' + randomUUID()
@@ -69,7 +71,7 @@ export async function runInnovationDelegates(
         signal: childSignal,
         maxDepth: config.maxDepth,
         toolFilter: { allow: [...config.allowedTools] },
-        agentOptions: { maxTokens: config.maxOutputTokens, ...model === undefined ? {} : { model } },
+        agentOptions: { maxTokens: config.maxOutputTokens, ...llmProvider === undefined ? {} : { provider: llmProvider }, ...model === undefined ? {} : { model } },
         persona: role === 'explorer'
           ? 'Explore the approved hard problem from first principles and across disciplines. Generate multiple competing mechanisms, problem reframings and testable candidates. State assumptions and falsification tests. Never call a generated idea a discovery without external verification.'
           : 'Independently attack candidate solution space for the approved problem. Search for counterexamples, hidden assumptions, prior-art overlap, physical or mathematical impossibility, measurement artifacts and decisive experiments. Do not inherit the explorer conclusion.',
@@ -91,8 +93,8 @@ export async function runInnovationDelegates(
     }
   }
 
-  const explorer = await runWorker('explorer', config.explorerModel)
+  const explorer = await runWorker('explorer', config.explorerModel, config.explorerProvider)
   signal.throwIfAborted()
-  const critic = await runWorker('critic', config.criticModel)
+  const critic = await runWorker('critic', config.criticModel, config.criticProvider)
   return { explorer, critic }
 }
