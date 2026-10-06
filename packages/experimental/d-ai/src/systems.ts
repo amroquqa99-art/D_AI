@@ -50,9 +50,9 @@ function manifest(value: SystemManifest): SystemManifest {
 }
 
 /**
- * The registry is product truth: all six systems exist as first-class contracts
- * from the start, while status/execution states prevent contract-only systems
- * from being misrepresented as working runtime slices.
+ * The registry is product truth: all six systems exist as first-class domains.
+ * Status/execution fields distinguish integrated behavior, partial native slices,
+ * and future foundation work without overstating readiness.
  */
 export const SYSTEMS: readonly SystemManifest[] = Object.freeze([
   manifest({
