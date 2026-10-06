@@ -29,7 +29,8 @@ Verification is tracked separately because the current branch CI runner is faili
 | Innovation & Discovery | candidates, mechanisms, falsification tests, experiment handoff/results, explorer/critic | INTEGRATED | CI_PENDING | Prior-art connectors, deterministic math/simulation integrations |
 | Task DAG / Task Ledger | durable typed task graph, transitions, retry accounting, replay | INTEGRATED | CI_PENDING | 1000-task bounded-concurrency/fairness acceptance |
 | Mission Director | durable plans, planner agent, task creation/view/status, single-task executor | INTEGRATED | CI_PENDING | unattended worker loop, long-horizon scheduling, saturation/stagnation policy |
-| Durable execution | leases, renewal, checkpoints, release, expired-lease recovery | INTEGRATED | CI_PENDING | heartbeat worker pool, fencing/idempotent external side-effect acceptance |
+| Durable execution | fenced leases, heartbeat renewal, checkpoint lineage, release/recovery and deterministic v1→v2 replay migration | INTEGRATED | CI_PENDING | unattended worker pool, live stress/recovery proof |
+| External side-effect idempotency | durable reservation/dispatch/commit/unknown/reconcile journal + fenced connector gateway; no production mutable connector | INTEGRATED | CI_PENDING | connector-level adoption, live idempotency/reconciliation acceptance and provider-specific semantics |
 | Resource budgets / VoI | durable scoped limits/usage, budget-aware scheduler, VoI primitives | INTEGRATED | CI_PENDING | automatic metering on every relevant model/tool/data boundary |
 | Capability control plane | scoped grants/denies, native approval, audit hash chain | INTEGRATED | CI_PENDING | institutional ABAC/admin UI and organization/multi-user model |
 | Cross-system handoff | persisted-grant authorization + durable audit | INTEGRATED | CI_PENDING | target-task dispatch/workflow coordination and collaborative rooms |
@@ -47,13 +48,13 @@ Verification is tracked separately because the current branch CI runner is faili
 
 ## Current verification blocker
 
-Latest observed D_AI v2 workflow on head `0075ee1…`:
-- run `37457295066`
-- job `112247906618`
+Latest observed D_AI v2 workflow on head `166c998fc58975b93aaa3e4cb8d89a4f3513e7ed`:
+- run `37478292392`
+- job `112319449248`
 - conclusion `failure`
 - `steps: []`
 
-No current install/build/typecheck/test command executed in that job. Current integrated rows therefore remain **CI_PENDING** rather than VERIFIED.
+No checkout/install/build/typecheck/test command executed in that job. Current integrated rows therefore remain **CI_PENDING** rather than VERIFIED.
 
 ## Current architecture-hardening work
 
