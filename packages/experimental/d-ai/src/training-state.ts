@@ -5,7 +5,6 @@ import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
 import {
   buildDatasetLineage,
   evaluateTrainingEligibility,
-  type DatasetLineage,
   type TrainingDataCandidate,
 } from './training-governance.ts'
 
