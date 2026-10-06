@@ -422,12 +422,17 @@ export class DAI extends Service {
       },
       missionDirector: (() => {
         const ledger = this.directorLedger(agent)
+        const schedules = this.directorScheduleLedger(agent)
         return {
           revision: ledger.revision,
           plans: ledger.plans.length,
           activePlans: ledger.plans.filter(plan => plan.status === 'ACTIVE').length,
           pausedPlans: ledger.plans.filter(plan => plan.status === 'PAUSED').length,
           completedPlans: ledger.plans.filter(plan => plan.status === 'COMPLETE').length,
+          scheduleRevision: schedules.revision,
+          schedules: schedules.schedules.length,
+          enabledSchedules: schedules.schedules.filter(schedule => schedule.enabled).length,
+          failedLastCycles: schedules.schedules.filter(schedule => schedule.lastCycle?.outcome === 'FAILED').length,
         }
       })(),
       tasks: {
