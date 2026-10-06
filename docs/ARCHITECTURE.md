@@ -10,6 +10,13 @@ The upstream [architecture reference](architecture.md) owns the Harness runtime 
 
 Manager instances use `ctx.agents.create()` and `resume()`. Creation setup installs scoped tools and prompt contributions before publication. The owner retains and disposes each `AgentHandle`. Child agents use published `ctx.subagents` providers and continuation services. Each agent has its own session identity and scoped context. Agent ownership trees remain separate from task dependency DAGs and evidence graphs.
 
+
+## D_AI v2 system registry
+
+The runtime exposes a dedicated first-class registry in `packages/experimental/d-ai/src/systems.ts`. Registration is separate from execution truth: all six approved domains have manifests from day one, while only systems with wired runtime paths may advance beyond `FOUNDATION`. The registry carries manager identity, tool profiles, memory scopes, evidence types, cross-system contracts, risk class and human-approval gates.
+
+The Local Intelligence Core is described separately from the domain registry so training/evaluation infrastructure cannot be mistaken for a seventh business domain. Its data policy is explicit-eligibility-only, with lineage, redaction, holdout evaluation and rollback required before promotion.
+
 ## Durable research state
 
 The append-only native session log records model-visible input and domain facts. Pure session projections reconstruct read state. Required native domain events extend `SessionEventMap` and enter the generated persistence catalog. State-carrying events contain complete post-change state. A generated summary remains derived data; it cannot replace source records.
@@ -27,7 +34,7 @@ Existing session checkpoint policy flushes before model dispatch and top-level t
 | Grants and sensitive operations | Tool/policy services | Tool pipeline and approvals |
 | Mission control and evidence inspection | D_AI client modules | Host transport and client projections |
 
-The five domain implementations follow the priority in [MILESTONES.md](MILESTONES.md). The future model laboratory requires registration, experiment schemas and a real inference/evaluation path before any live capability claim. Heavy training remains a later milestone.
+The six domain implementations follow [MILESTONES.md](MILESTONES.md): Investigation, Scientific Research, Investor, Cybersecurity, Operations & Intelligence, and Innovation & Discovery. The Local Intelligence Core is a shared platform component, not a seventh domain; it requires governed dataset/model/evaluation primitives and a real inference/evaluation path before any training or capability-improvement claim. Heavy training remains a later milestone.
 
 ## Extension lifecycle
 
