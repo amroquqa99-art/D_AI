@@ -67,6 +67,10 @@ import { createModelReleasePointer as createModelReleasePointerInternal, evaluat
 import type { ModelEvaluationResult, PromotionPolicy } from './model-evaluation.ts'
 import { directorFactSchema } from './director-state.ts'
 import type { DirectorFact, DirectorLedger, DirectorPlan, DirectorState } from './director-state.ts'
+import { directorScheduleFactSchema } from './director-schedule-state.ts'
+import type { DirectorSchedule, DirectorScheduleCycle, DirectorScheduleFact, DirectorScheduleLedger, DirectorScheduleState } from './director-schedule-state.ts'
+import { DirectorScheduler } from './director-scheduler.ts'
+import type { ScheduledDirectorCycleResult } from './director-scheduler.ts'
 import { deriveMissionPhase } from './mission-director.ts'
 import { runDirectorPlanner } from './director-orchestration.ts'
 import type { DirectorPlanningResult } from './director-orchestration.ts'
@@ -118,6 +122,7 @@ export class DAI extends Service {
   private readonly projections: DaiProjectionReader
   private readonly delegating = new Set<string>()
   private readonly directorCycles = new Set<string>()
+  private readonly scheduler?: DirectorScheduler
   private readonly index: ReturnType<Context['storageDomain']['open']>
 
   constructor(ctx: Context, config: Config = {}) {
@@ -136,6 +141,11 @@ export class DAI extends Service {
     mountDaiProjections(ctx)
     ctx.effect(() => async () => { await this.kernel.drain(); await (await this.index).close() }, 'dai.index()')
     this.registerTools()
+    if (runtime.scheduler.enabled) {
+      const scheduler = new DirectorScheduler(ctx, this, { pollMs: runtime.scheduler.pollMs })
+      this.scheduler = scheduler
+      ctx.effect(() => () => scheduler.dispose(), 'dai.directorScheduler()')
+    }
   }
 
   /**
@@ -250,6 +260,26 @@ export class DAI extends Service {
     const plan = this.directorLedger(agent).plans.find(item => item.id === id)
     if (plan === undefined) fail('unknown Mission Director plan', 'D_AI_INVALID_INPUT')
     return plan
+  }
+
+  /** Read durable unattended Mission Director schedules. */
+  readDirectorSchedule(agent: Agent): DirectorScheduleState {
+    return this.projections.read(agent, 'daiDirectorSchedule')
+  }
+
+  private directorScheduleLedger(agent: Agent): DirectorScheduleLedger {
+    const existing = this.readDirectorSchedule(agent).ledgers.find(item => item.ownerAgentId === agent.id)
+    return existing ?? {
+      ownerAgentId: agent.id,
+      revision: 0,
+      schedules: [],
+    }
+  }
+
+  private directorSchedule(agent: Agent, id: string): DirectorSchedule {
+    const schedule = this.directorScheduleLedger(agent).schedules.find(item => item.id === id)
+    if (schedule === undefined) fail('unknown Mission Director schedule', 'D_AI_INVALID_INPUT')
+    return schedule
   }
 
   /** Read governed Local Intelligence Core evaluation/promotion lifecycle. */
@@ -669,6 +699,27 @@ export class DAI extends Service {
     return immutableSnapshot(fact.ledger)
   }
 
+  private async appendDirectorScheduleLedger(
+    agent: Agent,
+    operation: DirectorScheduleFact['operation'],
+    ledger: DirectorScheduleLedger,
+  ): Promise<DirectorScheduleLedger> {
+    this.authorize(agent)
+    const fact = immutableSnapshot(directorScheduleFactSchema.parse({
+      version: 1,
+      operation,
+      actorId: agent.id,
+      ledger,
+    }))
+    if (Buffer.byteLength(JSON.stringify(fact), 'utf8') > this.limits.maxMissionBytes) {
+      fail('Mission Director schedule storage budget exceeded', 'D_AI_BUDGET_EXCEEDED')
+    }
+    this.requireOpenTurn(agent)
+    agent.session.append('d_ai/director-schedule-fact', fact)
+    await this.ctx.sessions.flush(agent.session)
+    return immutableSnapshot(fact.ledger)
+  }
+
 
 
 
@@ -1061,6 +1112,174 @@ export class DAI extends Service {
     } finally {
       this.directorCycles.delete(key)
     }
+  }
+
+  /**
+   * Configure or disable unattended execution for one approved Director plan.
+   * Configuration changes are human-approved because they alter future
+   * autonomous execution cadence.
+   */
+  async setDirectorSchedule(
+    agent: Agent,
+    planId: string,
+    input: {
+      readonly enabled: boolean
+      readonly intervalMs?: number
+      readonly maxTasksPerCycle?: number
+      readonly leaseTtlMs?: number
+      readonly startImmediately?: boolean
+    },
+    signal?: AbortSignal,
+  ): Promise<DirectorScheduleLedger> {
+    this.authorize(agent)
+    const plan = this.directorPlan(agent, planId)
+    if (input.enabled && plan.status !== 'ACTIVE') {
+      fail('unattended execution can be enabled only for an active Director plan', 'D_AI_INVALID_TRANSITION')
+    }
+
+    const current = this.directorScheduleLedger(agent)
+    const previous = current.schedules.find(item => item.planId === planId)
+    const intervalMs = input.intervalMs ?? previous?.intervalMs ?? 60000
+    const maxTasksPerCycle = input.maxTasksPerCycle ?? previous?.maxTasksPerCycle ?? 4
+    const leaseTtlMs = input.leaseTtlMs ?? previous?.leaseTtlMs ?? 600000
+
+    if (!Number.isSafeInteger(intervalMs) || intervalMs < 10
+      || !Number.isSafeInteger(maxTasksPerCycle) || maxTasksPerCycle < 1 || maxTasksPerCycle > 8
+      || !Number.isSafeInteger(leaseTtlMs) || leaseTtlMs <= intervalMs) {
+      fail('invalid unattended Director schedule bounds', 'D_AI_INVALID_INPUT')
+    }
+
+    const outcome = await this.ctx.approval.request({
+      agent,
+      toolName: 'd_ai_director_schedule_set',
+      reason: (input.enabled ? 'Enable or update' : 'Disable')
+        + ' unattended execution for Director plan '
+        + planId,
+      ...(signal === undefined ? {} : { signal }),
+    })
+    if (outcome !== 'allowed-once') {
+      fail('human approval is required to change unattended Director scheduling')
+    }
+
+    return this.transact(agent, async () => {
+      const latest = this.directorScheduleLedger(agent)
+      const existing = latest.schedules.find(item => item.planId === planId)
+      const nowMs = Date.now()
+      const now = new Date(nowMs).toISOString()
+      const nextWakeAt = new Date(
+        nowMs + (input.enabled && input.startImmediately === true ? 0 : intervalMs),
+      ).toISOString()
+
+      const schedule: DirectorSchedule = existing === undefined
+        ? {
+            id: randomUUID(),
+            planId,
+            ownerAgentId: agent.id,
+            enabled: input.enabled,
+            intervalMs,
+            maxTasksPerCycle,
+            leaseTtlMs,
+            nextWakeAt,
+            createdAt: now,
+            updatedAt: now,
+          }
+        : {
+            ...existing,
+            enabled: input.enabled,
+            intervalMs,
+            maxTasksPerCycle,
+            leaseTtlMs,
+            nextWakeAt,
+            updatedAt: now,
+          }
+
+      return this.appendDirectorScheduleLedger(agent, 'UPSERT', {
+        ownerAgentId: agent.id,
+        revision: latest.revision + 1,
+        schedules: existing === undefined
+          ? [...latest.schedules, schedule]
+          : latest.schedules.map(item => item.id === existing.id ? schedule : item),
+      })
+    })
+  }
+
+  /**
+   * Execute one scheduler wake inside the already-open native Agent turn and
+   * persist a receipt before the turn closes.
+   */
+  async runScheduledDirectorCycle(
+    agent: Agent,
+    scheduleId: string,
+    signal: AbortSignal,
+  ): Promise<ScheduledDirectorCycleResult> {
+    this.authorize(agent)
+    this.requireOpenTurn(agent)
+    const schedule = this.directorSchedule(agent, scheduleId)
+    const plan = this.directorPlan(agent, schedule.planId)
+    const attemptedAt = new Date().toISOString()
+
+    if (!schedule.enabled || plan.status !== 'ACTIVE') {
+      return immutableSnapshot({
+        scheduleId,
+        planId: schedule.planId,
+        outcome: 'IDLE' as const,
+      })
+    }
+
+    let cycle: DirectorCycleResult | undefined
+    let failure: unknown
+    try {
+      cycle = await this.executeDirectorCycle(
+        agent,
+        schedule.planId,
+        signal,
+        schedule.maxTasksPerCycle,
+        schedule.leaseTtlMs,
+      )
+    } catch (error) {
+      failure = error
+    }
+
+    const finalView = this.directorPlanView(agent, schedule.planId, 1)
+    const receipt: DirectorScheduleCycle = failure === undefined
+      ? {
+          attemptedAt,
+          outcome: (cycle?.executed.length ?? 0) > 0 ? 'EXECUTED' : 'IDLE',
+          executedTasks: cycle?.executed.length ?? 0,
+          phase: finalView.phase,
+        }
+      : {
+          attemptedAt,
+          outcome: 'FAILED',
+          executedTasks: cycle?.executed.length ?? 0,
+          phase: finalView.phase,
+          error: failure instanceof Error ? failure.message : String(failure),
+        }
+
+    await this.transact(agent, async () => {
+      const latest = this.directorScheduleLedger(agent)
+      const current = latest.schedules.find(item => item.id === scheduleId)
+      if (current === undefined) fail('Director schedule disappeared during cycle', 'D_AI_CORRUPT_STATE')
+      const completedMs = Date.now()
+      const updatedAt = new Date(completedMs).toISOString()
+      const nextWakeAt = new Date(completedMs + current.intervalMs).toISOString()
+
+      await this.appendDirectorScheduleLedger(agent, 'RECORD_CYCLE', {
+        ownerAgentId: agent.id,
+        revision: latest.revision + 1,
+        schedules: latest.schedules.map(item => item.id === scheduleId
+          ? { ...item, nextWakeAt, updatedAt, lastCycle: receipt }
+          : item),
+      })
+    })
+
+    if (failure !== undefined) throw failure
+
+    return immutableSnapshot({
+      scheduleId,
+      planId: schedule.planId,
+      outcome: receipt.outcome,
+    })
   }
 
   /** Change explicit plan lifecycle state after human approval. */
