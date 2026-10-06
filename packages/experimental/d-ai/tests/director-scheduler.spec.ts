@@ -21,6 +21,7 @@ function schedule(overrides: Partial<DirectorSchedule> = {}): DirectorSchedule {
     enabled: overrides.enabled ?? true,
     intervalMs: overrides.intervalMs ?? 1000,
     maxTasksPerCycle: overrides.maxTasksPerCycle ?? 4,
+    maxParallelTasks: overrides.maxParallelTasks ?? 1,
     leaseTtlMs: overrides.leaseTtlMs ?? 60000,
     nextWakeAt: overrides.nextWakeAt ?? '2026-10-07T00:00:01.000Z',
     createdAt: overrides.createdAt ?? '2026-10-07T00:00:00.000Z',
