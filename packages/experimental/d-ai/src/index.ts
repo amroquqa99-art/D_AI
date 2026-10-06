@@ -1183,6 +1183,76 @@ export class DAI extends Service {
     this.ctx.tools.register(defineTool({ name: 'd_ai_cyber_delegate', description: 'Run fresh independent defensive assessment and remediation-review Agents inside the recorded authorization scope.',
       parameters: { engagement_id: { type: 'string', required: true } }, output, timeoutMs: this.cyberDelegation.timeoutMs * 2 + 10000,
       execute: (args, exec) => encoded(this.delegateCybersecurity(owner(exec.agent), args.engagement_id, exec.signal)) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_operations_create', description: 'Create a user-approved Operations & Intelligence analysis case. The case supports analysis and proposed options; it does not execute external actions.',
+      parameters: { objective: { type: 'string', required: true }, classification: { type: 'string', required: true } }, output,
+      execute: (args, exec) => {
+        const values = ['UNCLASSIFIED', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED'] as const
+        if (!values.includes(args.classification as typeof values[number])) fail('invalid operations classification', 'D_AI_INVALID_INPUT')
+        return encoded(this.createOperations(owner(exec.agent), args.objective, args.classification as OperationsCase['classification'], exec.signal))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_operations_read', description: 'Read Operations & Intelligence cases, entities, relationships, timeline, gaps, options and independent analysis.', parameters: {}, output,
+      execute: (_args, exec) => encoded(this.readOperations(owner(exec.agent))) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_operations_add_entity', description: 'Append an entity to an approved Operations & Intelligence case.',
+      parameters: { case_id: { type: 'string', required: true }, type: { type: 'string', required: true }, label: { type: 'string', required: true }, summary: { type: 'string', required: true } }, output,
+      execute: (args, exec) => {
+        const types = ['PERSON', 'ORGANIZATION', 'ASSET', 'LOCATION', 'DEVICE', 'ACCOUNT', 'OTHER'] as const
+        if (!types.includes(args.type as typeof types[number])) fail('invalid operations entity type', 'D_AI_INVALID_INPUT')
+        return encoded(this.addOperationsEntity(owner(exec.agent), args.case_id, { type: args.type as OperationsEntity['type'], label: args.label, summary: args.summary }))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_operations_add_relationship', description: 'Append an evidence-aware relationship between two existing case entities.',
+      parameters: {
+        case_id: { type: 'string', required: true },
+        from_entity_id: { type: 'string', required: true },
+        to_entity_id: { type: 'string', required: true },
+        type: { type: 'string', required: true },
+        confidence: { type: 'number', required: true },
+        evidence_refs: { type: 'string' },
+      }, output,
+      execute: (args, exec) => encoded(this.addOperationsRelationship(owner(exec.agent), args.case_id, {
+        fromEntityId: args.from_entity_id,
+        toEntityId: args.to_entity_id,
+        type: args.type,
+        confidence: args.confidence,
+        evidenceRefs: args.evidence_refs?.split(',').map(value => value.trim()).filter(Boolean),
+      })) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_operations_add_timeline', description: 'Append a sourced timeline event to an Operations & Intelligence case.',
+      parameters: {
+        case_id: { type: 'string', required: true },
+        occurred_at: { type: 'string', required: true },
+        label: { type: 'string', required: true },
+        details: { type: 'string', required: true },
+        evidence_refs: { type: 'string' },
+      }, output,
+      execute: (args, exec) => encoded(this.addOperationsTimelineEvent(owner(exec.agent), args.case_id, {
+        occurredAt: args.occurred_at,
+        label: args.label,
+        details: args.details,
+        evidenceRefs: args.evidence_refs?.split(',').map(value => value.trim()).filter(Boolean),
+      })) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_operations_add_gap', description: 'Record an unresolved intelligence gap so the system can direct further collection or analysis.',
+      parameters: { case_id: { type: 'string', required: true }, question: { type: 'string', required: true }, priority: { type: 'string', required: true } }, output,
+      execute: (args, exec) => {
+        const priorities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const
+        if (!priorities.includes(args.priority as typeof priorities[number])) fail('invalid intelligence gap priority', 'D_AI_INVALID_INPUT')
+        return encoded(this.addIntelligenceGap(owner(exec.agent), args.case_id, { question: args.question, priority: args.priority as IntelligenceGap['priority'] }))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_operations_add_option', description: 'Record an analytical operational option with benefits and risks. Every option remains PROPOSED and requires human approval; this tool does not execute it.',
+      parameters: {
+        case_id: { type: 'string', required: true },
+        title: { type: 'string', required: true },
+        description: { type: 'string', required: true },
+        expected_benefit: { type: 'string', required: true },
+        risks: { type: 'string', required: true },
+      }, output,
+      execute: (args, exec) => encoded(this.addOperationalOption(owner(exec.agent), args.case_id, {
+        title: args.title,
+        description: args.description,
+        expectedBenefit: args.expected_benefit,
+        risks: args.risks,
+      })) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_operations_delegate', description: 'Run fresh independent fusion and adversarial-analysis Agents for the approved case. No external action is executed.',
+      parameters: { case_id: { type: 'string', required: true } }, output, timeoutMs: this.operationsDelegation.timeoutMs * 2 + 10000,
+      execute: (args, exec) => encoded(this.delegateOperations(owner(exec.agent), args.case_id, exec.signal)) }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_mission_create', description: 'Create an explicitly user-requested investigative mission. Never activate a new independent mission proposed by a model without owner approval.',
       parameters: { objective: { type: 'string', required: true } }, output,
       execute: (args, exec) => encoded(this.create(owner(exec.agent), args.objective, exec.signal)) }))
