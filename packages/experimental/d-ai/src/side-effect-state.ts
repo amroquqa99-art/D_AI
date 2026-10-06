@@ -159,16 +159,23 @@ function assertRecordShape(record: SideEffectRecord): void {
       record.dispatchedAt === undefined
       || record.committedAt === undefined
       || record.resultDigest === undefined
-      || record.unknownAt !== undefined
       || record.abortedAt !== undefined
+      || (record.unknownAt === undefined) !== (record.resolution === undefined)
     ) throw new Error('COMMITTED side effect has invalid fields')
   }
 
   if (record.state === 'ABORTED') {
+    const reconciled = record.unknownAt !== undefined || record.resolution !== undefined || record.dispatchedAt !== undefined
     if (
       record.abortedAt === undefined
       || record.committedAt !== undefined
       || record.resultDigest !== undefined
+      || (reconciled && (
+        record.dispatchedAt === undefined
+        || record.unknownAt === undefined
+        || record.resolution === undefined
+      ))
+      || (!reconciled && record.resolution !== undefined)
     ) throw new Error('ABORTED side effect has invalid fields')
   }
 
