@@ -28,6 +28,10 @@ export const directorScheduleSchema = z.object({
   intervalMs: z.number().int().positive(),
   maxTasksPerCycle: z.number().int().min(1).max(8),
   maxParallelTasks: z.number().int().min(1).max(8).default(1),
+  maxConsecutiveFailures: z.number().int().nonnegative().default(0),
+  maxConsecutiveIdleCycles: z.number().int().nonnegative().default(0),
+  consecutiveFailures: z.number().int().nonnegative().default(0),
+  consecutiveIdleCycles: z.number().int().nonnegative().default(0),
   leaseTtlMs: z.number().int().positive(),
   nextWakeAt: z.string().datetime(),
   createdAt: z.string().datetime(),
@@ -43,6 +47,22 @@ export const directorScheduleLedgerSchema = z.object({
 
 export type DirectorScheduleCycle = z.infer<typeof directorScheduleCycleSchema>
 export type DirectorSchedule = z.infer<typeof directorScheduleSchema>
+export type DirectorScheduleStagnationReason = 'FAILURE_LIMIT' | 'IDLE_LIMIT'
+
+export function directorScheduleStagnationReason(
+  schedule: DirectorSchedule,
+): DirectorScheduleStagnationReason | undefined {
+  if (schedule.maxConsecutiveFailures > 0
+    && schedule.consecutiveFailures >= schedule.maxConsecutiveFailures) {
+    return 'FAILURE_LIMIT'
+  }
+  if (schedule.maxConsecutiveIdleCycles > 0
+    && schedule.consecutiveIdleCycles >= schedule.maxConsecutiveIdleCycles) {
+    return 'IDLE_LIMIT'
+  }
+  return undefined
+}
+
 export type DirectorScheduleLedger = z.infer<typeof directorScheduleLedgerSchema>
 
 export const directorScheduleFactSchema = z.object({
@@ -147,6 +167,12 @@ export function projectDirectorScheduleFact(
           if (JSON.stringify(next.lastCycle) !== JSON.stringify(previous.lastCycle)) {
             throw new Error('UPSERT cannot rewrite the last cycle receipt')
           }
+          const countersChanged = next.consecutiveFailures !== previous.consecutiveFailures
+            || next.consecutiveIdleCycles !== previous.consecutiveIdleCycles
+          if (countersChanged
+            && (next.consecutiveFailures !== 0 || next.consecutiveIdleCycles !== 0)) {
+            throw new Error('UPSERT may only preserve or reset stagnation counters')
+          }
         }
       } else {
         if (added.length !== 0 || changed.length !== 1) {
@@ -162,6 +188,8 @@ export function projectDirectorScheduleFact(
           'intervalMs',
           'maxTasksPerCycle',
           'maxParallelTasks',
+          'maxConsecutiveFailures',
+          'maxConsecutiveIdleCycles',
           'leaseTtlMs',
           'createdAt',
         ] as const) {
@@ -173,6 +201,16 @@ export function projectDirectorScheduleFact(
           || Date.parse(next.updatedAt) < Date.parse(previous.updatedAt)
           || Date.parse(next.nextWakeAt) <= Date.parse(next.lastCycle.attemptedAt)) {
           throw new Error('invalid Director schedule cycle timing')
+        }
+        const expectedFailures = next.lastCycle.outcome === 'FAILED'
+          ? previous.consecutiveFailures + 1
+          : 0
+        const expectedIdleCycles = next.lastCycle.outcome === 'IDLE'
+          ? previous.consecutiveIdleCycles + 1
+          : 0
+        if (next.consecutiveFailures !== expectedFailures
+          || next.consecutiveIdleCycles !== expectedIdleCycles) {
+          throw new Error('Director schedule stagnation counters do not match the cycle outcome')
         }
       }
     } else {
