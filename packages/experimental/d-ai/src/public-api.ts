@@ -40,12 +40,13 @@ export type {
   InformationValue,
 } from './resource-value.ts'
 
-export { createMissionPlan, selectNextWork } from './mission-director.ts'
+export { createMissionPlan, selectNextWork, deriveMissionPhase } from './mission-director.ts'
 export type {
   MissionPlan,
   MissionPlanInput,
   MissionPhase,
   NextWorkSelection,
+  DirectorPlanStatus,
 } from './mission-director.ts'
 
 export {
