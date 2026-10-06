@@ -1940,13 +1940,14 @@ export class DAI extends Service {
     return this.claimRunnableTask(agent, ttlMs, missionId, taskId, holderId)
   }
 
-  /** Extend one exact active task-lease generation. */
-  async renewTaskLease(
+  /** Extend one exact active task-lease generation for one trusted holder. */
+  private async renewTaskLeaseForHolder(
     agent: Agent,
+    holderId: string,
     taskId: string,
     leaseId: string,
     fence: number,
-    ttlMs = 300000,
+    ttlMs: number,
   ): Promise<TaskLease> {
     if (!Number.isSafeInteger(ttlMs) || ttlMs < 1000 || ttlMs > 3600000) {
       fail('task lease ttl must be an integer from 1000 to 3600000 ms', 'D_AI_INVALID_INPUT')
@@ -1957,7 +1958,7 @@ export class DAI extends Service {
     return this.transact(agent, async () => {
       const current = this.executionLedger(agent)
       const now = Date.now()
-      const located = locateActiveLeaseFence(current.leases, { taskId, leaseId, fence }, agent.id, now)
+      const located = locateActiveLeaseFence(current.leases, { taskId, leaseId, fence }, holderId, now)
       if (located === undefined) {
         fail('task lease fence is stale, expired, released or owned by another executor', 'D_AI_POLICY_DENIED')
       }
@@ -1973,14 +1974,26 @@ export class DAI extends Service {
     })
   }
 
-  /** Append a durable checkpoint bound to one exact active lease generation. */
-  async checkpointTask(
+  /** Extend an owner-held lease through the public native tool/runtime API. */
+  async renewTaskLease(
     agent: Agent,
     taskId: string,
     leaseId: string,
     fence: number,
+    ttlMs = 300000,
+  ): Promise<TaskLease> {
+    return this.renewTaskLeaseForHolder(agent, agent.id, taskId, leaseId, fence, ttlMs)
+  }
+
+  /** Append a durable checkpoint bound to one exact active lease generation. */
+  private async checkpointTaskForHolder(
+    agent: Agent,
+    holderId: string,
+    taskId: string,
+    leaseId: string,
+    fence: number,
     summary: string,
-    artifactRefs: readonly string[] = [],
+    artifactRefs: readonly string[],
   ): Promise<TaskCheckpoint> {
     if (summary.trim().length === 0 || artifactRefs.some(ref => ref.trim().length === 0)) {
       fail('checkpoint summary and artifact references must be non-empty', 'D_AI_INVALID_INPUT')
@@ -1991,7 +2004,7 @@ export class DAI extends Service {
     return this.transact(agent, async () => {
       const current = this.executionLedger(agent)
       const now = Date.now()
-      const located = locateActiveLeaseFence(current.leases, { taskId, leaseId, fence }, agent.id, now)
+      const located = locateActiveLeaseFence(current.leases, { taskId, leaseId, fence }, holderId, now)
       if (located === undefined) {
         fail('checkpoint requires the current active task lease fence', 'D_AI_POLICY_DENIED')
       }
@@ -2022,9 +2035,30 @@ export class DAI extends Service {
     })
   }
 
-  /** Release one exact lease generation; never release a newer executor's lease. */
-  async releaseTaskLease(
+  /** Append a checkpoint for an owner-held lease through the public API. */
+  async checkpointTask(
     agent: Agent,
+    taskId: string,
+    leaseId: string,
+    fence: number,
+    summary: string,
+    artifactRefs: readonly string[] = [],
+  ): Promise<TaskCheckpoint> {
+    return this.checkpointTaskForHolder(
+      agent,
+      agent.id,
+      taskId,
+      leaseId,
+      fence,
+      summary,
+      artifactRefs,
+    )
+  }
+
+  /** Release one exact lease generation; never release a newer executor's lease. */
+  private async releaseTaskLeaseForHolder(
+    agent: Agent,
+    holderId: string,
     taskId: string,
     leaseId: string,
     fence: number,
@@ -2037,7 +2071,7 @@ export class DAI extends Service {
       const located = locateLeaseFence(current.leases, { taskId, leaseId, fence })
       if (
         located === undefined
-        || located.lease.holderId !== agent.id
+        || located.lease.holderId !== holderId
         || located.lease.releasedAt !== undefined
       ) {
         fail('task has no releasable matching lease fence owned by this executor', 'D_AI_POLICY_DENIED')
@@ -2051,6 +2085,16 @@ export class DAI extends Service {
       })
       return immutableSnapshot(released)
     })
+  }
+
+  /** Release an owner-held lease through the public native tool/runtime API. */
+  async releaseTaskLease(
+    agent: Agent,
+    taskId: string,
+    leaseId: string,
+    fence: number,
+  ): Promise<TaskLease> {
+    return this.releaseTaskLeaseForHolder(agent, agent.id, taskId, leaseId, fence)
   }
 
   /**
@@ -2662,6 +2706,7 @@ export class DAI extends Service {
    */
   private async transitionLeasedTask(
     agent: Agent,
+    holderId: string,
     taskId: string,
     leaseId: string,
     fence: number,
@@ -2672,7 +2717,7 @@ export class DAI extends Service {
       const located = locateActiveLeaseFence(
         executions.leases,
         { taskId, leaseId, fence },
-        agent.id,
+        holderId,
         Date.now(),
       )
       if (located === undefined) {
