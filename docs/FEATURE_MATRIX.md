@@ -28,7 +28,7 @@ Verification is tracked separately because the current branch CI runner is faili
 | Operations & Intelligence | durable entities/relations/timeline/gaps/options, fusion/adversarial agents | INTEGRATED | CI_PENDING | Collaborative case workspace, richer ingestion/geo integrations |
 | Innovation & Discovery | candidates, mechanisms, falsification tests, experiment handoff/results, explorer/critic | INTEGRATED | CI_PENDING | Prior-art connectors, deterministic math/simulation integrations |
 | Task DAG / Task Ledger | durable typed task graph, transitions, retry accounting, replay | INTEGRATED | CI_PENDING | 1000-task bounded-concurrency/fairness acceptance |
-| Mission Director | durable plans, planner agent, task creation/view/status, approval-gated unattended schedules, native-turn wake loop, cross-schedule fairness, bounded cross-owner concurrency, exact-task claims and budget-safe same-plan parallel worker waves with partial-failure accounting | INTEGRATED | CI_PENDING | full native acceptance, distributed/multi-process scheduling, crash/fault injection and stagnation policy |
+| Mission Director | durable plans, planner agent, approval-gated unattended schedules, native-turn wake loop, cross-schedule fairness, bounded cross-owner concurrency, exact-task claims, budget-safe same-plan parallel worker waves, partial-failure accounting and explicit consecutive failure/idle stagnation guardrails with human-approved reset | INTEGRATED | CI_PENDING | full native acceptance, distributed/multi-process scheduling and crash/fault injection |
 | Durable execution | fenced leases, heartbeat renewal, checkpoint lineage, release/recovery, deterministic v1→v2 replay migration, bounded unattended cross-owner cycles and same-plan parallel workers; heartbeat cancellation/cleanup regressions fixed | INTEGRATED | PRE_SCHEDULER_LOCAL_UNIT_PASS / CI_PENDING | distributed scheduling, native scheduler acceptance, crash/restart stress and live recovery proof |
 | External side-effect idempotency | durable reservation/dispatch/commit/unknown/reconcile journal + fenced connector gateway; no production mutable connector | INTEGRATED | CI_PENDING | connector-level adoption, live idempotency/reconciliation acceptance and provider-specific semantics |
 | Resource budgets / VoI | durable scoped limits/usage, budget-aware scheduler, VoI primitives | INTEGRATED | CI_PENDING | automatic metering on every relevant model/tool/data boundary |
@@ -49,10 +49,10 @@ Verification is tracked separately because the current branch CI runner is faili
 ## Current verification blocker
 
 Latest inspected D_AI v2 workflow:
-- run `37535402015`
-- job `112514916395`
+- run `37536230880`
+- job `112517746651`
 - conclusion `failure`
-- workflow steps: none (`steps: null`); job-log download returned `BlobNotFound`
+- workflow steps: none (`steps: null`)
 
 No checkout/install/build/typecheck/test command executed in that job. Current integrated rows therefore retain **CI_PENDING** for native acceptance. Local unit/projection checks have a separate receipt in [TEST_REPORT.md](TEST_REPORT.md).
 
