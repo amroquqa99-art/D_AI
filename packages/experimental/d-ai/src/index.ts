@@ -25,6 +25,8 @@ export { authorizeCapability, validateGrant } from './capability-grants.ts'
 export type { CapabilityGrant, CapabilityRequest, AuthorizationResult, GrantScope, GrantDecision } from './capability-grants.ts'
 export { checkBudget, scoreInformationOption, rankInformationOptions } from './resource-value.ts'
 export type { ResourceBudget, ResourceUsage, BudgetCheck, InformationOption, InformationValue } from './resource-value.ts'
+export { createMissionPlan, selectNextWork } from './mission-director.ts'
+export type { MissionPlan, MissionPlanInput, MissionPhase, NextWorkSelection } from './mission-director.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
