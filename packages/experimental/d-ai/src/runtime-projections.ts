@@ -14,6 +14,7 @@ import { modelRegistryProjection } from './model-registry-state.ts'
 import { trainingProjection } from './training-state.ts'
 import { modelLifecycleProjection } from './model-lifecycle-state.ts'
 import { directorProjection } from './director-state.ts'
+import { directorScheduleProjection } from './director-schedule-state.ts'
 import { sideEffectProjection } from './side-effect-state.ts'
 
 /**
@@ -37,5 +38,6 @@ export function mountDaiProjections(ctx: Context): void {
   ctx.effect(() => ctx.sessionProjections.register(trainingProjection), 'dai.trainingProjection()')
   ctx.effect(() => ctx.sessionProjections.register(modelLifecycleProjection), 'dai.modelLifecycleProjection()')
   ctx.effect(() => ctx.sessionProjections.register(directorProjection), 'dai.directorProjection()')
+  ctx.effect(() => ctx.sessionProjections.register(directorScheduleProjection), 'dai.directorScheduleProjection()')
   ctx.effect(() => ctx.sessionProjections.register(sideEffectProjection), 'dai.sideEffectProjection()')
 }
