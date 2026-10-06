@@ -5,6 +5,7 @@ import type {
   IntelligenceGap,
   OperationsCase,
   OperationsEntity,
+  OperationsState,
 } from './operations-state.ts'
 import { encodeToolResult, jsonToolOutput, rejectInvalidInput } from './tool-support.ts'
 import type { ToolOwnerResolver } from './tool-support.ts'
@@ -15,8 +16,8 @@ export interface OperationsToolRuntime {
     objective: string,
     classification: OperationsCase['classification'],
     signal?: AbortSignal,
-  ): Promise<unknown>
-  readOperations(agent: Agent): unknown
+  ): Promise<OperationsCase>
+  readOperations(agent: Agent): OperationsState
   addOperationsEntity(
     agent: Agent,
     caseId: string,
