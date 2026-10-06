@@ -333,6 +333,7 @@ export {
   DirectorScheduler,
   createDirectorSchedulerWake,
   hasPendingDirectorSchedulerWake,
+  isCurrentDirectorScheduleWake,
   isDirectorSchedulerWake,
   shouldWakeDirectorSchedule,
 } from './director-scheduler.ts'
