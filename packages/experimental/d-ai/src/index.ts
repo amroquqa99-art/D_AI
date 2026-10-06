@@ -470,6 +470,98 @@ export class DAI extends Service {
     return immutable(fact.control)
   }
 
+  /** Append new shared tasks to the durable owner ledger. */
+  async addDurableTasks(agent: Agent, tasks: readonly MissionTask[]): Promise<DurableTaskLedger> {
+    if (tasks.length === 0) fail('at least one durable task is required', 'D_AI_INVALID_INPUT')
+    return this.transact(agent, async () => {
+      const current = this.taskLedger(agent)
+      const existingIds = new Set(current.tasks.map(task => task.id))
+      for (const task of tasks) {
+        if (existingIds.has(task.id)) fail('durable task identity already exists: ' + task.id, 'D_AI_INVALID_INPUT')
+      }
+      return this.appendTaskLedger(agent, 'ADD_TASKS', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        tasks: [...current.tasks, ...tasks],
+      })
+    })
+  }
+
+  /** Apply one validated state transition to a durable task. */
+  async transitionDurableTask(agent: Agent, taskId: string, next: TaskState): Promise<DurableTaskLedger> {
+    return this.transact(agent, async () => {
+      const current = this.taskLedger(agent)
+      const task = current.tasks.find(item => item.id === taskId)
+      if (task === undefined) fail('unknown durable task', 'D_AI_INVALID_INPUT')
+      let transitioned: MissionTask
+      try {
+        transitioned = transitionTaskInternal(task as MissionTask, next)
+      } catch (error) {
+        fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_TRANSITION')
+      }
+      return this.appendTaskLedger(agent, 'TRANSITION', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        tasks: current.tasks.map(item => item.id === taskId ? transitioned : item),
+      })
+    })
+  }
+
+  /**
+   * Append a capability grant/deny only after native human approval and pair it
+   * with an immutable audit record in the same control-plane fact.
+   */
+  async grantCapability(
+    agent: Agent,
+    input: Omit<CapabilityGrant, 'id' | 'issuedBy' | 'issuedAt'>,
+    signal?: AbortSignal,
+  ): Promise<ControlPlane> {
+    this.authorize(agent)
+    const outcome = await this.ctx.approval.request({
+      agent,
+      toolName: 'd_ai_control_grant',
+      reason: 'Change D_AI capability policy for ' + input.systemId + ':' + input.capability + ' to ' + input.decision,
+      ...(signal === undefined ? {} : { signal }),
+    })
+    if (outcome !== 'allowed-once') fail('human approval is required for capability policy changes')
+
+    return this.transact(agent, async () => {
+      const current = this.controlPlane(agent)
+      const now = new Date().toISOString()
+      const grant = validateGrantInternal({
+        ...input,
+        id: randomUUID(),
+        issuedBy: agent.id,
+        issuedAt: now,
+      })
+      const chain = {
+        records: current.auditRecords,
+        headHash: current.auditHeadHash,
+      }
+      const nextAudit = appendAuditRecordInternal(chain, {
+        id: randomUUID(),
+        at: now,
+        actorId: agent.id,
+        action: grant.decision === 'ALLOW' ? 'CAPABILITY_GRANT' : 'CAPABILITY_DENY',
+        systemId: grant.systemId,
+        subjectId: grant.id,
+        details: {
+          capability: grant.capability,
+          scope: grant.scope,
+          decision: grant.decision,
+          reason: grant.reason,
+        },
+      })
+      return this.appendControlPlane(agent, 'APPEND_GRANT', {
+        ownerAgentId: agent.id,
+        revision: current.revision + 1,
+        grants: [...current.grants, grant],
+        auditRecords: [...nextAudit.records],
+        auditHeadHash: nextAudit.headHash,
+      })
+    })
+  }
+
   /**
    * Create a user-requested mission on its owner root Session.
    * @param agent - exact owner root Agent.
