@@ -22,7 +22,7 @@ export interface OperationsToolRuntime {
     agent: Agent,
     caseId: string,
     input: { type: OperationsEntity['type']; label: string; summary: string },
-  ): Promise<unknown>
+  ): Promise<OperationsCase>
   addOperationsRelationship(
     agent: Agent,
     caseId: string,
@@ -33,7 +33,7 @@ export interface OperationsToolRuntime {
       confidence: number
       evidenceRefs?: readonly string[]
     },
-  ): Promise<unknown>
+  ): Promise<OperationsCase>
   addOperationsTimelineEvent(
     agent: Agent,
     caseId: string,
@@ -43,12 +43,12 @@ export interface OperationsToolRuntime {
       details: string
       evidenceRefs?: readonly string[]
     },
-  ): Promise<unknown>
+  ): Promise<OperationsCase>
   addIntelligenceGap(
     agent: Agent,
     caseId: string,
     input: { question: string; priority: IntelligenceGap['priority'] },
-  ): Promise<unknown>
+  ): Promise<OperationsCase>
   addOperationalOption(
     agent: Agent,
     caseId: string,
@@ -58,8 +58,8 @@ export interface OperationsToolRuntime {
       expectedBenefit: string
       risks: string
     },
-  ): Promise<unknown>
-  delegateOperations(agent: Agent, caseId: string, signal: AbortSignal): Promise<unknown>
+  ): Promise<OperationsCase>
+  delegateOperations(agent: Agent, caseId: string, signal: AbortSignal): Promise<OperationsCase>
 }
 
 function optionalEvidenceRefs(value: string | undefined): { evidenceRefs?: readonly string[] } {
