@@ -21,6 +21,10 @@ export { buildTaskGraph, runnableTasks, transitionTask, taskIsTerminal } from '.
 export type { MissionTask, TaskGraph, TaskState } from './task-dag.ts'
 export { evaluateTrainingEligibility, buildDatasetLineage } from './training-governance.ts'
 export type { TrainingDataCandidate, EligibilityResult, EligibilityDecision, DataSensitivity, DatasetLineage } from './training-governance.ts'
+export { authorizeCapability, validateGrant } from './capability-grants.ts'
+export type { CapabilityGrant, CapabilityRequest, AuthorizationResult, GrantScope, GrantDecision } from './capability-grants.ts'
+export { checkBudget, scoreInformationOption, rankInformationOptions } from './resource-value.ts'
+export type { ResourceBudget, ResourceUsage, BudgetCheck, InformationOption, InformationValue } from './resource-value.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
