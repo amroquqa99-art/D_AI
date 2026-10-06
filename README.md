@@ -25,7 +25,7 @@ Legend:
 | Innovation & Discovery | **IMPLEMENTED / CI PENDING** | Testable candidates, mechanisms, falsification tests, experiment handoff/results, independent explorer + critic Agents. Generated ideas cannot self-declare as discoveries. |
 | Shared Task DAG | **IMPLEMENTED / CI PENDING** | Task states, dependencies, retry accounting, durable task-ledger replay, and scheduler admission that respects dependencies/blocking states. |
 | Mission Director | **FOUNDATION** | Mission planning primitives, runnable-work selection, resource admission and Value-of-Information ranking. Full autonomous orchestration loop is still being built. |
-| Durable execution | **IMPLEMENTED / CI PENDING** | Runnable tasks can now be claimed with durable leases, checkpointed, lease-renewed, explicitly completed/failed through task state transitions, released, and replayed after restart. Worker-process recovery/automatic lease expiry handling is still incomplete. |
+| Durable execution | **IMPLEMENTED / CI PENDING** | Runnable tasks can be claimed with durable leases, checkpointed, lease-renewed, completed/failed through explicit task transitions, released, replayed after restart, and recovered when a lease expires without an active replacement. Automatic worker-process spawning/heartbeat scheduling is still incomplete. |
 | Capability control plane | **IMPLEMENTED / CI PENDING** | Scoped ALLOW/DENY grants, fail-closed authorization, human-approved durable grant changes, append-only audit hash chain, durable control-plane projection. |
 | Evidence / Knowledge graph | **IMPLEMENTED / CI PENDING** | Shared append-only evidence nodes/edges now persist through Session replay with provenance and confidence; support/contradiction graph primitives exist. Automatic domain-to-graph ingestion and graph UI are still incomplete. |
 | Cross-system handoff | **IMPLEMENTED / CI PENDING** | Persisted grant-backed authorization and durable audit records exist for declared system-to-system handoffs. Automatic target-task execution/routing is still incomplete. |
@@ -33,6 +33,7 @@ Legend:
 | Resource budgets + VoI | **IMPLEMENTED / CI PENDING** | Durable scoped budget profiles now store token, money, wall-clock, human-attention and data-access limits plus measured usage; VoI ranking primitives exist. Full automatic metering/enforcement across every tool call is still incomplete. |
 | Training governance | **FOUNDATION** | Explicit eligibility, dataset lineage, sensitive-data exclusion rules, evaluation/promotion and rollback primitives. |
 | Local Intelligence Core | **FOUNDATION ONLY** | Architecture, governance, dataset/promotion gates and model-release pointers exist. **There is no claim that a D_AI local model has already been trained.** |
+| Control Center read API | **IMPLEMENTED / CI PENDING** | A consolidated platform snapshot now exposes domain counts, task states, control-plane grants/audit, budgets, evidence-graph size and execution lease/checkpoint health for future dashboards. |
 | Admin / Control Center UI | **NOT BUILT** | Runtime control APIs are being built first; full GUI for users, grants, systems, models, budgets and audit is still pending. |
 
 ## Current CI blocker
@@ -151,7 +152,7 @@ Still required before it can be called a working D_AI model:
 
 The repository is already beyond a design-only prototype, but major engineering remains:
 
-- automatic long-running executor loop around the new durable task leases/checkpoints, including worker recovery and expired-lease reclamation
+- automatic long-running executor loop around the new durable task leases/checkpoints, including worker spawning, periodic heartbeat/renewal and automatic recovery invocation
 - checkpoint/recovery across active tool execution, not only Session projection replay
 - cross-system runtime dispatch using the shared grants/control plane
 - persistent shared Evidence/Knowledge Graph backend
