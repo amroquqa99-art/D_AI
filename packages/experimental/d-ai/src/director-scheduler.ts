@@ -86,6 +86,17 @@ function hasExpiredPlanLease(
     && Date.parse(lease.expiresAt) <= nowMs)
 }
 
+/** Validate one queued wake against the current durable schedule generation. */
+export function isCurrentDirectorScheduleWake(
+  schedule: DirectorSchedule,
+  expectedDueAt: string,
+  nowMs: number,
+): boolean {
+  return schedule.enabled
+    && schedule.nextWakeAt === expectedDueAt
+    && Date.parse(schedule.nextWakeAt) <= nowMs
+}
+
 /**
  * A wake is useful only when the schedule is due and the active plan either
  * has runnable work or needs expired-lease recovery.
@@ -96,9 +107,8 @@ export function shouldWakeDirectorSchedule(
   execution: ExecutionState,
   nowMs: number,
 ): boolean {
-  if (!schedule.enabled
-    || plan.plan.status !== 'ACTIVE'
-    || Date.parse(schedule.nextWakeAt) > nowMs) {
+  if (!isCurrentDirectorScheduleWake(schedule, schedule.nextWakeAt, nowMs)
+    || plan.plan.status !== 'ACTIVE') {
     return false
   }
 
