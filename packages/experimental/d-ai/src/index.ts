@@ -484,6 +484,16 @@ export class DAI extends Service {
         nodes: evidence.nodes.length,
         edges: evidence.edges.length,
       },
+      execution: (() => {
+        const ledger = this.executionLedger(agent)
+        const now = Date.now()
+        return {
+          revision: ledger.revision,
+          leases: ledger.leases.length,
+          activeLeases: ledger.leases.filter(lease => lease.releasedAt === undefined && Date.parse(lease.expiresAt) > now).length,
+          checkpoints: ledger.checkpoints.length,
+        }
+      })(),
     })
   }
 
@@ -790,6 +800,96 @@ export class DAI extends Service {
         checkpoints: [...current.checkpoints],
       })
       return immutable(released)
+    })
+  }
+
+  /**
+   * Recover tasks stranded by expired leases. Expired RUNNING/WAITING_FOR_TOOL
+   * work is failed then retried within its maxAttempts budget; WAITING_FOR_HUMAN
+   * returns to READY without consuming a retry.
+   */
+  async recoverExpiredTaskLeases(
+    agent: Agent,
+    nowMs = Date.now(),
+  ): Promise<Readonly<{ recoveredTaskIds: readonly string[]; retryExhaustedTaskIds: readonly string[] }>> {
+    if (!Number.isFinite(nowMs) || nowMs < 0) fail('invalid recovery clock', 'D_AI_INVALID_INPUT')
+    return this.transact(agent, async () => {
+      let executions = this.executionLedger(agent)
+      let tasks = this.taskLedger(agent)
+      const nowIso = new Date(nowMs).toISOString()
+      const activeTaskIds = new Set(
+        executions.leases
+          .filter(lease => lease.releasedAt === undefined && Date.parse(lease.expiresAt) > nowMs)
+          .map(lease => lease.taskId),
+      )
+      const expired = executions.leases.filter(lease =>
+        lease.releasedAt === undefined
+        && Date.parse(lease.expiresAt) <= nowMs
+        && !activeTaskIds.has(lease.taskId))
+
+      const recovered = new Set<string>()
+      const exhausted = new Set<string>()
+
+      for (const lease of expired) {
+        const leaseIndex = executions.leases.findIndex(item => item.id === lease.id)
+        if (leaseIndex < 0) continue
+        const released: TaskLease = { ...lease, releasedAt: nowIso }
+        executions = await this.appendExecutionLedger(agent, 'RELEASE_LEASE', {
+          ownerAgentId: agent.id,
+          revision: executions.revision + 1,
+          leases: executions.leases.map((item, index) => index === leaseIndex ? released : item),
+          checkpoints: [...executions.checkpoints],
+        })
+
+        if (recovered.has(lease.taskId) || exhausted.has(lease.taskId)) continue
+        const task = tasks.tasks.find(item => item.id === lease.taskId)
+        if (task === undefined) continue
+
+        if (task.state === 'RUNNING' || task.state === 'WAITING_FOR_TOOL') {
+          const failed = transitionTaskInternal(task as MissionTask, 'FAILED')
+          tasks = await this.appendTaskLedger(agent, 'TRANSITION', {
+            ownerAgentId: agent.id,
+            revision: tasks.revision + 1,
+            tasks: tasks.tasks.map(item => item.id === task.id ? failed : item),
+          })
+          try {
+            const pending = transitionTaskInternal(failed, 'PENDING')
+            tasks = await this.appendTaskLedger(agent, 'TRANSITION', {
+              ownerAgentId: agent.id,
+              revision: tasks.revision + 1,
+              tasks: tasks.tasks.map(item => item.id === task.id ? pending : item),
+            })
+            recovered.add(task.id)
+          } catch {
+            exhausted.add(task.id)
+          }
+        } else if (task.state === 'WAITING_FOR_HUMAN') {
+          const ready = transitionTaskInternal(task as MissionTask, 'READY')
+          tasks = await this.appendTaskLedger(agent, 'TRANSITION', {
+            ownerAgentId: agent.id,
+            revision: tasks.revision + 1,
+            tasks: tasks.tasks.map(item => item.id === task.id ? ready : item),
+          })
+          recovered.add(task.id)
+        } else if (task.state === 'FAILED') {
+          try {
+            const pending = transitionTaskInternal(task as MissionTask, 'PENDING')
+            tasks = await this.appendTaskLedger(agent, 'TRANSITION', {
+              ownerAgentId: agent.id,
+              revision: tasks.revision + 1,
+              tasks: tasks.tasks.map(item => item.id === task.id ? pending : item),
+            })
+            recovered.add(task.id)
+          } catch {
+            exhausted.add(task.id)
+          }
+        }
+      }
+
+      return immutable({
+        recoveredTaskIds: [...recovered].sort(),
+        retryExhaustedTaskIds: [...exhausted].sort(),
+      })
     })
   }
 
@@ -1992,6 +2092,9 @@ export class DAI extends Service {
         if (!states.includes(args.next_state as typeof states[number])) fail('invalid durable task state', 'D_AI_INVALID_INPUT')
         return encoded(this.transitionDurableTask(owner(exec.agent), args.task_id, args.next_state as TaskState))
       } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_execution_recover_expired', description: 'Recover tasks stranded by expired execution leases, respecting task retry budgets. Active leases are never touched.',
+      parameters: {}, output,
+      execute: (_args, exec) => encoded(this.recoverExpiredTaskLeases(owner(exec.agent))) }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_execution_read', description: 'Read durable D_AI task leases and checkpoints for long-running execution.', parameters: {}, output,
       execute: (_args, exec) => encoded(this.readExecution(owner(exec.agent))) }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_task_claim_next', description: 'Claim the highest-priority runnable D_AI task, move it to RUNNING and acquire a durable execution lease. Budget and dependency admission are enforced.',
