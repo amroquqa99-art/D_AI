@@ -68,6 +68,7 @@ import { runDirectorPlanner } from './director-orchestration.ts'
 import type { DirectorPlanningResult } from './director-orchestration.ts'
 import { runDirectorTaskExecutor } from './director-executor.ts'
 import type { TaskExecutionResult } from './director-executor.ts'
+import type { DirectorCycleResult, DirectorPlanRuntimeView, DirectorTaskExecution } from './director-runtime.ts'
 import type { MissionTask, TaskState } from './task-dag.ts'
 import { buildRuntimeConfiguration, configSchema } from './config.ts'
 import type { Config } from './config.ts'
@@ -100,6 +101,7 @@ export class DAI extends Service {
   private readonly kernel: DaiRuntimeKernel
   private readonly projections: DaiProjectionReader
   private readonly delegating = new Set<string>()
+  private readonly directorCycles = new Set<string>()
   private readonly index: ReturnType<Context['storageDomain']['open']>
 
   constructor(ctx: Context, config: Config = {}) {
@@ -821,6 +823,57 @@ export class DAI extends Service {
     }
   }
 
+  /**
+   * Execute a bounded batch of runnable tasks for one active Director plan.
+   * The cycle is request-bound: it never becomes an unattended background
+   * daemon and never exceeds maxTasks without a new explicit invocation.
+   */
+  async executeDirectorCycle(
+    agent: Agent,
+    planId: string,
+    signal: AbortSignal,
+    maxTasks = 4,
+    ttlMs = 600000,
+  ): Promise<DirectorCycleResult> {
+    this.authorize(agent)
+    if (!Number.isSafeInteger(maxTasks) || maxTasks < 1 || maxTasks > 8) {
+      fail('Director cycle maxTasks must be an integer from 1 to 8', 'D_AI_INVALID_INPUT')
+    }
+
+    const key = agent.id + ':' + planId
+    if (this.directorCycles.has(key)) {
+      fail('a Director execution cycle is already running for this plan', 'D_AI_BUSY')
+    }
+    this.directorCycles.add(key)
+
+    try {
+      const executed: DirectorTaskExecution[] = []
+
+      while (executed.length < maxTasks) {
+        signal.throwIfAborted()
+
+        const view = this.directorPlanView(agent, planId, 1)
+        if (view.plan.status !== 'ACTIVE' || view.next.selected.length === 0) break
+
+        const result = await this.executeNextDirectorTask(agent, planId, signal, ttlMs)
+        executed.push(result)
+
+        if (result.execution.outcome === 'FAILED') break
+      }
+
+      const finalView = this.directorPlanView(agent, planId, 1)
+      return immutableSnapshot({
+        planId,
+        executed,
+        phase: finalView.phase,
+        limitReached: executed.length === maxTasks && finalView.next.selected.length > 0,
+        next: finalView.next,
+      })
+    } finally {
+      this.directorCycles.delete(key)
+    }
+  }
+
   /** Change explicit plan lifecycle state after human approval. */
   async setDirectorPlanStatus(
     agent: Agent,
@@ -856,7 +909,7 @@ export class DAI extends Service {
     agent: Agent,
     planId: string,
     maxTasks = 8,
-  ): Readonly<Record<string, unknown>> {
+  ): DirectorPlanRuntimeView {
     const plan = this.directorPlan(agent, planId)
     const fullLedger = this.taskLedger(agent)
     const tasks = fullLedger.tasks.filter(task => task.missionId === plan.id)
