@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createMissionPlan, selectNextWork } from '../src/mission-director.ts'
+import { createMissionPlan, deriveMissionPhase, selectNextWork } from '../src/mission-director.ts'
 import type { MissionTask } from '../src/task-dag.ts'
 
 function task(overrides: Partial<MissionTask> & Pick<MissionTask, 'id'>): MissionTask {
@@ -40,6 +40,20 @@ describe('D_AI Mission Director foundation', () => {
       createdAt: '2026-10-06T00:00:00Z',
       tasks: [task({ id: 'foreign', missionId: 'm2' })],
     })).toThrow('does not belong')
+  })
+
+
+  it('derives lifecycle phase from durable plan and task state', () => {
+    expect(deriveMissionPhase('ACTIVE', [])).toBe('PLANNING')
+    expect(deriveMissionPhase('ACTIVE', [task({ id: 'running', state: 'RUNNING' })])).toBe('EXECUTING')
+    expect(deriveMissionPhase('ACTIVE', [task({ id: 'human', state: 'WAITING_FOR_HUMAN' })])).toBe('WAITING_FOR_HUMAN')
+    expect(deriveMissionPhase('ACTIVE', [task({ id: 'failed', state: 'FAILED' })])).toBe('BLOCKED')
+    expect(deriveMissionPhase('ACTIVE', [
+      task({ id: 'done', state: 'COMPLETED' }),
+      task({ id: 'cancelled', state: 'CANCELLED' }),
+    ])).toBe('COMPLETE')
+    expect(deriveMissionPhase('PAUSED', [task({ id: 'ready', state: 'READY' })])).toBe('PAUSED')
+    expect(deriveMissionPhase('COMPLETE', [task({ id: 'ready', state: 'READY' })])).toBe('COMPLETE')
   })
 
   it('selects runnable work when budget is available', () => {
