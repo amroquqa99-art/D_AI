@@ -76,6 +76,7 @@ import { registerDaiTools } from './runtime-tools.ts'
 import { DaiRuntimeKernel } from './runtime-kernel.ts'
 import { failDai } from './runtime-errors.ts'
 import { DaiProjectionReader, immutableSnapshot } from './runtime-state.ts'
+import { withLeaseHeartbeat } from './lease-heartbeat.ts'
 
 export * from './public-api.ts'
 
@@ -768,34 +769,42 @@ export class DAI extends Service {
       : this.delegation.allowedTools
 
     try {
-      const execution = await runDirectorTaskExecutor(
-        this.ctx,
-        agent,
-        plan,
-        claimed.task,
-        system,
-        dependencyCheckpoints,
+      const execution = await withLeaseHeartbeat(
         signal,
-        {
-          subagentProvider: this.delegation.provider,
-          maxDepth: this.delegation.maxDepth,
-          maxOutputTokens: this.delegation.maxOutputTokens,
-          maxRequests: this.delegation.maxRequestsPerChild,
-          timeoutMs: this.delegation.timeoutMs,
-          maxResultBytes: this.delegation.maxResultBytes,
-          allowedTools,
-          ...(route === undefined ? {} : { model: route.id, llmProvider: route.provider }),
+        { ttlMs },
+        () => this.renewTaskLease(agent, claimed.task.id, ttlMs),
+        async (executionSignal) => {
+          const result = await runDirectorTaskExecutor(
+            this.ctx,
+            agent,
+            plan,
+            claimed.task,
+            system,
+            dependencyCheckpoints,
+            executionSignal,
+            {
+              subagentProvider: this.delegation.provider,
+              maxDepth: this.delegation.maxDepth,
+              maxOutputTokens: this.delegation.maxOutputTokens,
+              maxRequests: this.delegation.maxRequestsPerChild,
+              timeoutMs: this.delegation.timeoutMs,
+              maxResultBytes: this.delegation.maxResultBytes,
+              allowedTools,
+              ...(route === undefined ? {} : { model: route.id, llmProvider: route.provider }),
+            },
+          )
+          executionSignal.throwIfAborted()
+
+          await this.checkpointTask(
+            agent,
+            claimed.task.id,
+            result.nextNeed === undefined ? result.summary : result.summary + '\nNext need: ' + result.nextNeed,
+            result.artifactRefs,
+          )
+          await this.transitionDurableTask(agent, claimed.task.id, result.outcome)
+          return result
         },
       )
-      signal.throwIfAborted()
-
-      await this.checkpointTask(
-        agent,
-        claimed.task.id,
-        execution.nextNeed === undefined ? execution.summary : execution.summary + '\nNext need: ' + execution.nextNeed,
-        execution.artifactRefs,
-      )
-      await this.transitionDurableTask(agent, claimed.task.id, execution.outcome)
       return immutableSnapshot({ task: claimed.task, execution })
     } catch (error) {
       const latest = this.taskLedger(agent).tasks.find(task => task.id === claimed.task.id)
