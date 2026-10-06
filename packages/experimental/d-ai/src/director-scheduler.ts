@@ -46,6 +46,26 @@ function scheduleKey(agentId: string, scheduleId: string): string {
   return agentId + ':' + scheduleId
 }
 
+export function directorSchedulerRemainingSlots(
+  maxConcurrentCycles: number,
+  activeCount: number,
+  queuedWakeCount: number,
+): number {
+  for (const [name, value] of [
+    ['maxConcurrentCycles', maxConcurrentCycles],
+    ['activeCount', activeCount],
+    ['queuedWakeCount', queuedWakeCount],
+  ] as const) {
+    if (!Number.isSafeInteger(value) || value < 0) {
+      throw new TypeError(name + ' must be a non-negative safe integer')
+    }
+  }
+  if (maxConcurrentCycles < 1 || maxConcurrentCycles > 32) {
+    throw new TypeError('maxConcurrentCycles must be an integer from 1 to 32')
+  }
+  return Math.max(0, maxConcurrentCycles - activeCount - queuedWakeCount)
+}
+
 export function isDirectorSchedulerWake(message: UserMessage): boolean {
   return message.source.kind === 'd-ai-scheduler'
 }
@@ -236,7 +256,11 @@ export class DirectorScheduler {
     const queuedWakeCount = roots.reduce((count, agent) =>
       count + [...agent.inbox.nextTurn, ...agent.inbox.nextStep]
         .filter(isDirectorSchedulerWake).length, 0)
-    let remainingSlots = this.config.maxConcurrentCycles - this.active.size - queuedWakeCount
+    let remainingSlots = directorSchedulerRemainingSlots(
+      this.config.maxConcurrentCycles,
+      this.active.size,
+      queuedWakeCount,
+    )
     if (remainingSlots <= 0) return
 
     for (const agent of roots) {
