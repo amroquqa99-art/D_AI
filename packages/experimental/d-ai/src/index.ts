@@ -17,6 +17,8 @@ import type { InvestigationDelegationConfig } from './orchestration.ts'
 export { factSchema, missionProjection, projectFact, SYSTEMS } from './state.ts'
 export { getSystemManifest, listSystemManifests, LOCAL_INTELLIGENCE_CORE } from './systems.ts'
 export type { SystemManifest, SystemId, SystemCapabilityStatus, SystemRiskClass, LocalIntelligenceCoreManifest } from './systems.ts'
+export { buildTaskGraph, runnableTasks, transitionTask, taskIsTerminal } from './task-dag.ts'
+export type { MissionTask, TaskGraph, TaskState } from './task-dag.ts'
 export type { Mission, MissionFact, EvidenceClaim, EvidenceSource, MissionState } from './state.ts'
 
 /** Deployment-selected bounds and subordinate provider; never model-supplied policy. */
