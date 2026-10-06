@@ -253,6 +253,7 @@ describe('D_AI durable Mission Director', () => {
   it('executes Director tasks one at a time with durable checkpoints and dependency-context reconstruction', async () => temporary(async root => {
     const script: ConstructorParameters<typeof MockAdapter>[0] = []
     const { ctx, adapter } = await boot(root, script)
+    ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
     const agent = await ctx.agentLoop.create(SessionId('director-executor-owner'), { provider: 'mock', model: 'fixture' })
     const objective = 'Research evidence first, then synthesize its implications'
     const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
@@ -285,6 +286,14 @@ describe('D_AI durable Mission Director', () => {
         summary: 'Primary evidence collection completed and anchored.',
         artifactRefs: ['artifact://fixture/primary-evidence.json'],
       })),
+      () => toolCallResponse('grant-scientific', 'd_ai_control_grant', {
+        system_id: 'scientific-research',
+        capability: 'runtime.task-execute',
+        scope: 'TASK',
+        scope_id: tasks()[1]!.id,
+        decision: 'ALLOW',
+        reason: 'Allow the approved synthesis task to consume investigation context',
+      }),
       () => toolCallResponse('execute-second', 'd_ai_director_execute_next', {
         plan_id: plan().id,
         ttl_ms: 600000,
@@ -322,6 +331,8 @@ describe('D_AI durable Mission Director', () => {
 
       // The second child request is reconstructed from durable dependency state.
       expect(JSON.stringify(adapter.requests)).toContain('Primary evidence collection completed and anchored.')
+      expect(ctx.dai.readControlPlane(agent).controls[0]?.auditRecords.map(record => record.action))
+        .toEqual(['CAPABILITY_GRANT', 'CROSS_SYSTEM_HANDOFF'])
     } finally {
       await ctx.fiber.dispose()
     }
@@ -330,6 +341,7 @@ describe('D_AI durable Mission Director', () => {
   it('executes a bounded Director cycle across dependent tasks in one invocation', async () => temporary(async root => {
     const script: ConstructorParameters<typeof MockAdapter>[0] = []
     const { ctx, adapter } = await boot(root, script)
+    ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
     const agent = await ctx.agentLoop.create(SessionId('director-cycle-owner'), { provider: 'mock', model: 'fixture' })
     const objective = 'Collect evidence and then synthesize it in one bounded cycle'
     const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
@@ -352,6 +364,14 @@ describe('D_AI durable Mission Director', () => {
         title: 'Synthesize the evidence',
         depends_on: tasks()[0]!.id,
         priority: 10,
+      }),
+      () => toolCallResponse('grant-scientific', 'd_ai_control_grant', {
+        system_id: 'scientific-research',
+        capability: 'runtime.task-execute',
+        scope: 'TASK',
+        scope_id: tasks()[1]!.id,
+        decision: 'ALLOW',
+        reason: 'Allow the approved synthesis task to consume investigation context',
       }),
       () => toolCallResponse('cycle', 'd_ai_director_execute_cycle', {
         plan_id: plan().id,
@@ -386,6 +406,8 @@ describe('D_AI durable Mission Director', () => {
       expect(execution.leases.every(lease => lease.releasedAt !== undefined)).toBe(true)
       expect(ctx.dai.directorPlanView(agent, plan().id)).toMatchObject({ phase: 'COMPLETE' })
       expect(JSON.stringify(adapter.requests)).toContain('Primary evidence collected and anchored.')
+      expect(ctx.dai.readControlPlane(agent).controls[0]?.auditRecords.map(record => record.action))
+        .toEqual(['CAPABILITY_GRANT', 'CROSS_SYSTEM_HANDOFF'])
     } finally {
       await ctx.fiber.dispose()
     }
@@ -438,6 +460,48 @@ describe('D_AI durable Mission Director', () => {
       expect(taskState.tasks.filter(task => task.state === 'COMPLETED')).toHaveLength(1)
       expect(taskState.tasks.filter(task => task.state === 'PENDING')).toHaveLength(1)
       expect(ctx.dai.directorPlanView(agent, plan().id).next.selected).toHaveLength(1)
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  }), 15000)
+
+  it('blocks cross-system task execution when no matching capability grant exists', async () => temporary(async root => {
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx } = await boot(root, script)
+    const agent = await ctx.agentLoop.create(SessionId('director-policy-owner'), { provider: 'mock', model: 'fixture' })
+    const objective = 'Delegate one approved financial-analysis task'
+    const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+
+    script.push(
+      toolCallResponse('plan', 'd_ai_director_plan_create', {
+        objective,
+        primary_system: 'investigation',
+      }),
+      () => toolCallResponse('financial', 'd_ai_director_task_add', {
+        plan_id: plan().id,
+        system_id: 'investor',
+        title: 'Analyze the financial evidence',
+      }),
+      () => toolCallResponse('execute', 'd_ai_director_execute_next', {
+        plan_id: plan().id,
+      }),
+      textResponse('Cross-system execution is blocked pending authorization'),
+    )
+
+    try {
+      agent.followup(createUserMessage({
+        content: [{ type: 'text', text: objective }],
+        source: { kind: 'user' },
+      }))
+      await agent.whenIdle()
+
+      const task = ctx.dai.readTaskLedger(agent).ledgers[0]!.tasks[0]!
+      const execution = ctx.dai.readExecution(agent).ledgers[0]!
+      expect(task.state).toBe('BLOCKED_POLICY')
+      expect(execution.checkpoints).toEqual([])
+      expect(execution.leases).toHaveLength(1)
+      expect(execution.leases[0]?.releasedAt).toBeDefined()
+      expect(ctx.dai.readControlPlane(agent).controls).toEqual([])
     } finally {
       await ctx.fiber.dispose()
     }
