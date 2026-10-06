@@ -13,6 +13,7 @@ import * as JsonStorage from '@deepseek-ai/dsh-storage-json'
 import * as DomainStorage from '@deepseek-ai/dsh-storage-domain'
 import WebRuntime from '@deepseek-ai/dsh-web'
 import Subagents from '@deepseek-ai/dsh-subagent'
+import * as Spawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import Approval, { type ApprovalOutcome } from '@deepseek-ai/dsh-user-approval'
 import { describe, expect, it } from 'vitest'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
@@ -30,6 +31,7 @@ async function boot(root: string, script: ConstructorParameters<typeof MockAdapt
   await ctx.plugin(DomainStorage, { backend: 'json' })
   await ctx.plugin(WebRuntime)
   await ctx.plugin(Subagents)
+  await ctx.plugin(Spawn, { providerName: 'spawn' })
   await ctx.plugin(Approval, { policy: 'ask' })
   await ctx.plugin(DAI, { allowedTools: [] })
   const adapter = new MockAdapter(script)
@@ -151,6 +153,102 @@ describe('D_AI durable Mission Director', () => {
       await second.ctx.fiber.dispose()
     }
   }), 20000)
+
+  it('uses an isolated planner Agent and commits only a runtime-validated DAG', async () => temporary(async root => {
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx } = await boot(root, script)
+    const agent = await ctx.agentLoop.create(SessionId('director-planner-owner'), { provider: 'mock', model: 'fixture' })
+    const objective = 'Research a company and evaluate its long-term investment case'
+    const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+
+    script.push(
+      toolCallResponse('plan', 'd_ai_director_plan_create', {
+        objective,
+        primary_system: 'investigation',
+      }),
+      () => toolCallResponse('generate', 'd_ai_director_generate_tasks', { plan_id: plan().id }),
+      textResponse(JSON.stringify({
+        tasks: [
+          {
+            tempId: 'research',
+            systemId: 'investigation',
+            title: 'Build the evidence-backed company profile',
+            dependsOn: [],
+            priority: 20,
+            maxAttempts: 3,
+          },
+          {
+            tempId: 'finance',
+            systemId: 'investor',
+            title: 'Evaluate the investment thesis from verified company evidence',
+            dependsOn: ['research'],
+            priority: 10,
+            maxAttempts: 3,
+          },
+        ],
+        rationale: 'Verify company facts before financial analysis.',
+      })),
+      textResponse('Planner DAG committed'),
+    )
+
+    try {
+      agent.followup(createUserMessage({
+        content: [{ type: 'text', text: objective }],
+        source: { kind: 'user' },
+      }))
+      await agent.whenIdle()
+
+      const tasks = ctx.dai.readTaskLedger(agent).ledgers[0]!.tasks
+      expect(tasks).toHaveLength(2)
+      expect(tasks[0]?.systemId).toBe('investigation')
+      expect(tasks[1]?.systemId).toBe('investor')
+      expect(tasks[1]?.dependsOn).toEqual([tasks[0]?.id])
+      expect(tasks[0]?.id).not.toBe('research')
+      expect(tasks[1]?.id).not.toBe('finance')
+      expect(ctx.dai.directorPlanView(agent, plan().id)).toMatchObject({ phase: 'EXECUTING' })
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  }), 15000)
+
+  it('rejects an invalid planner DAG before any task is persisted', async () => temporary(async root => {
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx } = await boot(root, script)
+    const agent = await ctx.agentLoop.create(SessionId('director-planner-owner'), { provider: 'mock', model: 'fixture' })
+    const objective = 'Plan a bounded investigation'
+    const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+
+    script.push(
+      toolCallResponse('plan', 'd_ai_director_plan_create', {
+        objective,
+        primary_system: 'investigation',
+      }),
+      () => toolCallResponse('generate', 'd_ai_director_generate_tasks', { plan_id: plan().id }),
+      textResponse(JSON.stringify({
+        tasks: [{
+          tempId: 'a',
+          systemId: 'investigation',
+          title: 'Invalid dependency task',
+          dependsOn: ['missing'],
+          priority: 1,
+          maxAttempts: 2,
+        }],
+        rationale: 'Invalid fixture',
+      })),
+      textResponse('Invalid plan rejected'),
+    )
+
+    try {
+      agent.followup(createUserMessage({
+        content: [{ type: 'text', text: objective }],
+        source: { kind: 'user' },
+      }))
+      await agent.whenIdle()
+      expect(ctx.dai.readTaskLedger(agent).ledgers).toEqual([])
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  }))
 
   it('does not let a model silently create an unrelated Director plan', async () => temporary(async root => {
     const { ctx } = await boot(root, [
