@@ -1420,6 +1420,74 @@ export class DAI extends Service {
       execute: (_args, exec) => { owner(exec.agent); return encoded(this.systems()) } }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_local_core_status', description: 'Read the governed Local Intelligence Core manifest. This reports architecture and status only; FOUNDATION does not imply a trained model exists.', parameters: {}, output,
       execute: (_args, exec) => { owner(exec.agent); return encoded(LOCAL_INTELLIGENCE_CORE) } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_tasks_read', description: 'Read the durable shared D_AI task ledger, including dependencies, retries and blocking states.', parameters: {}, output,
+      execute: (_args, exec) => encoded(this.readTaskLedger(owner(exec.agent))) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_task_add', description: 'Append one task to the durable D_AI task DAG. Dependencies must reference existing or simultaneously valid task identities in the same mission.',
+      parameters: {
+        mission_id: { type: 'string', required: true },
+        system_id: { type: 'string', required: true },
+        title: { type: 'string', required: true },
+        depends_on: { type: 'string' },
+        priority: { type: 'number' },
+        max_attempts: { type: 'number' },
+      }, output,
+      execute: (args, exec) => {
+        const agent = owner(exec.agent)
+        if (!SYSTEMS.some(system => system.id === args.system_id)) fail('unknown D_AI system id', 'D_AI_INVALID_INPUT')
+        const dependencies = args.depends_on === undefined ? [] : args.depends_on.split(',').map(value => value.trim()).filter(Boolean)
+        const priority = args.priority ?? 0
+        const maxAttempts = args.max_attempts ?? 3
+        if (!Number.isSafeInteger(priority) || !Number.isSafeInteger(maxAttempts) || maxAttempts < 1) fail('invalid task priority or max attempts', 'D_AI_INVALID_INPUT')
+        const task: MissionTask = {
+          id: randomUUID(),
+          missionId: args.mission_id,
+          systemId: args.system_id as MissionTask['systemId'],
+          title: args.title,
+          dependsOn: dependencies,
+          state: 'PENDING',
+          priority,
+          attempt: 0,
+          maxAttempts,
+        }
+        return encoded(this.addDurableTasks(agent, [task]))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_task_transition', description: 'Apply one validated state transition to a durable D_AI task.',
+      parameters: { task_id: { type: 'string', required: true }, next_state: { type: 'string', required: true } }, output,
+      execute: (args, exec) => {
+        const states = ['PENDING', 'READY', 'RUNNING', 'WAITING_FOR_HUMAN', 'WAITING_FOR_TOOL', 'BLOCKED_POLICY', 'BLOCKED_BUDGET', 'PAUSED', 'FAILED', 'COMPLETED', 'CANCELLED'] as const
+        if (!states.includes(args.next_state as typeof states[number])) fail('invalid durable task state', 'D_AI_INVALID_INPUT')
+        return encoded(this.transitionDurableTask(owner(exec.agent), args.task_id, args.next_state as TaskState))
+      } }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_control_read', description: 'Read the durable D_AI capability grants and append-only audit chain for the owner.', parameters: {}, output,
+      execute: (_args, exec) => encoded(this.readControlPlane(owner(exec.agent))) }))
+    this.ctx.tools.register(defineTool({ name: 'd_ai_control_grant', description: 'Request a human-approved D_AI capability ALLOW or DENY grant. Every change is persisted and hash-chain audited.',
+      parameters: {
+        system_id: { type: 'string', required: true },
+        capability: { type: 'string', required: true },
+        scope: { type: 'string', required: true },
+        scope_id: { type: 'string' },
+        decision: { type: 'string', required: true },
+        reason: { type: 'string', required: true },
+        expires_at: { type: 'string' },
+      }, output,
+      execute: (args, exec) => {
+        const agent = owner(exec.agent)
+        const scopes = ['TASK', 'MISSION', 'PROJECT', 'SYSTEM', 'GLOBAL'] as const
+        const decisions = ['ALLOW', 'DENY'] as const
+        if (!SYSTEMS.some(system => system.id === args.system_id)) fail('unknown D_AI system id', 'D_AI_INVALID_INPUT')
+        if (!scopes.includes(args.scope as typeof scopes[number])) fail('invalid capability grant scope', 'D_AI_INVALID_INPUT')
+        if (!decisions.includes(args.decision as typeof decisions[number])) fail('invalid capability grant decision', 'D_AI_INVALID_INPUT')
+        return encoded(this.grantCapability(agent, {
+          actorId: agent.id,
+          systemId: args.system_id as CapabilityGrant['systemId'],
+          capability: args.capability,
+          scope: args.scope as CapabilityGrant['scope'],
+          ...(args.scope_id === undefined ? {} : { scopeId: args.scope_id }),
+          decision: args.decision as CapabilityGrant['decision'],
+          reason: args.reason,
+          ...(args.expires_at === undefined ? {} : { expiresAt: args.expires_at }),
+        }, exec.signal))
+      } }))
     this.ctx.tools.register(defineTool({ name: 'd_ai_scientific_create', description: 'Create an explicitly user-requested Scientific Research project. Do not activate a new independent research project without owner approval.',
       parameters: { question: { type: 'string', required: true } }, output,
       execute: (args, exec) => encoded(this.createScientific(owner(exec.agent), args.question, exec.signal)) }))
