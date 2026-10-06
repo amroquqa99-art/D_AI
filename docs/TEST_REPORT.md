@@ -9,11 +9,10 @@ This document separates **historical verified evidence** from the **current bran
 - Branch: `dai/v2-core-foundation`
 - Pull request: #15 (draft)
 - Latest D_AI check inspected before this documentation update:
-  - workflow run `37535402015`
-  - job `112514916395`
+  - workflow run `37536230880`
+  - job `112517746651`
   - conclusion: FAILURE
   - executed steps: **none** (`steps: null`)
-  - job log download: `BlobNotFound`, consistent with the runner never starting
 
 ### Interpretation
 
@@ -108,7 +107,7 @@ The active branch now contains substantially more runtime code than the verified
 
 ### Characterization added during decomposition
 
-The branch includes an integration characterization test that expects exactly **77 unique `d_ai_*` native tools**, including bounded Director cycle execution plus unattended schedule read/set surfaces. Native integration tests cover Director cycles, cross-system policy blocking, scoped wall-clock metering and Session restart. New scheduler/parallelism coverage additionally includes schedule-projection invariants, due/runnable admission, expired-lease wake recovery, approval denial, no-parent-LLM scheduler turns, fair ordering, bounded concurrent-cycle admission, budget-safe wave planning, a barrier-based runtime proof that two same-plan child executors overlap, cycle receipts, partial-failure accounting, restart replay, and a Loader-composed runtime path. Those new tests are authored and remain pending execution. The focused local receipt above covers unit/projection tests for heartbeat behavior, budget admission, monotonic lease fences, execution v1→v2 normalization, side-effect journal lifecycle and replay suppression; it does not replace native integration evidence.
+The branch includes an integration characterization test that expects exactly **77 unique `d_ai_*` native tools**, including bounded Director cycle execution plus unattended schedule read/set surfaces. Native integration tests cover Director cycles, cross-system policy blocking, scoped wall-clock metering and Session restart. New scheduler/parallelism coverage additionally includes schedule-projection invariants, due/runnable admission, expired-lease wake recovery, approval denial, no-parent-LLM scheduler turns, fair ordering, bounded concurrent-cycle admission, budget-safe wave planning, a barrier-based runtime proof that two same-plan child executors overlap, partial-failure accounting, explicit stagnation counter/reset invariants, wake suppression at configured failure/idle limits, restart replay, and a Loader-composed runtime path. Those new tests are authored and remain pending execution. The focused local receipt above covers unit/projection tests for heartbeat behavior, budget admission, monotonic lease fences, execution v1→v2 normalization, side-effect journal lifecycle and replay suppression; it does not replace native integration evidence.
 
 ## Current required gate
 
