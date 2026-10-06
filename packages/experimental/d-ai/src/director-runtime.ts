@@ -36,7 +36,11 @@ export class DirectorCycleExecutionError extends Error {
   readonly partial: DirectorCycleResult
 
   constructor(partial: DirectorCycleResult, cause: unknown) {
-    super('D_AI Director cycle failed after partial execution', { cause })
+    super(
+      'D_AI Director cycle failed after partial execution: '
+      + (cause instanceof Error ? cause.message : String(cause)),
+      { cause },
+    )
     this.name = 'DirectorCycleExecutionError'
     this.partial = partial
   }
