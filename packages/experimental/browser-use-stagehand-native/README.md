@@ -148,7 +148,7 @@ The static tool catalog preserves its prefix. Browser results append to the main
 
 <a id="known-limitations-and-deferred-work"></a>
 
-The provider inherits the pinned Stagehand SDK's browser and extension requirements.
+The provider inherits the pinned Stagehand SDK's browser and extension requirements. Its Zod dependency is pinned to the SDK's exact 4.4.3 version because extraction schemas cross the SDK's typed interface; independently resolving a newer minor breaks project compilation.
 
 - **Chromium only** — Firefox and WebKit are outside this provider's scope.
 - **Live browser state** — Session replay restores recorded conversation data, not a browser process, cookies, or tab handles.

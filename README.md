@@ -1,6 +1,6 @@
 # D_AI — Depth AI
 
-> **Development status:** verified checkpoint on `dai/native-runtime-verification-20261007` · integration base `dai/v2-core-foundation` / PR #15 · last status update: 2026-10-07
+> **Development status:** local-inference checkpoint on `dai/local-intelligence-20261007` · integration base `dai/v2-core-foundation` / PR #15 · last status update: 2026-10-07
 
 D_AI is a multi-system AI operating environment built by modifying the real DeepSeek Harness source rather than wrapping it as an external dependency. The repository preserves the useful Harness runtime/plugin architecture while D_AI is being developed as its own codebase, control plane, domain system registry, durable state model, and agent orchestration layer.
 
@@ -47,7 +47,9 @@ Native fixture integration passes locally. The full workspace build and CI remai
 
 The lease heartbeat now preserves renewal failures that settle during cleanup, prevents cancelled work from reporting success, checks cancellation before deferred worker startup, retains arbitrary rejection values and supports short lease intervals. Cleanup still waits for both the worker and renewal to settle.
 
-Local verification passed **173 tests in all 43 D_AI files**, using native AgentLoop/Loader, actual JSONL Session persistence and the compiled system addon with scripted model/source fixtures. Exact-task parallel workers, restart into a new lease fence, human-wait preservation, pre-cancellation, arbitrary rejection propagation and scheduler disposal are covered. A 1,000-task logical admission check passes; this is not 1,000 live workers. Scoped TypeScript checks report zero D_AI diagnostics for all source/test files; upstream diagnostics still prevent a full-build claim. Persistence catalog and acknowledgement checks pass, preserving old schedule inputs and the accepted cycle-outcome union. Receipts and limitations are in [TEST_REPORT.md](docs/TEST_REPORT.md).
+Local verification now uses the complete restored workspace and frozen lockfile: the full workspace build passes after aligning Stagehand's Zod version. **193 D_AI tests plus 57 pi-ai regression/adapter tests pass**; an additional opt-in test runs a hash-verified Qwen3.5-2B GGUF on CPU through the real native adapter and isolated adviser. This one scenario validates transport, contract and isolation, not overall model quality or a fully live mission. SearXNG is integrated and covered with a real HTTP fixture; live public-engine search remains pending. Receipts and limitations are in [TEST_REPORT.md](docs/TEST_REPORT.md).
+
+The [local/self-hosted guide](docs/user/d-ai-local.md) provides explicit worker/adviser routes, a small tool catalog, native context compaction and cloud preparation. The source profile boots and serves its authenticated web page locally. [Open-source decisions](docs/OPEN_SOURCE_INTEGRATIONS.md) distinguish connected components from candidates. No model has been promoted, weights are not embedded in Git, cloud hosting is not deployed, and the complete D_AI Control Center remains unfinished.
 
 ## What is being worked on right now
 
@@ -224,6 +226,7 @@ Upstream documentation: [deepseek-harness.github.io/deepseek-harness](https://de
 
 When an upstream change is useful, it should be reviewed and deliberately integrated into D_AI rather than automatically changing this repository underneath the D_AI code.
 
+<a id="run"></a>
 ## Running the underlying Harness application
 
 ### Run from source

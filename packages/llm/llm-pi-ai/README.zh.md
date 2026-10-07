@@ -231,6 +231,8 @@ pi-ai 事件变成 harness 的推理、文本、工具调用、用量与 finish 
 - **重试策略由提供方自有，而非 SDK 重试**——pi-ai SDK 重试保持禁用，因此持久 agent（智能体）步骤与 `llm/retry` 事件拥有每个可见尝试，直接 `ctx.llm.stream()` 调用仍是单次尝试。
 - **流式工具调用参数只在调用结束时解析一次**——安装的 pi-ai 带有 [`patches/@earendil-works__pi-ai@0.87.1.patch`](../../../patches/@earendil-works__pi-ai@0.87.1.patch)，它移除了每个流适配器中对整段累计参数 JSON 的逐 delta 重新解析（上游 [earendil-works/pi#9265](https://github.com/earendil-works/pi/issues/9265)）；未打补丁时，数 MB 的参数流会在事件循环上消耗 O(n²) CPU，并使进程内所有会话停滞。在 `toolcall_end` 之前，pi-ai partial 的工具调用 `arguments` 保持为 `{}`；本适配器只读取 delta 字符串与最终参数。每次升级 pi-ai 时都要重新应用或撤销该补丁。
 
+- **小上下文余量**——同一固定版本 SDK 补丁在限制输出预算前预留 `min(4096, floor(contextWindow / 8))` 个 token。固定预留 4096 个 token 会耗尽 4096-token 本地模型的上下文，导致实际输出上限变成一个 token。更大的上下文保留原有余量；估算和自动压缩仍不同于提供方的精确用量。小上下文回归测试和真实本地决策验收覆盖此补丁。
+
 <a id="dev-note"></a>
 ### 开发备注
 

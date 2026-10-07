@@ -13,7 +13,7 @@ This matrix separates **implementation maturity** from **verification state**. A
 - `VERIFIED` — the appropriate executable acceptance checks have passed for the relevant current code.
 - `LIVE_VERIFIED` — required real-provider/browser/environment proof also exists.
 
-Verification is tracked separately because Actions fails before workflow steps execute. All 173 tests in 43 D_AI files pass locally with native services and scripted providers. The complete workspace build, CI and live-provider acceptance remain pending. The 1,000-task check proves logical admission only; it does not establish distributed worker scale.
+Verification is tracked separately because Actions fails before workflow steps execute. All 193 D_AI fixture tests in 45 files and 57 pi-ai tests pass in the complete frozen-lockfile workspace. The full workspace build passes locally. One additional hash-verified local model acceptance passes; CI, full live missions and live search remain pending. The 1,000-task check proves logical admission only; it does not establish distributed worker scale.
 
 ## Current checkpoint
 
@@ -38,7 +38,11 @@ Verification is tracked separately because Actions fails before workflow steps e
 | Model Registry / Router | durable profiles/policies + hard constraints/weighted routing | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | provider secrets/health/failover/telemetry/cost accounting |
 | Training governance | candidate eligibility, sensitive-data rules, dataset/holdout lineage | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | raw artifact curation/redaction/materialization pipeline |
 | Model evaluation/promotion | durable evaluations, promotion gates, rollback pointers | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | real model artifact evaluator/deployment/rollback exercise |
-| Local Intelligence Core | architecture + governed data/eval/promotion foundation | FOUNDATION | CI_PENDING | actual local model training/inference artifact and live promotion |
+| Local Intelligence Core | architecture + governed data/eval/promotion foundation | FOUNDATION | CI_PENDING | governed training, artifact registry, held-out quality evaluation and live promotion |
+| Local decision adviser | isolated native child, explicit route, bounded input/output/requests, advisory JSON, cancellation/disposal | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS + ONE_LOCAL_MODEL_SCENARIO / CI_PENDING | held-out Arabic/domain evaluation, hardware measurements, govern artifact adoption |
+| SearXNG search | fixed JSON endpoint, native web provider, byte/timeout limits, source URLs | INTEGRATED | LOCAL_HTTP_FIXTURE_PASS / CI_PENDING | live configured SearXNG engines and investigation acceptance |
+| Local/self-hosted profile | explicit worker/adviser routes, eight root tools, native compaction, no implicit paid fallback | INTEGRATED | LOCAL_AUTHENTICATED_HTTP_BOOT_PASS / CI_PENDING | full user-driven mission/browser acceptance, offline packaging |
+| Cloud hosting | remote endpoints and persistent VM/container guidance | FOUNDATION | NOT_DEPLOYED | select target, authentication, durable storage, restore and operational testing |
 | Control Center read API | consolidated platform snapshot | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | full backend control APIs and browser UI |
 | Admin / Control Center UI | product specification only | NOT_STARTED | NOT_RUN | mission/agent/task/evidence/model/policy/resource views + RTL |
 | Collaborative rooms | cross-system handoff primitives only | FOUNDATION | CI_PENDING | durable room/message/task coordination + scoped sharing |

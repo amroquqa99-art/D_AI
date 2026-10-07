@@ -1,6 +1,6 @@
 # @deepseek-ai/dsh-experimental-d-ai
 
-Native D_AI platform over the original Harness Agent, Session, subagent, tools, web and storage services. All six approved domain slices have runtime implementations; native fixture integration passes locally; full workspace/CI and live-provider acceptance remain pending. Activate explicitly through a D_AI profile overlay; this package does not change shipped upstream profiles. [The verification report](../../../docs/TEST_REPORT.md) separates current local evidence from historical runtime evidence.
+Native D_AI platform over the original Harness Agent, Session, subagent, tools, web and storage services. All six approved domain slices have runtime implementations; native fixture integration passes locally; the full workspace build passes locally; CI and complete live mission acceptance remain pending. Activate explicitly through a D_AI profile overlay; this package does not change shipped upstream profiles. [The verification report](../../../docs/TEST_REPORT.md) separates current local evidence from historical runtime evidence.
 
 ## Use this package
 
@@ -14,13 +14,19 @@ Raw `d_ai/fact` events contain complete mission state and rebuild the `dai` Sess
 
 `pnpm exec vitest run packages/experimental/d-ai/tests` exercises native Loader composition, AgentLoop tools, actual native child loops, configured model separation, worker bounds, source/ownership policy, append-only replay, and JSONL restart. The model adapter and public web provider are explicitly scripted fixtures. This proves internal integration, not live model or internet research.
 
-All 173 tests in 43 package files pass locally with the compiled native addon. Coverage includes exact-task parallel workers, native restart/wakes, cancellation, human-wait boundaries, durable flush failures, legacy schedule defaults and scheduler shutdown to quiescence. Scoped source/test TypeScript checks report zero package diagnostics; the full workspace build and CI remain pending. A deterministic 1,000-task admission test proves logical scheduling, not live worker capacity.
+All 193 fixture tests in 45 package files pass locally with the compiled native addon. Coverage includes exact-task parallel workers, native restart/wakes, cancellation, human-wait boundaries, durable flush failures, legacy schedule defaults and scheduler shutdown to quiescence. The complete workspace build passes locally; CI remains pending. A deterministic 1,000-task admission test proves logical scheduling, not live worker capacity.
 
 ### Unattended Mission Director
 
 The scheduler is deliberately split into two authority levels. A process-local coordinator may only inspect durable schedule state and enqueue a validated wake payload using the existing Harness `schedule` message source for an idle root Agent. It cannot append D_AI facts. The wake is consumed by an `agent/pre-step` hook inside a native turn; only there may the service execute the bounded Director cycle and append a durable cycle receipt. The coordinator defaults to disabled (`directorSchedulerEnabled: false`). Schedule enable/update/disable operations are owner-approval gated, and the scheduler will not enqueue ahead of already queued human/agent work.
 
 This preserves the package invariant that durable D_AI mutation happens inside an owned native turn rather than from an untracked timer callback. Parallel waves use exact transactional task claims, wait for all started workers to settle, and preserve partial cycle results when a later worker fails. Scheduler disposal aborts active cycles, waits for their cleanup and prevents new scans. Legacy v1 schedules replay with default settings; task failure retains the v1 FAILED outcome with a D_AI_TASK_FAILED marker.
+
+## Local decision and open-source search
+
+The opt-in `local-intelligence` entry runs one tool-free, fresh-context native child against an explicitly configured model, validates bounded advisory JSON and rejects invented references. It does not mutate domain facts or promote models. The opt-in `web-searxng` entry registers a bounded native web search provider against a deployment-owned SearXNG JSON endpoint. Both contributions are disposed with their Cordis plugin.
+
+[Launch instructions](../../../docs/user/d-ai-local.md) cover separate or shared local servers, the restricted root tool catalog and native compaction. The real local acceptance is an environment-gated test, separate from scripted fixture tests. No inference binary, model weight or public search service is bundled into the package.
 
 ## Model Experience
 

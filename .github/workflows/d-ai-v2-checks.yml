@@ -3,10 +3,16 @@ name: D_AI v2 checks
 on:
   push:
     branches:
-      - dai/v2-core-foundation
+      - main
+      - dai/**
   pull_request:
     paths:
       - 'packages/experimental/d-ai/**'
+      - 'apps/cli/config/examples/d-ai/**'
+      - 'packages/llm/llm-pi-ai/**'
+      - 'patches/@earendil-works__pi-ai@0.87.1.patch'
+      - 'packages/experimental/browser-use-stagehand-native/**'
+      - 'pnpm-lock.yaml'
       - 'docs/PRODUCT_SPEC.md'
       - 'docs/ARCHITECTURE.md'
       - 'docs/FEATURE_MATRIX.md'
@@ -38,7 +44,9 @@ jobs:
         run: pnpm run build:native-system
       - name: D_AI TypeScript package check
         run: pnpm exec tsc -b packages/experimental/d-ai/tsconfig.json --pretty false
-      - name: D_AI registry tests
-        run: pnpm exec vitest run packages/experimental/d-ai/tests/systems.spec.ts
+      - name: Workspace build
+        run: pnpm run build
+      - name: Local provider context regressions
+        run: pnpm exec vitest run packages/llm/llm-pi-ai/tests/small-context-budget.spec.ts packages/llm/llm-pi-ai/tests/adapter.spec.ts --maxWorkers=4
       - name: D_AI package tests
-        run: pnpm exec vitest run packages/experimental/d-ai/tests
+        run: pnpm exec vitest run packages/experimental/d-ai/tests --maxWorkers=4

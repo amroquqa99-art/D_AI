@@ -1,0 +1,9 @@
+# Apply only when the owner has configured a SearXNG instance with JSON enabled.
+- id: web
+  config:
+    searchProvider: dai-searxng
+- insert:
+    - id: d-ai-web-searxng
+      name: '../../../../../packages/experimental/d-ai/src/web-searxng.ts'
+      config:
+        baseURL: http://127.0.0.1:8888/

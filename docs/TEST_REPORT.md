@@ -4,6 +4,40 @@ Date: 2026-10-07
 
 This document separates **historical verified evidence** from the **current branch checkpoint**. A source file, fixture path or failed CI launch is never promoted to test evidence.
 
+## Local inference/open-source checkpoint — 2026-10-07
+
+The complete workspace was restored from the verified native snapshot, preserving its exact Git tree, and installed using `pnpm install --frozen-lockfile`. This supersedes the earlier partially restored/noEmit workspace limitation below. The current changes are reviewed on `dai/local-intelligence-20261007`; old evidence remains historical.
+
+| Executed check | Result and scope |
+|---|---|
+| Frozen-lockfile installation | PASS; complete workspace dependencies |
+| Full `pnpm run build` | PASS; native addon, host/client libraries, desktop bundle and web frontend |
+| Native D_AI + pi-ai tests | PASS; 193 D_AI fixture tests in 45 files plus 57 adapter/context tests in two files; live test skipped unless its explicit inputs are provided |
+| Opt-in real local acceptance | PASS; one CPU Qwen3.5-2B GGUF scenario, real llama.cpp HTTP inference, native PiAiAdapter, isolated child and durable tool result; parent model is explicitly scripted |
+| Source CLI + D_AI/local overlay | PASS; real Loader boot and authenticated loopback HTTP 200 serving 35,912 HTML bytes; no inference requested in this boot check |
+| New source/test scoped lint | PASS; local adviser, search and their tests plus context regression |
+| Changed README pairs and three new guide/decision pairs | PASS; source/translation manifests refreshed and checked |
+| Relative Markdown links | PASS; 1,731 files checked with the new translated companions |
+| Aggregate `pnpm run doc-sync` | BLOCKED before gates by `tsx` IPC `listen EPERM`; no aggregate pass claimed |
+| Corpus-wide translation pairing | FAIL; pre-existing D_AI documents lack counterparts, including product specification, feature matrix and verification report; new three document pairs pass independently |
+| Persistence catalog/history | PASS; unchanged event schema, no new D_AI persistence generation |
+| Configuration ownership/schema, package paths, runtime closure, dependency catalog | PASS; endpoints explicit, credentials resolved through native service; 219 configuration files and 185-package runtime closure |
+| Module graph | Regenerated for D_AI packages; freshness and existing translated pair PASS |
+| Workspace lint | Incomplete; process killed with exit 137 before a report. Focused new-source/test lint passes; no full lint pass claimed |
+| Export JSDoc completeness | FAIL; 740 pre-existing violations in D_AI source; none in the new local/search modules |
+
+The adviser recommends `VERIFY` with confidence at least 0.7 for a supplied unverified observation. The assertion requires advisory=true, verified=false and forbids references outside the supplied set. Empty references are valid. The response is not fact verification. Earlier 0.8B output failed the response contract; early 2B output invented reference strings and was rejected. More explicit field guidance enabled the accepted 2B output. This single prompt is not a held-out benchmark, production promotion or proof that 2B is the best model.
+
+The pi-ai pinned SDK reserved 4096 tokens for every request, leaving 4096-context routes with a wire output cap of one. A regression reproduced the fault before the fix; the patch scales the reserve to `min(4096, floor(contextWindow / 8))`, retaining the prior reserve for large contexts. A separate full-build failure was repaired by pinning the native Stagehand bridge to the SDK's exact Zod 4.4.3, preserving its schema type boundary.
+
+The test artifact is the community quantization `bartowski/Qwen_Qwen3.5-2B-GGUF`, revision `7d26695454df6de5fbcce2e58681e62dae06ce43`, file `Qwen_Qwen3.5-2B-Q4_K_M.gguf`, 1,396,198,496 bytes, SHA-256 `57a1085840f497d764a7fc5d346922dbde961efb54cc792ea81d694fd846a1d8`. Its upstream base is [Qwen/Qwen3.5-2B](https://huggingface.co/Qwen/Qwen3.5-2B), Apache-2.0. llama.cpp source revision is `36a73916ee0cb3b457f356066afabd47cce68884`. CPU-only invocation uses context 4096, four threads, one slot, disabled reasoning, temperature zero and an ephemeral loopback port. No GPU/VRAM measurements were possible in this environment; user-device performance remains unmeasured.
+
+SearXNG tests use real bounded HTTP fixtures for normal/error/redirect/malformed/oversized/cancelled responses. No live SearXNG engine result is claimed. Existing upstream Actions copies now retain inert, always-skipped manual stubs and archived originals; automatic upstream release/update triggers are disabled. D_AI checks cover `dai/**`, full workspace build and relevant adapter regressions. This changes configuration, not evidence that GitHub's previous before-step failure is resolved.
+
+Reproduce fixture checks with the repository Vitest configuration. Reproduce local model acceptance with the three explicit environment variables documented in [the local guide](user/d-ai-local.md). Official Node headers were hash-verified for the addon build; the environment required `NODE_HEADERS_DIR` to name the installed header directory. The fixture environment removes `NODE_USE_ENV_PROXY` for local HTTP tests because a pre-existing environment proxy otherwise routes loopback requests away from their fixture server.
+
+Remaining acceptance: GitHub CI, full user-driven local mission, local GPU/memory benchmarks, held-out model evaluation and promotion, live search/scholarly/market/defensive connectors, cloud deployment, offline distribution, distributed workers and D_AI Control Center UI. The historical CI failure below is not a current-code test failure and has not been shown fixed.
+
 ## Current branch checkpoint
 
 - Branch: `dai/v2-core-foundation`

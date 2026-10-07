@@ -1,0 +1,90 @@
+# Source-checkout opt-in. Apply after packages/experimental/d-ai/cordis.source.patch.yml.
+- id: llm-deepseek
+  disabled: true
+- id: llm-deepseek-account
+  disabled: true
+- id: session-title-llm
+  disabled: true
+- id: web-search-deepseek
+  disabled: true
+- id: agent-default-model
+  config:
+    provider: dai-local-worker
+    model: !!js process.env.D_AI_WORKER_MODEL ?? 'dai-worker'
+- id: llm-pi-ai
+  config:
+    providers:
+      dai-local-worker:
+        api: openai-completions
+        compat:
+          maxTokensField: max_tokens
+        apiKeyEnv: D_AI_LOCAL_API_KEY
+        baseURL: http://127.0.0.1:8080/v1
+        timeoutMs: 120000
+        streamIdleTimeoutMs: 60000
+        models:
+          - id: !!js process.env.D_AI_WORKER_MODEL ?? 'dai-worker'
+            contextWindow: 4096
+            maxTokens: 1024
+            input: [text]
+      dai-local-decision:
+        api: openai-completions
+        compat:
+          maxTokensField: max_tokens
+        apiKeyEnv: D_AI_LOCAL_API_KEY
+        baseURL: http://127.0.0.1:8081/v1
+        timeoutMs: 60000
+        streamIdleTimeoutMs: 60000
+        models:
+          - id: !!js process.env.D_AI_DECISION_MODEL ?? 'dai-decision'
+            contextWindow: 4096
+            maxTokens: 512
+            input: [text]
+- id: d-ai-missions
+  config:
+    allowedTools: []
+    maxOutputTokens: 1024
+    maxRequestsPerChild: 2
+    maxSourceBytes: 4096
+    maxSources: 8
+    directorSchedulerEnabled: false
+- id: agent-preset-registry
+  config:
+    default: dai-local
+- insert:
+    - id: d-ai-local-intelligence
+      name: '../../../../../packages/experimental/d-ai/src/local-intelligence.ts'
+      config:
+        provider: dai-local-decision
+        model: !!js process.env.D_AI_DECISION_MODEL ?? 'dai-decision'
+        maxConcurrentCalls: 1
+        rootTools:
+          - d_ai_local_advise
+          - d_ai_systems_list
+          - d_ai_platform_snapshot
+          - d_ai_mission_create
+          - d_ai_mission_read
+          - d_ai_capture_source
+          - d_ai_add_claim
+          - d_ai_delegate
+    - id: preset-dai-local
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: dai-local
+        order: 0
+        plugins:
+          - id: dai-local-persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              complete: true
+              includeRuntimeContext: false
+              prefix: 'You are the D_AI mission manager. Work only on the approved objective. Keep uncertainty explicit, retain source references and use independent verification. Local decision advice is unverified and grants no permissions. Request human input when work is blocked or scope needs approval.'
+          - id: dai-local-compaction
+            name: '@deepseek-ai/dsh-compaction-basic'
+            config:
+              thresholdRatio: 0.75
+              headroomTokens: 1024
+              retainTokens: 512
+              maxTokens: 512
+              compactionRetries: 1
+              maxOverflowRetries: 1

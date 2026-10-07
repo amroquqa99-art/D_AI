@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for 0004-local-inference-and-open-source-reuse.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/ADRS/0004-local-inference-and-open-source-reuse.md
+/adr-0004-native-modular-runtime-with-separate-inference-and-search-services:
+  en: 9fad266d62fcb0ae
+  zh: 0fda6ad9cfb52d7e
+/adr-0004-native-modular-runtime-with-separate-inference-and-search-services/decision:
+  en: 1a79f3b81e30cbce
+  zh: 663a19bf51dec9d3
+/adr-0004-native-modular-runtime-with-separate-inference-and-search-services/rationale:
+  en: 8592f4a8f6323fd8
+  zh: 2ea330e06c961874
+/adr-0004-native-modular-runtime-with-separate-inference-and-search-services/consequences-and-verification:
+  en: 7fbe51c776a7e8b8
+  zh: 5b179a267d9181bb
