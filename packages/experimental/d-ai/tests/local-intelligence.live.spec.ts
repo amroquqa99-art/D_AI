@@ -2,14 +2,14 @@
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm, readFile, writeFile, mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { Context } from '@deepseek-ai/cordis'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, type TokenUsage } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import Persistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import Subagents from '@deepseek-ai/dsh-subagent'
@@ -21,10 +21,13 @@ import { z } from 'zod'
 import { memoryAuth } from '../../../llm/llm-pi-ai/tests/auth-double.ts'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import * as Local from '../src/local-intelligence.ts'
+import { advicePersona } from '../src/local-advice-contract.ts'
+import { datasetSha256, decisionCases, evaluationMinConfidence, gradeDecisionRow, outcomeSchema, receiptSchema } from './helpers/local-decision-evaluation.ts'
 
 const executable = process.env.D_AI_LLAMA_SERVER
 const model = process.env.D_AI_GGUF
 const expectedHash = process.env.D_AI_GGUF_SHA256
+const receiptPath = process.env.D_AI_EVAL_RECEIPT
 
 describe.skipIf(!executable || !model || !expectedHash)('D_AI real local decision inference', () => {
   it('runs a hash-verified local model through the native pi-ai adapter and decision tool', async () => {
@@ -34,6 +37,8 @@ describe.skipIf(!executable || !model || !expectedHash)('D_AI real local decisio
       hash.update(chunk)
     }
     expect(hash.digest('hex')).toBe(expectedHash)
+    const root = await mkdtemp(join(tmpdir(), 'd-ai-live-local-'))
+    const ctx = new Context()
     const child = spawn(executable!, [
       '-m', model!, '-c', '4096', '-ngl', '0', '-t', '4', '--parallel', '1',
       '--host', '127.0.0.1', '--port', '0', '--alias', 'dai-decision', '--jinja', '--reasoning', 'off', '--temp', '0',
@@ -49,19 +54,20 @@ describe.skipIf(!executable || !model || !expectedHash)('D_AI real local decisio
       child.once('error', reject)
     })
     // Attach a rejection observer before startup to keep spawn failures contained.
-    void exit.catch(() => undefined)
-    const root = await mkdtemp(join(tmpdir(), 'd-ai-live-local-'))
-    const ctx = new Context()
+    let startupFailure: unknown
+    void exit.catch((error: unknown) => { startupFailure = error })
     try {
       const deadline = AbortSignal.timeout(30000)
       while (boundURL === undefined) {
         deadline.throwIfAborted()
+        if (startupFailure !== undefined) throw startupFailure
         if (child.exitCode !== null) throw new Error('Local server exited: ' + diagnostic)
         await delay(100)
       }
       const baseURL = boundURL
       while (true) {
         deadline.throwIfAborted()
+        if (startupFailure !== undefined) throw startupFailure
         if (child.exitCode !== null) throw new Error('Local server exited: ' + diagnostic)
         try {
           const ready = await fetch(baseURL + '/health', { signal: AbortSignal.any([deadline, AbortSignal.timeout(1000)]) })
@@ -78,11 +84,30 @@ describe.skipIf(!executable || !model || !expectedHash)('D_AI real local decisio
       await ctx.plugin(AgentLoop, { agents: [] })
       await ctx.plugin(Subagents)
       await ctx.plugin(Spawn, { providerName: 'spawn' })
-      await ctx.plugin(Local, { provider: 'dai-local-decision', model: 'dai-decision', timeoutMs: 60000 })
+      await ctx.plugin(Local, {
+        provider: 'dai-local-decision', model: 'dai-decision', timeoutMs: 60000, minConfidence: evaluationMinConfidence,
+      })
+      let rawOutput = ''
+      let modelRequests = 0
+      let usage: TokenUsage | undefined
+      let finishReason: { kind: string; failureCode?: string; failureMessage?: string } | undefined
+      ctx.on('llm/stream', (options, next) => {
+        if (options.provider === 'dai-local-decision') modelRequests++
+        return next()
+      })
       ctx.on('agent/assistant-stream', ({ agent, frame }) => {
+        if (agent.session.header.parentSession !== undefined && frame.type === 'chunk' && frame.chunk.type === 'usage') {
+          usage = frame.chunk.usage
+        }
+        if (agent.session.header.parentSession !== undefined && frame.type === 'chunk' && frame.chunk.type === 'finish') {
+          const reason = frame.chunk.reason
+          finishReason = { kind: reason.kind, ...('failure' in reason ? {
+            failureCode: reason.failure.code, failureMessage: reason.failure.message.slice(0, 1024),
+          } : {}) }
+        }
         if (agent.session.header.parentSession !== undefined && frame.type === 'chunk'
           && frame.chunk.type === 'block-end' && frame.chunk.block.type === 'text') {
-          console.info('LOCAL_RAW_ADVICE', frame.chunk.block.text)
+          rawOutput += frame.chunk.block.text
         }
       })
       const profiles = resolveProfiles({ 'dai-local-decision': {
@@ -120,12 +145,67 @@ describe.skipIf(!executable || !model || !expectedHash)('D_AI real local decisio
       expect(result.confidence).toBeGreaterThanOrEqual(0.7)
       console.info('LOCAL_MODEL_ACCEPTANCE', JSON.stringify({ ...result, agentId: 'recorded-child', artifactSha256: expectedHash, device: 'CPU', contextWindow: 4096 }))
       await ctx.sessions.flush(owner.session)
+      if (receiptPath !== undefined) {
+        const outcomes = []
+        for (const { vars } of decisionCases) {
+          // Expected actions and locale labels stay outside model input.
+          const input = { objective: vars.objective, situation: vars.situation, evidence_refs: vars.evidence_refs }
+          const provider = 'parent-' + vars.caseId
+          ctx.llm.registerAdapter([provider], new MockAdapter([
+            toolCallResponse('advice-' + vars.caseId, 'd_ai_local_advise', input),
+            textResponse('Recommendation retained as unverified advice.'),
+          ]))
+          rawOutput = ''
+          usage = undefined
+          finishReason = undefined
+          modelRequests = 0
+          const started = performance.now()
+          const caseOwner = await ctx.agentLoop.create(SessionId('evaluation-' + vars.caseId), { provider, model: 'fixture' })
+          caseOwner.followup(createUserMessage({ content: [{ type: 'text', text: 'Request local advice.' }], source: { kind: 'user' } }))
+          await caseOwner.whenIdle()
+          const event = caseOwner.session.snapshotEvents().find(event => event.type === 'tool/result')
+          if (event?.type !== 'tool/result') throw new Error('Decision case did not settle: ' + vars.caseId)
+          const row = outcomeSchema.parse({
+            caseId: vars.caseId, rawOutput: rawOutput.trim(),
+            toolOutput: event.data.message.content.flatMap(block => block.type === 'text' ? [block.text] : []).join(''),
+            toolIsError: event.data.message.isError ?? false, elapsedMs: performance.now() - started, modelRequests,
+            ...(usage === undefined ? {} : { usage }),
+            ...(finishReason === undefined ? {} : { finishReason }),
+          })
+          outcomes.push(row)
+          console.info('LOCAL_DECISION_CASE', JSON.stringify({ ...gradeDecisionRow(row, vars), response: gradeDecisionRow(row, vars).response?.action }))
+          await ctx.sessions.flush(caseOwner.session)
+        }
+        let peakServerRssKiB: number | undefined
+        if (process.platform === 'linux' && child.pid !== undefined) {
+          const status = await readFile('/proc/' + String(child.pid) + '/status', 'utf8').catch((error: unknown) => {
+            // Optional OS counters are unavailable in some sandbox/PID namespaces.
+            if (error instanceof Error && 'code' in error && ['ENOENT', 'EACCES', 'EPERM'].includes(String(error.code))) return ''
+            throw error
+          })
+          const match = /^VmHWM:\s+(\d+) kB$/m.exec(status)
+          if (match) peakServerRssKiB = Number(match[1])
+        }
+        const receipt = receiptSchema.parse({
+          schemaVersion: 1, split: 'development', completedAt: new Date().toISOString(),
+          datasetSha256, promptSha256: createHash('sha256').update(advicePersona).digest('hex'),
+          modelSha256: expectedHash, serverSha256: createHash('sha256').update(await readFile(executable!)).digest('hex'),
+          device: 'CPU', contextWindow: 4096, threads: 4, outcomes,
+          ...(peakServerRssKiB === undefined ? {} : { peakServerRssKiB }),
+        })
+        await mkdir(dirname(receiptPath), { recursive: true })
+        // Refuse to overwrite a prior experiment, including after a failed rerun.
+        await writeFile(receiptPath, JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx' })
+      }
     } finally {
-      await ctx.fiber.dispose()
-      if (child.exitCode === null) child.kill('SIGTERM')
-      const force = setTimeout(() => child.kill('SIGKILL'), 5000)
-      try { await exit } finally { clearTimeout(force) }
-      await rm(root, { recursive: true, force: true })
+      try { await ctx.fiber.dispose() } finally {
+        if (child.exitCode === null) child.kill('SIGTERM')
+        const force = setTimeout(() => child.kill('SIGKILL'), 5000)
+        try { await exit } finally {
+          clearTimeout(force)
+          await rm(root, { recursive: true, force: true })
+        }
+      }
     }
-  }, 120000)
+  }, receiptPath === undefined ? 120000 : 1200000)
 })

@@ -4,6 +4,30 @@ Date: 2026-10-07
 
 This document separates **historical verified evidence** from the **current branch checkpoint**. A source file, fixture path or failed CI launch is never promoted to test evidence.
 
+## Native decision evaluation checkpoint — 2026-10-07
+
+The source tree was restored byte-for-byte from the previously published checkpoint before implementation. The adviser instruction and input/output schemas now have one module shared by native inference and the receipt grader; model-facing instructions are unchanged. Sixteen published development cases cover eight Arabic/English pairs: evidence collection, unverified claims, owner input, external dependencies, explicit stop, missing capability, source injection and conflicting sources. Labels remain outside model input.
+
+| Executed check | Result and scope |
+|---|---|
+| Frozen installation + full workspace build | PASS; native addon, Host/Client libraries, desktop bundle and web frontend |
+| D_AI and complete pi-ai test directories | PASS; 553 tests in 61 files; one opt-in live test skipped without model inputs |
+| Local adviser and receipt/replay regressions | PASS; 21 keyless tests; 11 evaluation tests rerun after diagnostic schema changes |
+| Native GGUF decision recording | PASS as a recording fixture; original smoke check plus 16 real CPU inference cases, no assertion that every candidate answer is correct |
+| Promptfoo 0.124.0 replay | Candidate FAIL; 3/16 cases pass all assertions, 13 fail, 0 evaluator errors; expected exit 100 |
+| Changed source/test scoped lint | PASS; six affected source/test/helper modules |
+| Changed guide/integration translation pairs + Markdown links | PASS; two pairs consistent and 1,731 files have valid relative links |
+| Documentation aggregates / full lint entry | BLOCKED at startup by tsx IPC `listen EPERM`; direct scoped checks run without that CLI |
+| Export JSDoc / prose-wrap corpus | Existing debt remains: 740 JSDoc violations, none in the new adviser schema; five hard-wrap violations in the existing D_AI locale README |
+
+The final [native receipt](../packages/experimental/d-ai/tests/fixtures/qwen35-2b-development.receipt.json) records all sixteen completed model responses. Native advisory validation accepts 7/16; four accepted recommendations select the wrong expected action, while nine responses fail native acceptance. End-to-end case success is 3/16 (18.75%): English 2/8, Arabic 1/8. No response verifies evidence, changes task state or authorizes an action. This candidate/runtime configuration is not accepted for decision adoption; no registry promotion, training or cloud deployment is performed.
+
+The final run reports 3,794 uncached input tokens, 3,264 cache-read tokens and 1,908 output tokens (8,966 aggregate tokens). Native advice elapsed time, including scripted-parent/Session/tool overhead, ranges from 5.10 to 8.32 seconds with median 6.41 seconds; Promptfoo replay duration is not inference time. Server peak RSS is unavailable because the process-status path is inaccessible in this environment; no RAM/VRAM result is invented. Timing is environment-specific, not a user-device benchmark.
+
+The first full recording attempt reached all cases but failed to save because optional Linux `/proc` telemetry was unavailable. The fixture now omits that unavailable counter while preserving unexpected I/O failures. Teardown awaits child exit and removes its private root even on disposal/startup failure; a missing-server negative control fails with ENOENT in 114 ms and leaves no fixture root. A subsequent [initial completed receipt](../packages/experimental/d-ai/tests/fixtures/qwen35-2b-initial.receipt.json) had two native runtime errors without raw text; a diagnostic rerun captured finish reasons and cache counters, completed all sixteen with `stop`, and retained the same 3/16 action result. The earlier runtime-error cause is unresolved and is not silently reclassified as a model response. This is development evidence with published labels, not a held-out evaluation or calibrated accuracy estimate.
+
+Promptfoo is reused only for replay/assertions/export. It invokes no model or paid judge; the native Harness still owns inference, Session records and tool/permission semantics. Receipt loading rejects stale dataset/prompt hashes, unknown, missing or duplicate cases and malformed fields. Grading rejects a mismatched raw/native recommendation or confidence below the fixture’s explicit 0.7 threshold. Rejected native fallback advice cannot masquerade as accepted model output. [The local guide](user/d-ai-local.md) owns reproduction commands. GitHub CI remains a separate required check.
+
 ## Local inference/open-source checkpoint — 2026-10-07
 
 The complete workspace was restored from the verified native snapshot, preserving its exact Git tree, and installed using `pnpm install --frozen-lockfile`. This supersedes the earlier partially restored/noEmit workspace limitation below. The current changes are reviewed on `dai/local-intelligence-20261007`; old evidence remains historical.

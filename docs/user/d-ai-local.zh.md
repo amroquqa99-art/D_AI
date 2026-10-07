@@ -81,3 +81,23 @@ pnpm exec vitest run packages/experimental/d-ai/tests/local-intelligence.live.sp
 ```
 
 晋升前加入保留的中英文案例，覆盖矛盾证据、缺失工具、审批、提示注入和不确定性。使用相同上下文及量化比较质量、有效 JSON/工具率、延迟、token 用量与峰值内存。保留失败候选作为评估证据，不要放宽校验以接纳它们。
+
+已发布的[开发案例](../../packages/experimental/d-ai/tests/fixtures/local-decision-cases.json)包含八组阿拉伯语/英语配对。记录时保留上面的三个模型变量并选择新输出路径；已有记录不会被覆盖。记录包含模型原文、原生工具结果、建议耗时、原生停止/失败诊断、可用 token/缓存计数及数据集/提示/模型/服务二进制哈希。预期标签不进入模型上下文。仅在操作系统暴露计数时写入服务峰值 RSS；缺少计数不等于零内存使用。
+
+```sh
+export D_AI_EVAL_RECEIPT=/absolute/path/new-development-receipt.json
+env -u NODE_USE_ENV_PROXY node node_modules/vitest/vitest.mjs run \
+  packages/experimental/d-ai/tests/local-intelligence.live.spec.ts --maxWorkers=1
+```
+
+[Promptfoo](https://github.com/promptfoo/promptfoo) 使用 MIT 许可，是可选的外部评分依赖。使用 Node 22.22 或更新版本，在独立工具目录安装 `0.124.0`。将 `PROMPTFOO_BIN` 指向该安装的 `node_modules/promptfoo/dist/src/main.js`。回放提供方只读取完整记录，不调用模型或付费裁判。断言分别检查原生接纳、预期下一步和仅建议输出。使用同一源码检出；过期数据集/提示哈希、缺少案例和重复案例均被拒绝。
+
+```sh
+PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1 \
+node --import tsx/esm "$PROMPTFOO_BIN" eval \
+  -c packages/experimental/d-ai/tests/fixtures/promptfoo.yaml \
+  --no-cache --no-share --no-write --no-progress-bar --no-table -j 1 \
+  -o /absolute/path/development-results.json
+```
+
+存在失败断言的回放返回退出码 100；这是测得的候选失败，不是评估器崩溃。Promptfoo 回放时长不等于推理延迟：使用原生路径记录的 `nativeAdviceElapsedMs`，其中包含 Session/工具开销。已发布记录仅为开发证据，不能证明保留集质量，也不会填入晋升记录。结果和实测限制归`docs/TEST_REPORT.md`所有。

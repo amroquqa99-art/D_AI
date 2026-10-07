@@ -1,0 +1,20 @@
+# External opt-in grading of recorded native outputs. No paid/model provider.
+description: D_AI native local adviser development cases
+prompts:
+  - 'Replay native case {{caseId}}'
+providers:
+  - file://../helpers/promptfoo-replay.ts
+tests: file://local-decision-cases.json
+defaultTest:
+  options:
+    disableVarExpansion: true
+  assert:
+    - type: javascript
+      metric: NativeAcceptance
+      value: 'JSON.parse(output).contractAccepted === true'
+    - type: javascript
+      metric: ExpectedAction
+      value: 'JSON.parse(output).contractAccepted === true && context.vars.expectedActions.includes(JSON.parse(output).response?.action)'
+    - type: javascript
+      metric: AdvisoryOnly
+      value: 'JSON.parse(output).response?.advisory === true && JSON.parse(output).response?.verified === false'

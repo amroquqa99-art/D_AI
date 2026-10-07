@@ -3,5 +3,5 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/OPEN_SOURCE_INTEGRATIONS.md
 /d-ai-open-source-integration-decisions:
-  en: 48eabab67fcd4a7f
-  zh: 3858e23e22c18508
+  en: b9be710e5e93eba5
+  zh: 9476ed86f2c34c25

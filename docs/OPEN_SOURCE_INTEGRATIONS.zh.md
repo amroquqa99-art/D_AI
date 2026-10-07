@@ -10,6 +10,7 @@
 | 本地推理 | [llama.cpp](https://github.com/ggml-org/llama.cpp) / [Ollama](https://github.com/ollama/ollama) 外部运行时，均为 MIT | 已实现量化推理和服务；显式 profile 支持端点，每个模型文件仍需评估质量。 |
 | 上下文和 token 压力 | 复用原生 token meter、有限 fresh subagent 和 compaction | 持久证据不放在有损摘要内。SDK 余量最多为小模型容量的八分之一，上限为既有 4096 token；估算不是精确分词计数。 |
 | 决策辅助 | 原生显式启用的独立顾问 | 一次有限模型请求、严格 JSON 与证据引用校验；无工具、无权限、无隐式提供方回退。 |
+| 决策评估 | 复用 [Promptfoo](https://github.com/promptfoo/promptfoo) 0.124.0，MIT，作为可选外部评分器 | 回放由哈希绑定的原生记录；分别断言接纳/动作/仅建议，不使用付费裁判或替代推理循环。已发布双语开发案例不是晋升证据。 |
 | Web 搜索 | [SearXNG](https://github.com/searxng/searxng) 原生适配器，AGPL-3.0-or-later | 复用成熟元搜索，需要配置服务。独立运行不会自动解决修改/分发的 AGPL 义务。真实引擎验收待完成。 |
 | Office 摄取 | 评估 [MarkItDown](https://github.com/microsoft/markitdown)，MIT | 普通文档转换候选；隔离转换并保留原始文件/位置引用。尚未连接。 |
 | 复杂 PDF/布局/OCR | 评估 [Docling](https://github.com/docling-project/docling)，代码 MIT | 简单转换丢失结构时的候选；权重许可证和内存成本独立于代码许可证。尚未连接。 |

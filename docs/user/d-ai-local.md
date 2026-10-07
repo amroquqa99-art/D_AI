@@ -81,3 +81,23 @@ pnpm exec vitest run packages/experimental/d-ai/tests/local-intelligence.live.sp
 ```
 
 Add held-out Arabic/English, contradictory evidence, missing tools, approval, prompt-injection and uncertainty cases before promotion. Compare quality, valid JSON/tool rate, latency, token usage and peak memory with the same context and quantization. Retain unsuccessful candidates as evaluation evidence rather than weakening validation to accept them.
+
+The published [development cases](../../packages/experimental/d-ai/tests/fixtures/local-decision-cases.json) cover eight Arabic/English pairs. To record them, retain the three model variables above and choose a new output path; existing receipts are never overwritten. The receipt includes raw model text, native tool results, elapsed advice time, native stop/failure diagnostics, available token/cache counts and dataset/prompt/model/server-binary hashes. Expected labels never enter the model context. Peak server RSS is included only when the OS exposes it; an absent counter is not zero memory use.
+
+```sh
+export D_AI_EVAL_RECEIPT=/absolute/path/new-development-receipt.json
+env -u NODE_USE_ENV_PROXY node node_modules/vitest/vitest.mjs run \
+  packages/experimental/d-ai/tests/local-intelligence.live.spec.ts --maxWorkers=1
+```
+
+[Promptfoo](https://github.com/promptfoo/promptfoo), MIT, is an optional external grading dependency. Install version `0.124.0` in a separate tools directory with Node 22.22 or newer. Set `PROMPTFOO_BIN` to that installation's `node_modules/promptfoo/dist/src/main.js`. The replay provider reads the completed receipt and invokes no model or paid judge. Its assertions separately check native acceptance, expected next action and advisory-only output. Use the same source checkout; stale dataset/prompt hashes, missing cases and duplicate cases are rejected.
+
+```sh
+PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_DISABLE_UPDATE=1 \
+node --import tsx/esm "$PROMPTFOO_BIN" eval \
+  -c packages/experimental/d-ai/tests/fixtures/promptfoo.yaml \
+  --no-cache --no-share --no-write --no-progress-bar --no-table -j 1 \
+  -o /absolute/path/development-results.json
+```
+
+A replay with failing assertions returns exit code 100; that is measured candidate failure, not an evaluator crash. Promptfoo replay duration is not inference latency: use `nativeAdviceElapsedMs` from the recorded native path, which includes Session/tool overhead. The published receipt is development evidence, cannot establish held-out quality and does not populate promotion records. Results and measured limitations belong in `docs/TEST_REPORT.md`.
