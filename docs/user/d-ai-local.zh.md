@@ -46,6 +46,8 @@ pnpm dsh web \
 
 `d_ai_local_advise` 启动一个无工具、不继承父对话的独立原生子 agent。提供简短的已批准目标、当前情况及已有证据引用。严格 JSON 校验允许 `EXPLORE`、`VERIFY`、`ASK_HUMAN`、`WAIT`、`STOP`、`ESCALATE` 六种建议。格式错误、编造引用或置信度低于配置阈值会返回 `ESCALATE`。置信度由模型自行报告且未校准。建议不会授予权限、验证声明、改变任务状态或隐式激活模型。
 
+建议器默认将 `includeExecutionContext` 设为 false。其子 agent 在原生消息接纳前省略动态执行上下文，避免把任务建议与建议器自身缺少执行权限混淆。所有者和其他 worker 保留运行时上下文，原生工具及审批检查仍然生效。将此部署选项设为 true 可重现基线。没有进程内原生子 agent 的提供方会被拒绝并释放其运行；推理端点本身仍可在本地或远程。
+
 此 preset 为初始调查路径暴露八个工具，避免向小模型发送完整的 78-tool 注册表。部署拥有的 `rootTools` 由原生作用域工具注册表强制执行。用于其他领域时明确扩展，再评估上下文压力和工具准确率。工具的独立审批要求仍适用。原生 token meter 和 compaction 服务仍拥有上下文；摘要上限为 512 token，并保留有限原文尾部。原始 Session/证据记录仍是权威事实。
 
 ## 3. 在线时连接搜索
@@ -82,13 +84,16 @@ pnpm exec vitest run packages/experimental/d-ai/tests/local-intelligence.live.sp
 
 晋升前加入保留的中英文案例，覆盖矛盾证据、缺失工具、审批、提示注入和不确定性。使用相同上下文及量化比较质量、有效 JSON/工具率、延迟、token 用量与峰值内存。保留失败候选作为评估证据，不要放宽校验以接纳它们。
 
-已发布的[开发案例](../../packages/experimental/d-ai/tests/fixtures/local-decision-cases.json)包含八组阿拉伯语/英语配对。记录时保留上面的三个模型变量并选择新输出路径；已有记录不会被覆盖。记录包含模型原文、原生工具结果、建议耗时、原生停止/失败诊断、可用 token/缓存计数及数据集/提示/模型/服务二进制哈希。预期标签不进入模型上下文。仅在操作系统暴露计数时写入服务峰值 RSS；缺少计数不等于零内存使用。
+已发布的[开发案例](../../packages/experimental/d-ai/tests/fixtures/local-decision-cases.json)包含八组阿拉伯语/英语配对。记录时保留上面的三个模型变量并选择新输出路径；已有记录不会被覆盖。版本 2 除原文、原生结果、诊断、token 及建议耗时外，还记录规范化的模型可见消息、工具 schema、输出上限、实际完整上下文字节数、请求哈希及显式建议器配置哈希。预期标签不进入模型输入。仅在操作系统暴露计数时写入服务峰值 RSS；缺少计数不等于零内存使用。版本 1 记录仍可作为历史证据读取。
 
 ```sh
 export D_AI_EVAL_RECEIPT=/absolute/path/new-development-receipt.json
+export D_AI_EVAL_INCLUDE_EXECUTION_CONTEXT=false
 env -u NODE_USE_ENV_PROXY node node_modules/vitest/vitest.mjs run \
   packages/experimental/d-ai/tests/local-intelligence.live.spec.ts --maxWorkers=1
 ```
+
+配对基线使用 `D_AI_EVAL_INCLUDE_EXECUTION_CONTEXT=true` 及另一条全新记录路径。此选项只改变执行上下文接纳；模型、指令、数据集及输出上限保持相同。
 
 [Promptfoo](https://github.com/promptfoo/promptfoo) 使用 MIT 许可，是可选的外部评分依赖。使用 Node 22.22 或更新版本，在独立工具目录安装 `0.124.0`。将 `PROMPTFOO_BIN` 指向该安装的 `node_modules/promptfoo/dist/src/main.js`。回放提供方只读取完整记录，不调用模型或付费裁判。断言分别检查原生接纳、预期下一步和仅建议输出。使用同一源码检出；过期数据集/提示哈希、缺少案例和重复案例均被拒绝。
 

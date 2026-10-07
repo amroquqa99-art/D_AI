@@ -4,14 +4,16 @@ import type { Context } from '@deepseek-ai/cordis'
 import schema from '@deepseek-ai/schemastery'
 import type { z } from 'zod'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
+import type {} from '@deepseek-ai/dsh-agent-loop'
 import type {} from '@deepseek-ai/dsh-subagent'
+import type {} from '@deepseek-ai/dsh-system-prompt'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { adviceInputSchema as inputSchema, adviceOutputSchema as outputSchema, advicePersona as persona } from './local-advice-contract.ts'
 import { DaiRuntimeKernel } from './runtime-kernel.ts'
 import { encodeToolResult, jsonToolOutput } from './tool-support.ts'
 
 export const name = 'd-ai-local-intelligence'
-export const inject = ['agents', 'subagents', 'tools', 'llm']
+export const inject = ['agents', 'subagents', 'tools', 'llm', 'systemPrompt']
 
 /** Deployment-owned route and resource limits; no fallback provider is selected. */
 export interface Config {
@@ -24,6 +26,8 @@ export interface Config {
   maxResultBytes: number
   minConfidence: number
   maxConcurrentCalls: number
+  /** Include executor context in advice; false suppresses it only in the adviser child. */
+  includeExecutionContext: boolean
   rootTools: string[]
 }
 
@@ -37,6 +41,7 @@ export const Config = schema.object({
   maxResultBytes: schema.number().step(1).min(512).default(8192),
   minConfidence: schema.number().min(0).max(1).default(0.7),
   maxConcurrentCalls: schema.number().step(1).min(1).default(1),
+  includeExecutionContext: schema.boolean().default(false),
   rootTools: schema.array(schema.string()).default([]),
 })
 
@@ -110,13 +115,19 @@ export function apply(ctx: Context, config: Config): void {
         const label = 'local-adviser-' + randomUUID()
         let requests = 0
         const childIds = new Set<string>()
-        // Fresh children publish their durable descriptor before their first request.
-        // This subscription tracks this activation's identity without replaying history.
         const removeIdentity = ctx.on('session/event', (session, event) => {
           if (session.header.parentSession === owner.id
             && event.type === 'subagent/descriptor' && event.data.label === label) {
             childIds.add(session.id)
           }
+        })
+        const removeContext = ctx.on('agent/pre-step', async ({ agent }, next) => {
+          const decision = await next()
+          if (decision.kind !== 'enter' || config.includeExecutionContext || !childIds.has(agent.id)) return decision
+          // The descriptor is committed during pre-step, after context assembly.
+          // Filter this prepared snapshot before admission and suppress future ones.
+          agent.ctx.systemPrompt.suppressRuntimeContext()
+          return { ...decision, messages: decision.messages.filter(message => message.source.kind !== 'runtime-context') }
         })
         const removeGuard = ctx.on('llm/stream', (options, next) => {
           if (options.sessionId !== undefined && childIds.has(options.sessionId)) {
@@ -136,6 +147,9 @@ export function apply(ctx: Context, config: Config): void {
             persona, prompt: [{ type: 'text', text: prompt }],
           })
           try {
+            if (run.localAgent === undefined) {
+              throw new HarnessError('Decision advice requires an in-process native child', 'D_AI_LOCAL_PROVIDER')
+            }
             const result = await run.result
             signal.throwIfAborted()
             if (result.stopReason !== 'completed') {
@@ -165,6 +179,7 @@ export function apply(ctx: Context, config: Config): void {
           }
         } finally {
           removeGuard()
+          removeContext()
           removeIdentity()
         }
       })()

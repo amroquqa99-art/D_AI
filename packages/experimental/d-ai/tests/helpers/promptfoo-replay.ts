@@ -17,6 +17,12 @@ export default class NativeDecisionReplay {
     if (!test || !row) return { error: 'Unknown native decision case' }
     const grade = gradeDecisionRow(row, test.vars)
     // Promptfoo's replay latency is unrelated to the recorded inference time.
-    return { output: JSON.stringify(grade), metadata: { nativeAdviceElapsedMs: row.elapsedMs, usage: row.usage } }
+    return { output: JSON.stringify(grade), metadata: {
+      nativeAdviceElapsedMs: row.elapsedMs, usage: row.usage, receiptSchemaVersion: this.receipt.schemaVersion,
+      ...(this.receipt.schemaVersion === 2 ? {
+        includeExecutionContext: this.receipt.includeExecutionContext,
+        evaluationConfigSha256: this.receipt.evaluationConfigSha256,
+      } : {}),
+    } }
   }
 }

@@ -8,7 +8,7 @@ import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import Persistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import Subagents from '@deepseek-ai/dsh-subagent'
@@ -21,7 +21,10 @@ import * as Local from '../src/local-intelligence.ts'
 const input = { objective: 'Verify a reported observation', situation: 'One unverified source; independent corroboration is missing.', evidence_refs: ['source:1'] }
 const advice = { action: 'VERIFY', confidence: 0.8, rationale: 'Seek independent corroboration.', evidence_refs: ['source:1'] }
 
-async function fixture<T>(output: string, run: (ctx: Context, adapter: MockAdapter) => Promise<T>, config: Partial<Local.Config> = {}) {
+async function fixture<T>(
+  output: string | StreamChunk[], run: (ctx: Context, adapter: MockAdapter) => Promise<T>, config: Partial<Local.Config> = {},
+  issuesChildRequest = config.maxInputBytes === undefined,
+) {
   const root = await mkdtemp(join(tmpdir(), 'd-ai-local-'))
   const ctx = new Context()
   try {
@@ -43,7 +46,7 @@ async function fixture<T>(output: string, run: (ctx: Context, adapter: MockAdapt
     expect([...ctx.loader.entries()].filter(entry => !entry.disabled && !entry.fiber)).toEqual([])
     const adapter = new MockAdapter([
       toolCallResponse('advice', 'd_ai_local_advise', input),
-      ...(config.maxInputBytes ? [] : [output === 'hang' ? 'hang' as const : textResponse(output)]),
+      ...(issuesChildRequest ? [output === 'hang' ? 'hang' as const : typeof output === 'string' ? textResponse(output) : output] : []),
       textResponse('Recommendation retained as unverified advice.'),
     ])
     ctx.llm.registerAdapter(['mock-parent', 'mock-local'], adapter)
@@ -76,6 +79,7 @@ describe('D_AI opt-in local decision advice', () => {
     expect(request.maxTokens).toBe(512)
     expect(request.tools ?? []).toEqual([])
     expect(JSON.stringify(request.messages)).not.toContain('Private parent context')
+    expect(JSON.stringify(request.messages)).not.toContain('You are a delegated subagent')
     expect(request.messages.map(message => ({ role: message.role, content: message.content }))).toMatchSnapshot('bounded model-visible decision context')
     await ctx.sessions.flush(owner.session)
     expect(owner.session.snapshotEvents().filter(event => event.type.startsWith('d_ai/'))).toEqual([])
@@ -83,6 +87,84 @@ describe('D_AI opt-in local decision advice', () => {
     await contribution.fiber!.dispose()
     expect(ctx.tools.get('d_ai_local_advise')).toBeUndefined()
   }))
+
+  it('retains executor context only when the deployment explicitly opts in', async () => fixture(JSON.stringify(advice), async (ctx, adapter) => {
+    await ask(ctx)
+    expect(JSON.stringify(adapter.requests[1]!.messages)).toContain('You are a delegated subagent')
+    expect(adapter.requests[1]!.tools ?? []).toEqual([])
+    expect(adapter.requests[1]!.messages.map(message => ({ role: message.role, content: message.content })))
+      .toMatchSnapshot('explicit executor-context baseline')
+  }, { includeExecutionContext: true }))
+
+  it('preserves runtime context in the owner and unrelated children', async () => fixture(JSON.stringify(advice), async (ctx, adapter) => {
+    const marker = 'Owner execution context must remain.'
+    const committedChildContexts: string[] = []
+    ctx.on('session/event', (session, event) => {
+      if (session.header.parentSession !== undefined && event.type === 'user/message' && event.data.source.kind === 'runtime-context') {
+        committedChildContexts.push(session.id)
+      }
+    })
+    ctx.systemPrompt.context({ name: 'fixture:execution', order: 0, text: marker })
+    const { owner } = await ask(ctx)
+    expect(JSON.stringify(adapter.requests[0]!.messages)).toContain(marker)
+    expect(JSON.stringify(adapter.requests[1]!.messages)).not.toContain(marker)
+    expect(JSON.stringify(adapter.requests[2]!.messages)).toContain(marker)
+    expect(committedChildContexts).toEqual([])
+    const siblingAdapter = new MockAdapter([textResponse('Unrelated child complete.')])
+    ctx.llm.registerAdapter(['mock-sibling'], siblingAdapter)
+    const sibling = await ctx.subagents.start('spawn', {
+      parent: owner, signal: AbortSignal.timeout(10000), label: 'unrelated-worker',
+      agentOptions: { provider: 'mock-sibling', model: 'worker' },
+      prompt: [{ type: 'text', text: 'Perform an unrelated approved task.' }],
+    })
+    try {
+      expect((await sibling.result).stopReason).toBe('completed')
+      expect(JSON.stringify(siblingAdapter.requests[0]!.messages)).toContain(marker)
+      expect(JSON.stringify(siblingAdapter.requests[0]!.messages)).toContain('You are a delegated subagent')
+      expect(committedChildContexts).toEqual([sibling.id])
+    } finally { await sibling.dispose() }
+  }))
+
+  it('denies a child tool attempt even when executor context is suppressed', async () => fixture(toolCallResponse('attempt', 'fixture_other', {}), async (ctx, adapter) => {
+    let executions = 0
+    const childResults: boolean[] = []
+    ctx.tools.register(defineTool({
+      name: 'fixture_other', description: 'Parent-only fixture capability.', parameters: {},
+      output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
+      execute: async () => { executions++; return 'side effect' },
+    }))
+    ctx.on('session/event', (session, event) => {
+      if (session.header.parentSession !== undefined && event.type === 'tool/result') {
+        childResults.push(event.data.message.isError ?? false)
+      }
+    })
+    const { owner, event } = await ask(ctx)
+    expect(ctx.tools.get('fixture_other', owner)).toBeDefined()
+    expect(executions).toBe(0)
+    expect(childResults).toEqual([true])
+    expect(event.data.message.isError).toBe(true)
+    expect(adapter.requests.map(request => request.provider)).toEqual(['mock-parent', 'mock-local', 'mock-parent'])
+    expect(JSON.stringify(adapter.requests[1]!.messages)).not.toContain('You are a delegated subagent')
+    expect(adapter.requests[1]!.tools ?? []).toEqual([])
+  }))
+
+  it('rejects a remote run that cannot expose the native child scope and disposes it', async () => fixture(JSON.stringify(advice), async (ctx, adapter) => {
+    let disposed = false
+    ctx.subagents.registerProvider({
+      name: 'remote-fixture', inheritsParentContext: false,
+      capabilities: { agentOptions: true, depthLimit: true, persona: true, toolFilter: true, outputSchema: false },
+      start: async () => ({
+        id: SessionId('remote-fixture-child'), localAgent: undefined,
+        result: Promise.resolve({ output: [{ type: 'text', text: JSON.stringify(advice) }], stopReason: 'completed' }),
+        dispose: async () => { disposed = true },
+      }),
+    })
+    const { event } = await ask(ctx)
+    expect(event.data.message.isError).toBe(true)
+    expect(event.data.message.content).toContainEqual({ type: 'text', text: 'Error: Decision advice requires an in-process native child' })
+    expect(disposed).toBe(true)
+    expect(adapter.requests.map(request => request.provider)).toEqual(['mock-parent', 'mock-parent'])
+  }, { subagentProvider: 'remote-fixture' }, false))
 
   it.each([
     ['malformed JSON', '```json\n{}\n```'],

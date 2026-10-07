@@ -2,8 +2,9 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
-import { datasetSha256, decisionCases, gradeDecisionRow, outcomeSchema, promptSha256 } from './helpers/local-decision-evaluation.ts'
+import { datasetSha256, decisionCases, evaluationConfigSha256, gradeDecisionRow, outcomeSchema, promptSha256, readDecisionReceipt } from './helpers/local-decision-evaluation.ts'
 import NativeDecisionReplay from './helpers/promptfoo-replay.ts'
 
 const vars = decisionCases[0]!.vars
@@ -66,6 +67,41 @@ describe('native decision grading', () => {
       ]) {
         await writeFile(path, JSON.stringify({ ...receipt, ...patch }))
         expect(() => new NativeDecisionReplay({}, path)).toThrow()
+      }
+    } finally { await rm(root, { recursive: true, force: true }) }
+  })
+
+  it('checks the context policy and actual model-input hashes in v2 receipts', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'd-ai-replay-v2-'))
+    const path = join(root, 'receipt.json')
+    const modelInput = JSON.stringify({ messages: [{ role: 'user', content: [{ type: 'text', text: 'fixture' }] }], tools: [], maxTokens: 512 })
+    const requestSha256 = createHash('sha256').update(modelInput).digest('hex')
+    const receipt = {
+      schemaVersion: 2, split: 'development', completedAt: new Date().toISOString(), datasetSha256, promptSha256,
+      includeExecutionContext: false, evaluationConfigSha256: evaluationConfigSha256(false),
+      modelSha256: 'a'.repeat(64), serverSha256: 'b'.repeat(64), device: 'CPU', contextWindow: 4096, threads: 4,
+      outcomes: decisionCases.map(test => ({ ...row, caseId: test.vars.caseId, modelInput, requestSha256, requestContextBytes: 300 })),
+    }
+    try {
+      await writeFile(path, JSON.stringify(receipt))
+      expect(readDecisionReceipt(path).schemaVersion).toBe(2)
+      expect((await new NativeDecisionReplay({}, path).callApi('ignored', { vars: { caseId: vars.caseId } })).metadata)
+        .toMatchObject({ receiptSchemaVersion: 2, includeExecutionContext: false, evaluationConfigSha256: evaluationConfigSha256(false) })
+      const noRequest = { ...receipt.outcomes[0]!, rawOutput: '', toolOutput: 'native error', toolIsError: true,
+        modelRequests: 0, modelInput: '', requestContextBytes: 0, requestSha256: createHash('sha256').update('').digest('hex') }
+      await writeFile(path, JSON.stringify({ ...receipt, outcomes: [noRequest, ...receipt.outcomes.slice(1)] }))
+      expect(readDecisionReceipt(path).outcomes[0]!.modelRequests).toBe(0)
+      expect(gradeDecisionRow(noRequest, vars).contractAccepted).toBe(false)
+      for (const patch of [
+        { includeExecutionContext: true }, { evaluationConfigSha256: 'c'.repeat(64) },
+        { outcomes: receipt.outcomes.map(outcome => ({ ...outcome, modelInput: outcome.modelInput + ' ' })) },
+        { outcomes: receipt.outcomes.map(outcome => ({ ...outcome, requestSha256: 'c'.repeat(64) })) },
+        { outcomes: receipt.outcomes.map(outcome => ({ ...outcome, requestContextBytes: 0 })) },
+        { outcomes: receipt.outcomes.map(outcome => ({ ...outcome, modelRequests: 0 })) },
+        { outcomes: receipt.outcomes.map(({ modelInput: _input, ...outcome }) => outcome) },
+      ]) {
+        await writeFile(path, JSON.stringify({ ...receipt, ...patch }))
+        expect(() => readDecisionReceipt(path)).toThrow()
       }
     } finally { await rm(root, { recursive: true, force: true }) }
   })

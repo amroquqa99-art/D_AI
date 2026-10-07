@@ -14,7 +14,7 @@ Raw `d_ai/fact` events contain complete mission state and rebuild the `dai` Sess
 
 `pnpm exec vitest run packages/experimental/d-ai/tests` exercises native Loader composition, AgentLoop tools, actual native child loops, configured model separation, worker bounds, source/ownership policy, append-only replay, and JSONL restart. The model adapter and public web provider are explicitly scripted fixtures. This proves internal integration, not live model or internet research.
 
-All 193 fixture tests in 45 package files pass locally with the compiled native addon. Coverage includes exact-task parallel workers, native restart/wakes, cancellation, human-wait boundaries, durable flush failures, legacy schedule defaults and scheduler shutdown to quiescence. The complete workspace build passes locally; CI remains pending. A deterministic 1,000-task admission test proves logical scheduling, not live worker capacity.
+All 209 fixture tests in 46 package files pass locally with the compiled native addon. Coverage includes exact-task parallel workers, native restart/wakes, cancellation, human-wait boundaries, durable flush failures, legacy schedule defaults and scheduler shutdown to quiescence. The complete workspace build passes locally; CI remains pending. A deterministic 1,000-task admission test proves logical scheduling, not live worker capacity.
 
 ### Unattended Mission Director
 
@@ -24,7 +24,9 @@ This preserves the package invariant that durable D_AI mutation happens inside a
 
 ## Local decision and open-source search
 
-The opt-in `local-intelligence` entry runs one tool-free, fresh-context native child against an explicitly configured model, validates bounded advisory JSON and rejects invented references. It does not mutate domain facts or promote models. The opt-in `web-searxng` entry registers a bounded native web search provider against a deployment-owned SearXNG JSON endpoint. Both contributions are disposed with their Cordis plugin.
+The opt-in `local-intelligence` entry runs one tool-free, fresh-context native child against an explicitly configured model, validates bounded advisory JSON and rejects invented references. It does not mutate domain facts or promote models. The opt-in `web-searxng` entry registers a bounded native web search provider against a deployment-owned SearXNG JSON endpoint. Both contributions are disposed with their Cordis plugin. The adviser rejects and disposes a provider run without an in-process native child; an explicit local or remote inference endpoint is still supported.
+
+The adviser defaults `includeExecutionContext` to false: executor runtime snapshots are omitted only from its child before native message admission. Owner and unrelated worker contexts retain their contributions. Tool restrictions, approvals and resource checks remain enforced. Set this option to true to reproduce the executor-context baseline; the adviser instruction and supplied task data stay the same.
 
 [Launch instructions](../../../docs/user/d-ai-local.md) cover separate or shared local servers, the restricted root tool catalog and native compaction. The real local acceptance is an environment-gated test, separate from scripted fixture tests. No inference binary, model weight or public search service is bundled into the package.
 

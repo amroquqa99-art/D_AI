@@ -13,7 +13,7 @@ This matrix separates **implementation maturity** from **verification state**. A
 - `VERIFIED` — the appropriate executable acceptance checks have passed for the relevant current code.
 - `LIVE_VERIFIED` — required real-provider/browser/environment proof also exists.
 
-Verification is tracked separately because Actions fails before workflow steps execute. All 193 D_AI fixture tests in 45 files and 57 pi-ai tests pass in the complete frozen-lockfile workspace. The full workspace build passes locally. One additional hash-verified local model acceptance passes; CI, full live missions and live search remain pending. The 1,000-task check proves logical admission only; it does not establish distributed worker scale.
+Verification is tracked separately because the last inspected Actions run fails before workflow steps execute. The current native D_AI/context set passes 250 tests in 49 files; one live test is skipped in the keyless run. Two hash-verified CPU recordings each pass the original smoke and complete all sixteen development cases. The full workspace build and 330 public declaration APIs under NodeNext pass. CI, full live missions and live search remain pending. The 1,000-task check proves logical admission only; it does not establish distributed worker scale.
 
 ## Current checkpoint
 
@@ -39,7 +39,7 @@ Verification is tracked separately because Actions fails before workflow steps e
 | Training governance | candidate eligibility, sensitive-data rules, dataset/holdout lineage | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | raw artifact curation/redaction/materialization pipeline |
 | Model evaluation/promotion | durable evaluations, promotion gates, rollback pointers | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | real model artifact evaluator/deployment/rollback exercise |
 | Local Intelligence Core | architecture + governed data/eval/promotion foundation | FOUNDATION | CI_PENDING | governed training, artifact registry, held-out quality evaluation and live promotion |
-| Local decision adviser | isolated native child, explicit route, bounded input/output/requests, advisory JSON, cancellation/disposal | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS + ONE_LOCAL_MODEL_SCENARIO / CI_PENDING | 16 development cases recorded (3/16 pass); held-out Arabic/domain evaluation, hardware measurements, govern artifact adoption |
+| Local decision adviser | isolated native child and executor context, explicit route, bounded input/output/requests, advisory JSON, cancellation/disposal | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS + ONE_LOCAL_MODEL_SCENARIO / CI_PENDING | Same-model context ablation improves development result from 3/16 to 12/16; held-out Arabic/domain evaluation, hardware measurements and governed artifact adoption pending |
 | SearXNG search | fixed JSON endpoint, native web provider, byte/timeout limits, source URLs | INTEGRATED | LOCAL_HTTP_FIXTURE_PASS / CI_PENDING | live configured SearXNG engines and investigation acceptance |
 | Local/self-hosted profile | explicit worker/adviser routes, eight root tools, native compaction, no implicit paid fallback | INTEGRATED | LOCAL_AUTHENTICATED_HTTP_BOOT_PASS / CI_PENDING | full user-driven mission/browser acceptance, offline packaging |
 | Cloud hosting | remote endpoints and persistent VM/container guidance | FOUNDATION | NOT_DEPLOYED | select target, authentication, durable storage, restore and operational testing |
@@ -53,8 +53,8 @@ Verification is tracked separately because Actions fails before workflow steps e
 ## Current verification blocker
 
 Latest inspected D_AI v2 workflow:
-- run `37535776100`
-- job `112516177529`
+- run `37686016676`
+- job `113013905410`
 - conclusion `failure`
 - workflow steps: none (`steps: null`); runner rejection reason unavailable
 
@@ -71,6 +71,6 @@ The active branch is executing [ADR 0002](ADRS/0002-runtime-decomposition.md):
 - domain and shared-core tool registration split into bounded-context `*-tools.ts` modules;
 - the native D_AI tool surface is characterized as 77 unique `d_ai_*` tools in passing native integration.
 
-Local native characterization and all package tests pass. Full workspace compilation, aggregate documentation checks, CI and live providers remain pending.
+Local native characterization and all package tests pass. Full workspace compilation passes locally; aggregate documentation checks, CI and full live missions remain pending.
 
 Exact historical/current test evidence is maintained in [TEST_REPORT.md](TEST_REPORT.md).

@@ -3,9 +3,30 @@ import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { adviceInputSchema, adviceOutputSchema, advicePersona } from '../../src/local-advice-contract.ts'
+import type { Config as LocalConfig } from '../../src/local-intelligence.ts'
 
 /** Fixed native fixture threshold, passed explicitly to its adviser plugin. */
 export const evaluationMinConfidence = 0.7
+
+/** Explicit fixed experiment settings; only executor-context admission varies.
+ * @param includeExecutionContext - whether the baseline executor snapshot enters advice.
+ * @returns the exact configuration supplied to the native adviser.
+ */
+export function decisionEvaluationConfig(includeExecutionContext: boolean): LocalConfig {
+  return {
+    provider: 'dai-local-decision', model: 'dai-decision', subagentProvider: 'spawn',
+    timeoutMs: 60000, maxOutputTokens: 512, maxInputBytes: 4096, maxResultBytes: 8192,
+    minConfidence: evaluationMinConfidence, maxConcurrentCalls: 1, rootTools: [], includeExecutionContext,
+  }
+}
+
+/** Hash the fixed settings separately from the unchanged adviser instruction.
+ * @param includeExecutionContext - the experiment's admitted context policy.
+ * @returns a SHA-256 digest of the canonical experiment configuration.
+ */
+export function evaluationConfigSha256(includeExecutionContext: boolean): string {
+  return createHash('sha256').update(JSON.stringify(decisionEvaluationConfig(includeExecutionContext))).digest('hex')
+}
 
 export const caseFile = new URL('../fixtures/local-decision-cases.json', import.meta.url)
 export const caseSchema = z.object({
@@ -37,7 +58,7 @@ export const outcomeSchema = z.object({
 export const promptSha256 = createHash('sha256').update(advicePersona).digest('hex')
 
 const hash = z.string().regex(/^[a-f0-9]{64}$/)
-export const receiptSchema = z.object({
+const legacyReceiptSchema = z.object({
   schemaVersion: z.literal(1), split: z.literal('development'),
   completedAt: z.iso.datetime(), datasetSha256: hash, promptSha256: hash,
   modelSha256: hash, serverSha256: hash,
@@ -45,6 +66,22 @@ export const receiptSchema = z.object({
   peakServerRssKiB: z.number().int().positive().optional(),
   outcomes: z.array(outcomeSchema).nonempty().max(128),
 }).strict()
+
+const currentOutcomeSchema = outcomeSchema.extend({
+  modelInput: z.string().max(8192), requestSha256: hash,
+  requestContextBytes: z.number().int().nonnegative(),
+}).strict().refine(row => row.modelRequests === 0
+  ? row.modelInput === '' && row.requestContextBytes === 0
+  : row.modelInput.length > 0 && row.requestContextBytes > 0,
+{ message: 'Request metadata must distinguish observed requests from failures before inference' })
+
+export const receiptSchema = z.discriminatedUnion('schemaVersion', [
+  legacyReceiptSchema,
+  legacyReceiptSchema.extend({
+    schemaVersion: z.literal(2), includeExecutionContext: z.boolean(), evaluationConfigSha256: hash,
+    outcomes: z.array(currentOutcomeSchema).nonempty().max(128),
+  }).strict(),
+])
 
 const toolAdviceSchema = adviceOutputSchema.extend({
   advisory: z.literal(true), verified: z.literal(false),
@@ -81,6 +118,12 @@ export function readDecisionReceipt(path: string) {
   const receipt = receiptSchema.parse(JSON.parse(bytes.toString('utf8')))
   if (receipt.datasetSha256 !== datasetSha256 || receipt.promptSha256 !== promptSha256) {
     throw new Error('Decision receipt belongs to a different dataset or adviser prompt')
+  }
+  if (receipt.schemaVersion === 2) {
+    if (receipt.evaluationConfigSha256 !== evaluationConfigSha256(receipt.includeExecutionContext)
+      || receipt.outcomes.some(row => createHash('sha256').update(row.modelInput).digest('hex') !== row.requestSha256)) {
+      throw new Error('Decision receipt configuration or recorded model-input hash does not match')
+    }
   }
   const expectedIds = new Set(decisionCases.map(test => test.vars.caseId))
   const recordedIds = new Set(receipt.outcomes.map(row => row.caseId))

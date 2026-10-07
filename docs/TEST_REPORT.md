@@ -4,6 +4,51 @@ Date: 2026-10-07
 
 This document separates **historical verified evidence** from the **current branch checkpoint**. A source file, fixture path or failed CI launch is never promoted to test evidence.
 
+## Adviser context ablation checkpoint — 2026-10-07
+
+The executor's delegated-permission snapshot caused several recorded recommendations to reason about the adviser's own lack of tools instead of the supplied task. The adviser now defaults `includeExecutionContext` to false. Its native pre-step listener removes that child's prepared executor snapshots before message admission and suppresses future runtime contributions in that child's scope. The owner and unrelated workers retain their context. A provider without an in-process native child is rejected and its run disposed; inference may still use an explicitly configured remote model endpoint. The native tool executor still rejects a scripted child tool attempt; output validation, confidence threshold, one-request budget and authority limits are unchanged.
+
+The [baseline receipt](../packages/experimental/d-ai/tests/fixtures/qwen35-2b-context-baseline.receipt.json) and [isolated-context receipt](../packages/experimental/d-ai/tests/fixtures/qwen35-2b-context-isolated.receipt.json) contain two fresh runs of the same hash-verified Qwen3.5-2B artifact and server binary. All sixteen paired canonical requests have identical instruction, task data, tool catalog and output cap; the baseline alone includes the executor-context message. Dataset, instruction, model, binary, CPU context window and thread settings match. Each case issues one request and finishes with `stop`; neither run has a native tool error. The original smoke scenario also passes in both runs. Expected labels remain outside model input.
+
+| Development measurement | Executor-context baseline | Isolated adviser |
+|---|---:|---:|
+| Native advisory validation accepts | 7/16 | 13/16 |
+| Accepted expected next action | 3/16 | 12/16 |
+| English expected next action | 2/8 | 7/8 |
+| Arabic expected next action | 1/8 | 5/8 |
+| Uncached input tokens | 3,794 | 2,450 |
+| Cache-read tokens | 3,264 | 3,264 |
+| Output tokens | 1,908 | 1,511 |
+| Reported aggregate tokens | 8,966 | 7,225 |
+| Median complete native context bytes | 3,031 | 2,037 |
+| Median native advice elapsed time | 9.58 s | 6.42 s |
+
+Promptfoo 0.124.0 independently replays both native receipts: baseline 3 pass / 13 fail, isolated 12 pass / 4 fail, zero evaluator errors in either run. Both exit with code 100 because remaining assertions fail. Reported aggregate tokens decrease by 19.4%. Native elapsed ranges are 6.45–12.08 seconds and 5.22–9.84 seconds respectively; timing includes scripted-parent/Session/tool overhead and is not an isolated performance benchmark. Peak RAM and GPU memory remain unmeasured.
+
+The three rejected isolated responses put explanatory sentences in `evidence_refs`: both owner-input cases and the Arabic external-dependency case. The Arabic collection case passes JSON validation but selects `VERIFY` instead of the expected `EXPLORE`. These failures are retained; reference strings are not clipped or repaired. The 12/16 result measures accepted next-action selection on published development examples, not rationale correctness, calibrated confidence, held-out quality or full mission performance. No model adoption, registry promotion, training or cloud deployment occurs.
+
+Version 2 receipts bind explicit adviser settings, canonical model-visible messages/tool schemas/output cap and request hashes; they preserve actual complete-context byte counts. The reader rejects mismatched configuration hashes, mismatched input hashes and missing request metadata. Failures before inference retain empty request metadata and cannot pass grading. Version 1 recordings remain readable and unchanged. Promptfoo metadata distinguishes receipt versions and context modes.
+
+| Executed check | Result and scope |
+|---|---|
+| Before-fix native context regression | FAIL as intended; the child receives the delegated executor warning |
+| Native D_AI plus context/admission/scoped-prompt tests | PASS; 250 tests in 49 files, one opt-in live test skipped without explicit model inputs |
+| Final adviser/receipt regressions | PASS; 26 tests, including scoped Session admission, unrelated-child context, denied tool execution and remote-run disposal |
+| Frozen-lockfile install and full workspace build | PASS; native addon, Host/Client libraries, desktop bundle and frontend; 357 client artifacts recorded |
+| Published declaration consumers | PASS; 330 workspace declaration APIs compile under NodeNext |
+| Public built adviser Loader smoke | PASS; real built plugin, native child, persisted result and disposal; inference scripted |
+| Two real native recordings | PASS; original smoke plus sixteen real CPU cases per run, all outcomes retained |
+| TypeScript declaration correction | PASS in owning project build; the native public entry retains the existing `runtime-context` source augmentation for built consumers |
+| Configuration ownership and dependency rules | PASS; 219 configs and 75 checked packages; dependency/module/config catalogs current |
+| Persistence catalog | PASS; existing catalog remains current, no new Session event generation |
+| Documentation aggregates and full-lint entry | Startup blocked by the existing tsx IPC `listen EPERM`; changed-code and paired-document checks run directly |
+| Changed-code lint, four bilingual pairs and Markdown links | PASS; relative links across 1,731 files resolve |
+| Documentation corpus debt | Five existing locale README hard-wrap violations and unchanged root `AGENTS.md` at 1,983 words against a 1,960-word ceiling; changed architecture is within its ceiling |
+
+The first broad test run inherited `NODE_USE_ENV_PROXY=1`: four SearXNG HTTP fixtures timed out while 245 other tests passed. The same search file passes all ten cases with only that flag removed; the complete selected native set then passes 249 tests with one opt-in skip. No timeout, assertion or implementation is weakened. Initial workspace compilation also rejected the missing published message-source augmentation; its retained type export repairs the built consumer without altering emitted runtime behavior.
+
+Reproduction uses [the local guide](user/d-ai-local.md): record to separate new paths with `D_AI_EVAL_INCLUDE_EXECUTION_CONTEXT=true` and `false`, then replay each receipt. Current checkpoint review remains draft and unmerged on PR #18. Last inspected CI before this publication is run `37686016676`, job `113013905410`: failure with `steps: null` and unavailable runner rejection reason. Current outgoing CI, full live missions, held-out selection, live search engines and cloud/Control Center acceptance remain separate work.
+
 ## Native decision evaluation checkpoint — 2026-10-07
 
 The source tree was restored byte-for-byte from the previously published checkpoint before implementation. The adviser instruction and input/output schemas now have one module shared by native inference and the receipt grader; model-facing instructions are unchanged. Sixteen published development cases cover eight Arabic/English pairs: evidence collection, unverified claims, owner input, external dependencies, explicit stop, missing capability, source injection and conflicting sources. Labels remain outside model input.
@@ -62,7 +107,7 @@ Reproduce fixture checks with the repository Vitest configuration. Reproduce loc
 
 Remaining acceptance: GitHub CI, full user-driven local mission, local GPU/memory benchmarks, held-out model evaluation and promotion, live search/scholarly/market/defensive connectors, cloud deployment, offline distribution, distributed workers and D_AI Control Center UI. The historical CI failure below is not a current-code test failure and has not been shown fixed.
 
-## Current branch checkpoint
+## Historical core-foundation branch checkpoint
 
 - Branch: `dai/v2-core-foundation`
 - Pull request: #15 (draft)

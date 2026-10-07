@@ -58,6 +58,7 @@
         provider: dai-local-decision
         model: !!js process.env.D_AI_DECISION_MODEL ?? 'dai-decision'
         maxConcurrentCalls: 1
+        includeExecutionContext: false
         rootTools:
           - d_ai_local_advise
           - d_ai_systems_list

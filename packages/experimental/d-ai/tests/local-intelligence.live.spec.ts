@@ -22,12 +22,17 @@ import { memoryAuth } from '../../../llm/llm-pi-ai/tests/auth-double.ts'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import * as Local from '../src/local-intelligence.ts'
 import { advicePersona } from '../src/local-advice-contract.ts'
-import { datasetSha256, decisionCases, evaluationMinConfidence, gradeDecisionRow, outcomeSchema, receiptSchema } from './helpers/local-decision-evaluation.ts'
+import { datasetSha256, decisionCases, decisionEvaluationConfig, evaluationConfigSha256, gradeDecisionRow, outcomeSchema, receiptSchema } from './helpers/local-decision-evaluation.ts'
 
 const executable = process.env.D_AI_LLAMA_SERVER
 const model = process.env.D_AI_GGUF
 const expectedHash = process.env.D_AI_GGUF_SHA256
 const receiptPath = process.env.D_AI_EVAL_RECEIPT
+const contextSetting = process.env.D_AI_EVAL_INCLUDE_EXECUTION_CONTEXT
+if (contextSetting !== undefined && contextSetting !== 'true' && contextSetting !== 'false') {
+  throw new Error('D_AI_EVAL_INCLUDE_EXECUTION_CONTEXT must be true or false')
+}
+const includeExecutionContext = contextSetting === 'true'
 
 describe.skipIf(!executable || !model || !expectedHash)('D_AI real local decision inference', () => {
   it('runs a hash-verified local model through the native pi-ai adapter and decision tool', async () => {
@@ -84,15 +89,20 @@ describe.skipIf(!executable || !model || !expectedHash)('D_AI real local decisio
       await ctx.plugin(AgentLoop, { agents: [] })
       await ctx.plugin(Subagents)
       await ctx.plugin(Spawn, { providerName: 'spawn' })
-      await ctx.plugin(Local, {
-        provider: 'dai-local-decision', model: 'dai-decision', timeoutMs: 60000, minConfidence: evaluationMinConfidence,
-      })
+      await ctx.plugin(Local, decisionEvaluationConfig(includeExecutionContext))
       let rawOutput = ''
       let modelRequests = 0
+      let modelInput = ''
+      let requestContextBytes = 0
       let usage: TokenUsage | undefined
       let finishReason: { kind: string; failureCode?: string; failureMessage?: string } | undefined
       ctx.on('llm/stream', (options, next) => {
-        if (options.provider === 'dai-local-decision') modelRequests++
+        if (options.provider === 'dai-local-decision') {
+          modelRequests++
+          modelInput = JSON.stringify({ messages: options.messages.map(message => ({ role: message.role, content: message.content })),
+            tools: options.tools ?? [], maxTokens: options.maxTokens })
+          requestContextBytes = Buffer.byteLength(JSON.stringify({ messages: options.messages, tools: options.tools ?? [] }), 'utf8')
+        }
         return next()
       })
       ctx.on('agent/assistant-stream', ({ agent, frame }) => {
@@ -159,6 +169,8 @@ describe.skipIf(!executable || !model || !expectedHash)('D_AI real local decisio
           usage = undefined
           finishReason = undefined
           modelRequests = 0
+          modelInput = ''
+          requestContextBytes = 0
           const started = performance.now()
           const caseOwner = await ctx.agentLoop.create(SessionId('evaluation-' + vars.caseId), { provider, model: 'fixture' })
           caseOwner.followup(createUserMessage({ content: [{ type: 'text', text: 'Request local advice.' }], source: { kind: 'user' } }))
@@ -172,7 +184,8 @@ describe.skipIf(!executable || !model || !expectedHash)('D_AI real local decisio
             ...(usage === undefined ? {} : { usage }),
             ...(finishReason === undefined ? {} : { finishReason }),
           })
-          outcomes.push(row)
+          outcomes.push({ ...row, modelInput, requestContextBytes,
+            requestSha256: createHash('sha256').update(modelInput).digest('hex') })
           console.info('LOCAL_DECISION_CASE', JSON.stringify({ ...gradeDecisionRow(row, vars), response: gradeDecisionRow(row, vars).response?.action }))
           await ctx.sessions.flush(caseOwner.session)
         }
@@ -187,7 +200,8 @@ describe.skipIf(!executable || !model || !expectedHash)('D_AI real local decisio
           if (match) peakServerRssKiB = Number(match[1])
         }
         const receipt = receiptSchema.parse({
-          schemaVersion: 1, split: 'development', completedAt: new Date().toISOString(),
+          schemaVersion: 2, split: 'development', completedAt: new Date().toISOString(),
+          includeExecutionContext, evaluationConfigSha256: evaluationConfigSha256(includeExecutionContext),
           datasetSha256, promptSha256: createHash('sha256').update(advicePersona).digest('hex'),
           modelSha256: expectedHash, serverSha256: createHash('sha256').update(await readFile(executable!)).digest('hex'),
           device: 'CPU', contextWindow: 4096, threads: 4, outcomes,

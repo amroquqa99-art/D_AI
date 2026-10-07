@@ -46,6 +46,8 @@ The profile disables built-in DeepSeek adapters and search, uses explicit decisi
 
 `d_ai_local_advise` runs one independent native child with no tools and no inherited parent conversation. Supply a concise approved objective, current situation and existing evidence references. Strict JSON validation permits six recommendations: `EXPLORE`, `VERIFY`, `ASK_HUMAN`, `WAIT`, `STOP`, `ESCALATE`. Malformed output, invented references and confidence below the configured threshold return `ESCALATE`. Confidence is self-reported and uncalibrated. Advice never grants permissions, verifies claims, changes task state or silently activates a model.
 
+The adviser defaults `includeExecutionContext` to false. Its child omits dynamic executor context before native message admission, so a task recommendation is not confused with the adviser's own lack of execution permissions. The owner and unrelated workers retain their runtime context, and native tool/approval checks still apply. Set this deployment option to true to reproduce the baseline. A provider without an in-process native child is rejected and its run disposed; the inference endpoint itself may still be local or remote.
+
 The preset exposes eight tools for the initial investigation path instead of sending the complete 78-tool registry to a small model. Its deployment-owned `rootTools` list is enforced through the native scoped tool registry. Extend it deliberately for another domain and reevaluate context pressure and tool accuracy. Tools with separate approval requirements retain those requirements. The native token meter and compaction service remain the context owners; summarization uses a 512-token limit and retains a bounded verbatim tail. Raw Session/evidence records remain authoritative.
 
 ## 3. Connect search when online
@@ -82,13 +84,16 @@ pnpm exec vitest run packages/experimental/d-ai/tests/local-intelligence.live.sp
 
 Add held-out Arabic/English, contradictory evidence, missing tools, approval, prompt-injection and uncertainty cases before promotion. Compare quality, valid JSON/tool rate, latency, token usage and peak memory with the same context and quantization. Retain unsuccessful candidates as evaluation evidence rather than weakening validation to accept them.
 
-The published [development cases](../../packages/experimental/d-ai/tests/fixtures/local-decision-cases.json) cover eight Arabic/English pairs. To record them, retain the three model variables above and choose a new output path; existing receipts are never overwritten. The receipt includes raw model text, native tool results, elapsed advice time, native stop/failure diagnostics, available token/cache counts and dataset/prompt/model/server-binary hashes. Expected labels never enter the model context. Peak server RSS is included only when the OS exposes it; an absent counter is not zero memory use.
+The published [development cases](../../packages/experimental/d-ai/tests/fixtures/local-decision-cases.json) cover eight Arabic/English pairs. To record them, retain the three model variables above and choose a new output path; existing receipts are never overwritten. Version 2 also records canonical model-visible messages/tool schemas/output cap, actual complete-context byte counts, request hashes and a hash of explicit adviser settings alongside raw responses, native results, diagnostics, tokens and elapsed advice time. Expected labels never enter model input. Peak server RSS is included only when the OS exposes it; an absent counter is not zero memory use. Version 1 receipts remain readable historical evidence.
 
 ```sh
 export D_AI_EVAL_RECEIPT=/absolute/path/new-development-receipt.json
+export D_AI_EVAL_INCLUDE_EXECUTION_CONTEXT=false
 env -u NODE_USE_ENV_PROXY node node_modules/vitest/vitest.mjs run \
   packages/experimental/d-ai/tests/local-intelligence.live.spec.ts --maxWorkers=1
 ```
+
+For the paired baseline, use `D_AI_EVAL_INCLUDE_EXECUTION_CONTEXT=true` and a different new receipt path. This changes only executor-context admission; the same model, instruction, dataset and output limit remain in use.
 
 [Promptfoo](https://github.com/promptfoo/promptfoo), MIT, is an optional external grading dependency. Install version `0.124.0` in a separate tools directory with Node 22.22 or newer. Set `PROMPTFOO_BIN` to that installation's `node_modules/promptfoo/dist/src/main.js`. The replay provider reads the completed receipt and invokes no model or paid judge. Its assertions separately check native acceptance, expected next action and advisory-only output. Use the same source checkout; stale dataset/prompt hashes, missing cases and duplicate cases are rejected.
 
