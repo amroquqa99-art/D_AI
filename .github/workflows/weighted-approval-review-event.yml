@@ -1,18 +1,11 @@
-name: weighted-approval-review-event
-run-name: weighted-approval-review-event:${{ github.event.pull_request.number }}
-
+# Original upstream workflow is retained in .github/upstream-workflows/.
+# D_AI automatic checks are owned by d-ai-persistence-regenerate.yml and d-ai-v2-checks.yml.
+name: Archived upstream — weighted-approval-review-event
 on:
-  pull_request_review:
-    types: [submitted, edited, dismissed]
-
-permissions: {}
-
+  workflow_dispatch:
 jobs:
-  record-review-event:
-    if: github.event.pull_request.state == 'open'
-    name: record weighted approval review event
+  archived:
+    if: ${{ false }}
     runs-on: ubuntu-latest
-    timeout-minutes: 2
     steps:
-      - name: Record review event
-        run: echo 'Recorded a weighted approval review event.'
+      - run: echo "This upstream workflow is archived."

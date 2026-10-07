@@ -11,7 +11,15 @@
       "default": "./lib/index.js"
     },
     "./src/*": "./src/*",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./local-intelligence": {
+      "types": "./lib/types/local-intelligence.d.ts",
+      "default": "./lib/local-intelligence.js"
+    },
+    "./web-searxng": {
+      "types": "./lib/types/web-searxng.d.ts",
+      "default": "./lib/web-searxng.js"
+    }
   },
   "license": "MIT",
   "dependencies": {
@@ -30,7 +38,9 @@
     "@deepseek-ai/dsh-web": "workspace:*",
     "@deepseek-ai/dsh-subagent": "workspace:*",
     "@deepseek-ai/dsh-tools": "workspace:*",
-    "@deepseek-ai/dsh-user-approval": "workspace:*"
+    "@deepseek-ai/dsh-user-approval": "workspace:*",
+    "@deepseek-ai/dsh-system-prompt": "workspace:*",
+    "@deepseek-ai/dsh-agent-loop": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
@@ -49,7 +59,9 @@
     "@deepseek-ai/dsh-subagent-spawn-in-process": "workspace:*",
     "@deepseek-ai/dsh-session-persistence-jsonl": "workspace:*",
     "@deepseek-ai/dsh-storage-json": "workspace:*",
-    "@deepseek-ai/dsh-user-approval": "workspace:*"
+    "@deepseek-ai/dsh-user-approval": "workspace:*",
+    "@deepseek-ai/dsh-llm-pi-ai": "workspace:*",
+    "@deepseek-ai/dsh-system-prompt": "workspace:*"
   },
   "publishConfig": {
     "access": "public"

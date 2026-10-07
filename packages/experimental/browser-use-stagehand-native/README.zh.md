@@ -158,6 +158,8 @@ stagehand_act, stagehand_observe, and stagehand_extract use the separately confi
 - **清理失败**——SDK 工作未能结束时，保留附加浏览器的占用，因为原生扩展中的工作可能继续。启动浏览器的最终清理可在 Chromium 和 Worker 都终止后释放占用，即使 SDK 工作未正常结束。Worker、自有进程或配置目录清理失败时保留占用；选择其他 Provider 前应重启宿主。
 - **DSH 模型集成**——暂缓 Session 模型路由、DSH 凭据复用、底层推理请求/响应捕获，以及与 DSH Session 用量计量的集成。返回的工具数据和 SDK 元数据仍可回放。
 
+Zod 依赖固定为 SDK 使用的确切版本 4.4.3，因为提取 schema 会跨越 SDK 的类型接口；独立解析为较新的次版本会破坏项目编译。
+
 <a id="dev-note"></a>
 ### 开发备注
 

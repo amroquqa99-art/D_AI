@@ -34,7 +34,8 @@ import type { SessionHandle, SessionPersistence } from '@deepseek-ai/dsh-session
 import { ReactLoopAgent } from './agent.ts'
 import { inboxProjectionDefinition } from './inbox.ts'
 import { DEFAULT_MAX_PARALLEL_TOOL_CALLS } from './constants.ts'
-import type {} from './runtime-context.ts'
+// Keep the runtime-context source augmentation in published declarations.
+export type {} from './runtime-context.ts'
 
 /** Fiber states that cannot own or serve a new lifecycle. */
 const INACTIVE_STATES: ReadonlySet<FiberState> = new Set([

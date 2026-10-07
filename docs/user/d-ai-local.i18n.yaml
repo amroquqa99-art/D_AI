@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for d-ai-local.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/user/d-ai-local.md
+/d-ai-local-inference-and-search:
+  en: 49665b0a1cf19167
+  zh: f2e9c732194e4421
+/d-ai-local-inference-and-search/1-select-and-start-inference:
+  en: 244879fe014db0df
+  zh: dd1db04763d6307f
+/d-ai-local-inference-and-search/2-start-the-opt-in-profile:
+  en: 7c1d55e441b525c0
+  zh: 18c329ea109e3d25
+/d-ai-local-inference-and-search/3-connect-search-when-online:
+  en: 48a4774f3cc12989
+  zh: 0d939c75eabc6ff7
+/d-ai-local-inference-and-search/4-prepare-cloud-operation:
+  en: 034dfd86d068b6ab
+  zh: fd5f789cb096d951
+/d-ai-local-inference-and-search/5-verify-a-model-before-adoption:
+  en: bc40178730d8515c
+  zh: 9f7347889ed2668a
