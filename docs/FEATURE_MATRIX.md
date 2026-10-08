@@ -1,6 +1,6 @@
 # D_AI feature acceptance reference
 
-Date: 2026-10-07
+Date: 2026-10-09 (Asia/Jerusalem)
 
 This matrix separates **implementation maturity** from **verification state**. A feature can be wired into the runtime while the latest CI gate is unavailable; that does not make it verified.
 
@@ -15,6 +15,8 @@ This matrix separates **implementation maturity** from **verification state**. A
 
 Verification is tracked separately because the last inspected Actions run fails before workflow steps execute. The current native D_AI/context set passes 250 tests in 49 files; one live test is skipped in the keyless run. Two hash-verified CPU recordings each pass the original smoke and complete all sixteen development cases. The full workspace build and 330 public declaration APIs under NodeNext pass. CI, full live missions and live search remain pending. The 1,000-task check proves logical admission only; it does not establish distributed worker scale.
 
+The new cross-owner scheduler ordering has eight passing dependency-free checks and twelve passing production-coordinator isolation checks with fixture Context/Agent/runtime boundaries and genuine Zod/message helpers. The fixed-order helper fails seven of eight negative-control checks; the actual pre-fix coordinator fails four of twelve. Its native AgentLoop regression is added but unrun; complete current build, TypeScript, package tests and CI remain pending. The 250-test result and model recordings below refer to the previous PR #18 checkpoint. This update does not promote any capability.
+
 ## Current checkpoint
 
 | Capability | Evidence / implementation | Maturity | Current verification | Remaining acceptance work |
@@ -28,7 +30,7 @@ Verification is tracked separately because the last inspected Actions run fails 
 | Operations & Intelligence | durable entities/relations/timeline/gaps/options, fusion/adversarial agents | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | Collaborative case workspace, richer ingestion/geo integrations |
 | Innovation & Discovery | candidates, mechanisms, falsification tests, experiment handoff/results, explorer/critic | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | Prior-art connectors, deterministic math/simulation integrations |
 | Task DAG / Task Ledger | durable typed task graph, transitions, retry accounting, replay | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | 1,000-task logical admission passes; real worker concurrency/fairness acceptance pending |
-| Mission Director | durable plans, planner agent, task creation/view/status, approval-gated unattended schedules, native-turn wake loop, within-owner schedule fairness, bounded cross-owner concurrency, exact-task claims and budget-safe same-plan parallel worker waves with partial-failure accounting | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | cold-session activation, cross-owner fairness, distributed scheduling and crash/fault injection |
+| Mission Director | durable plans, planner agent, task creation/view/status, approval-gated unattended schedules, native-turn wake loop, within-owner schedule fairness, process-local cross-owner round-robin admission, bounded cross-owner concurrency, exact-task claims and budget-safe same-plan parallel worker waves with partial-failure accounting | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | new two-owner native regression, cold-session activation, distributed scheduling and crash/fault injection |
 | Durable execution | fenced leases, heartbeat renewal, checkpoint lineage, release/recovery, deterministic v1→v2 replay migration, bounded unattended cross-owner cycles and same-plan parallel workers; heartbeat cancellation/cleanup regressions fixed | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | cold-session activation, distributed scheduling, crash stress and live recovery proof |
 | External side-effect idempotency | durable reservation/dispatch/commit/unknown/reconcile journal + fenced connector gateway; no production mutable connector | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | connector-level adoption, live idempotency/reconciliation acceptance and provider-specific semantics |
 | Resource budgets / VoI | durable scoped limits/usage, budget-aware scheduler, VoI primitives | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | automatic metering on every relevant model/tool/data boundary |
@@ -53,8 +55,8 @@ Verification is tracked separately because the last inspected Actions run fails 
 ## Current verification blocker
 
 Latest inspected D_AI v2 workflow:
-- run `37686016676`
-- job `113013905410`
+- run `37694129527`
+- job `113041387558`
 - conclusion `failure`
 - workflow steps: none (`steps: null`); runner rejection reason unavailable
 
