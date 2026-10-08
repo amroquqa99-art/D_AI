@@ -1,8 +1,24 @@
 # D_AI verification report
 
-Date: 2026-10-07
+Date: 2026-10-09 (Asia/Jerusalem)
 
 This document separates **historical verified evidence** from the **current branch checkpoint**. A source file, fixture path or failed CI launch is never promoted to test evidence.
+
+## Cross-owner wake admission checkpoint — 2026-10-09
+
+The native coordinator now rotates live root owners after the last successful wake enqueue, admits at most one wake per owner per scan, and retains existing within-owner schedule order and global capacity accounting. The cursor is process-local; there is no new Session event, schema migration or cold-session activation. This checkpoint does not upgrade P3 to accepted.
+
+| Executed check | Result and scope |
+|---|---|
+| `node --test packages/experimental/d-ai/tests/director-owner-order.test.mjs` | PASS; eight checks use the actual production ordering module, including 300 capacity-one admissions, additional slots, owner removal/joining, wraparound and skipped/failed admission cursor semantics |
+| Node syntax checks for the changed ordering module and native regression | PASS; syntax checking is not TypeScript type checking |
+| `node --experimental-transform-types --check packages/experimental/d-ai/src/director-scheduler.ts` | PASS; syntax/transform check only |
+| Negative control with fixed registry ordering | PASS as a negative control; fixed insertion-order admission fails seven of eight checks (expected exit 1), including the capacity-one fairness case |
+| Native two-owner AgentLoop regression | ADDED / NOT RUN in this session; covers a still-runnable first owner being due again before the second scan |
+| Current complete workspace build, strict TypeScript, package/native Loader suite, documentation aggregates and lint | NOT RUN in this session; the workspace contains exact-head selected files only and has no repository dependency installation; direct Git transport and npm registry requests time out or fail authentication |
+| Latest inspected remote D_AI workflow before publication | FAILURE before steps; run `37694129527`, job `113041387558`, `steps: null`; the connected endpoint exposes no runner rejection reason |
+
+The previous full build, 250-test native set and model recordings below are historical evidence for PR #18, not new results for this scheduler change. The new native regression, complete build and CI are required before merge or maturity promotion. Selection tests do not establish actual worker concurrency, crash recovery, live model quality or institutional readiness.
 
 ## Adviser context ablation checkpoint — 2026-10-07
 

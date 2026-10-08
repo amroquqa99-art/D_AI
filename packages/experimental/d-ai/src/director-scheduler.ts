@@ -9,6 +9,7 @@ import type { DirectorPlanRuntimeView } from './director-runtime.ts'
 import { directorScheduleStagnationReason } from './director-schedule-state.ts'
 import type { DirectorSchedule, DirectorScheduleState } from './director-schedule-state.ts'
 import type { ExecutionState } from './execution-state.ts'
+import { orderDirectorOwnersForFairness } from './director-owner-order.ts'
 
 // Reuse Harness's existing schedule source contract. Routing data belongs in
 // message content, so adding a scheduler does not change the accepted Session
@@ -192,6 +193,7 @@ export class DirectorScheduler {
   private readonly cycles = new Set<Promise<ScheduledDirectorCycleResult>>()
   private readonly removePreStep: () => void
   private readonly loop: Promise<void>
+  private lastAdmittedOwnerId: string | undefined
 
   constructor(
     private readonly ctx: Context,
@@ -285,7 +287,7 @@ export class DirectorScheduler {
     )
     if (remainingSlots <= 0) return
 
-    for (const agent of roots) {
+    for (const agent of orderDirectorOwnersForFairness(roots, this.lastAdmittedOwnerId)) {
       if (remainingSlots <= 0) return
       let state: DirectorScheduleState
       try {
@@ -337,7 +339,9 @@ export class DirectorScheduler {
 
         try {
           agent.followup(createDirectorSchedulerWake(schedule))
+          this.lastAdmittedOwnerId = agent.id
           remainingSlots -= 1
+          break
         } catch (error) {
           // Agent disposal or a concurrent lifecycle transition must not kill
           // the process-level scheduler loop. The next scan will reconsider

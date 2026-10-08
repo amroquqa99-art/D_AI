@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
+import type { Agent } from '@deepseek-ai/dsh-agent'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
@@ -15,7 +16,7 @@ import WebRuntime from '@deepseek-ai/dsh-web'
 import Subagents from '@deepseek-ai/dsh-subagent'
 import * as Spawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import Approval, { type ApprovalOutcome } from '@deepseek-ai/dsh-user-approval'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import DAI from '../src/index.ts'
 import { DirectorScheduler } from '../src/director-scheduler.ts'
@@ -50,6 +51,66 @@ async function temporary<T>(run: (root: string) => Promise<T>): Promise<T> {
 }
 
 describe('D_AI unattended Mission Director', () => {
+  it('admits another due owner before repeating a still-runnable owner at capacity one', async () => temporary(async root => {
+    const script: ConstructorParameters<typeof MockAdapter>[0] = []
+    const { ctx, adapter } = await boot(root, script)
+    ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
+    let scheduler: DirectorScheduler | undefined
+    let clockOwned = false
+    try {
+      const owners: Agent[] = []
+      for (const id of ['fair-owner-a', 'fair-owner-b']) {
+        const agent = await ctx.agentLoop.create(SessionId(id), { provider: 'mock', model: 'fixture' })
+        owners.push(agent)
+        const objective = 'Run two approved tasks for ' + id
+        const plan = () => ctx.dai.readDirector(agent).ledgers[0]!.plans[0]!
+        script.push(
+          toolCallResponse('plan-' + id, 'd_ai_director_plan_create', { objective, primary_system: 'investigation' }),
+          () => toolCallResponse('task-one-' + id, 'd_ai_director_task_add', {
+            plan_id: plan().id, system_id: 'investigation', title: 'First task for ' + id,
+          }),
+          () => toolCallResponse('task-two-' + id, 'd_ai_director_task_add', {
+            plan_id: plan().id, system_id: 'investigation', title: 'Second task for ' + id,
+          }),
+          () => toolCallResponse('schedule-' + id, 'd_ai_director_schedule_set', {
+            plan_id: plan().id, enabled: true, interval_ms: 1000,
+            max_tasks_per_cycle: 1, lease_ttl_ms: 60000, start_immediately: true,
+          }),
+          textResponse('Schedule approved'),
+        )
+        agent.followup(createUserMessage({ content: [{ type: 'text', text: objective }], source: { kind: 'user' } }))
+        await agent.whenIdle()
+      }
+
+      script.push(...owners.map(() => textResponse(JSON.stringify({
+        outcome: 'COMPLETED', summary: 'One scheduled task completed.', artifactRefs: [],
+      }))))
+      scheduler = new DirectorScheduler(ctx, ctx.dai, { pollMs: 60000, maxConcurrentCycles: 1 })
+      scheduler.scan(Date.now())
+      await Promise.all(owners.map(agent => agent.whenIdle()))
+      expect(owners.map(agent => ctx.dai.readTaskLedger(agent).ledgers[0]!.tasks.filter(task => task.state === 'COMPLETED').length))
+        .toEqual([1, 0])
+
+      // Make the first owner's next interval due without advancing poll timers.
+      const nextDue = ctx.dai.readDirectorSchedule(owners[0]!).ledgers[0]!.schedules[0]!.nextWakeAt
+      vi.useFakeTimers({ toFake: ['Date'] })
+      clockOwned = true
+      vi.setSystemTime(Date.parse(nextDue))
+      scheduler.scan(Date.now())
+      await Promise.all(owners.map(agent => agent.whenIdle()))
+
+      expect(adapter.requests).toHaveLength(12)
+      expect(owners.map(agent => ctx.dai.readTaskLedger(agent).ledgers[0]!.tasks.filter(task => task.state === 'COMPLETED').length))
+        .toEqual([1, 1])
+      expect(owners.map(agent => ctx.dai.readDirectorSchedule(agent).ledgers[0]!.schedules[0]!.lastCycle?.outcome))
+        .toEqual(['EXECUTED', 'EXECUTED'])
+    } finally {
+      if (clockOwned) vi.useRealTimers()
+      await scheduler?.dispose()
+      await ctx.fiber.dispose()
+    }
+  }), 20000)
+
   it('wakes an idle owner, executes inside a native turn, persists a cycle receipt and replays after restart', async () => temporary(async root => {
     const script: ConstructorParameters<typeof MockAdapter>[0] = []
     const { ctx, adapter } = await boot(root, script)

@@ -1,6 +1,6 @@
 # D_AI — Depth AI
 
-> **Development status:** local-inference checkpoint on `dai/local-intelligence-20261007` · integration base `dai/v2-core-foundation` / PR #15 · last status update: 2026-10-07
+> **Development status:** scheduler checkpoint on `dai/scheduler-owner-fairness-20261008`, stacked on PR #18 · unmerged development work · last status update: 2026-10-09 (Asia/Jerusalem)
 
 D_AI is a multi-system AI operating environment built by modifying the real DeepSeek Harness source rather than wrapping it as an external dependency. The repository preserves the useful Harness runtime/plugin architecture while D_AI is being developed as its own codebase, control plane, domain system registry, durable state model, and agent orchestration layer.
 
@@ -24,7 +24,7 @@ Legend:
 | Operations & Intelligence | **TESTED / native fixtures / CI PENDING** | Durable cases, entities, relationships, timelines, intelligence gaps, human-gated proposed options, fusion + adversarial analysis Agents. |
 | Innovation & Discovery | **TESTED / native fixtures / CI PENDING** | Testable candidates, mechanisms, falsification tests, experiment handoff/results, independent explorer + critic Agents. Generated ideas cannot self-declare as discoveries. |
 | Shared Task DAG | **TESTED / native fixtures / CI PENDING** | Task states, dependencies, retry accounting, durable task-ledger replay, and scheduler admission that respects dependencies/blocking states. |
-| Mission Director | **TESTED / native fixtures / CI PENDING** | Durable cross-system plans, isolated planner decomposition, single-task/bounded-cycle execution, and a durable unattended scheduler now exist. The coordinator is opt-in, schedule configuration is human-approval gated, due plans are ordered fairly within one owner, bounded by configurable in-process concurrency, retains cycle receipts, wakes only idle root Agents, and executes inside native Agent turns so leases/fencing/checkpoints remain authoritative. Budget-safe same-plan parallel worker waves are implemented with exact task claims and partial-failure accounting. Approved failure/idle limits suspend future wakes until an approved reset. Shutdown aborts active cycles and awaits cleanup. Cold-session activation, cross-owner starvation testing, distributed scheduling and full workspace/CI acceptance remain pending. |
+| Mission Director | **TESTED / native fixtures / CI PENDING** | Durable cross-system plans, isolated planner decomposition, single-task/bounded-cycle execution, and a durable unattended scheduler now exist. The coordinator is opt-in, schedule configuration is human-approval gated, due plans are ordered fairly within one owner, bounded by configurable in-process concurrency, retains cycle receipts, wakes only idle root Agents, and executes inside native Agent turns so leases/fencing/checkpoints remain authoritative. Budget-safe same-plan parallel worker waves are implemented with exact task claims and partial-failure accounting. Approved failure/idle limits suspend future wakes until an approved reset. Shutdown aborts active cycles and awaits cleanup. Cross-owner wake ordering now rotates after each successful admission; its eight focused checks pass, while the native two-owner regression, cold-session activation, distributed scheduling and complete current-branch validation remain pending. |
 | Durable execution | **TESTED / native fixtures / CI PENDING** | Runnable tasks use durable leases with monotonically increasing per-task fencing tokens. Renew/checkpoint/executor-state/release mutations require the exact `taskId + leaseId + fence`, stale workers fail closed, checkpoints retain lease lineage, expired leases recover through retry accounting, and persisted execution facts migrate deterministically from v1 to fenced v2. The unattended Director wake loop now has fairness plus bounded cross-owner in-process concurrency; distributed/multi-process worker pools and fault-injection acceptance remain pending. |
 | External side-effect idempotency | **IMPLEMENTED FOUNDATION / CI PENDING** | A durable journal and connector gateway now model `RESERVED → DISPATCHED → COMMITTED`, preserve `OUTCOME_UNKNOWN`, suppress replay of committed keys, allow safe rebind only before dispatch, and require human reconciliation for uncertain outcomes. No production mutable connector is enabled yet. |
 | Capability control plane | **TESTED / native fixtures / CI PENDING** | Scoped ALLOW/DENY grants, fail-closed authorization, human-approved durable grant changes, append-only audit hash chain, durable control-plane projection. |
@@ -37,19 +37,19 @@ Legend:
 | Control Center read API | **TESTED / native fixtures / CI PENDING** | A consolidated platform snapshot now exposes domain counts, task states, control-plane grants/audit, budgets, evidence-graph size and execution lease/checkpoint health for future dashboards. |
 | Admin / Control Center UI | **NOT BUILT** | Runtime control APIs are being built first; full GUI for users, grants, systems, models, budgets and audit is still pending. |
 
-## Current CI blocker
+## Current validation and CI
 
-As of 2026-10-07, the latest inspected `D_AI v2 checks` run is [37535776100](https://github.com/amroquqa99-art/D_AI/actions/runs/37535776100), job `112516177529`. The job failed with no workflow steps (`steps: null`); checkout/install/build/typecheck/tests did not execute. Its runner rejection reason is unavailable through the connected API.
+The latest inspected `D_AI v2 checks` run before this checkpoint is [37694129527](https://github.com/amroquqa99-art/D_AI/actions/runs/37694129527), job `113041387558`. It failed before any steps; the connected endpoint exposes no runner rejection reason. No CI success is claimed.
 
-Native fixture integration passes locally. The full workspace build and CI remain **CI PENDING**; external providers and production readiness are unverified.
+The previous PR #18 checkpoint records a full workspace build, 250 native D_AI/context tests, and one real CPU model scenario plus two sixteen-case development recordings. Those are historical receipts, not reruns of this scheduler change. The isolated adviser achieved 12/16 accepted expected actions and reduced reported aggregate tokens by 19.4% against its paired context baseline; this does not establish held-out model quality or adoption.
 
-## Latest local engineering checkpoint
+The current scheduler checkpoint passes eight dependency-free tests using its production owner-ordering module. A fixed-order negative control fails seven of those checks. Node syntax/transform checks also pass. The native two-owner regression is added but unrun; complete build, strict TypeScript, native/Loader suites, documentation aggregates and lint require a complete installed checkout. Current work used selected exact-head files because Git transport and registry access were unavailable. Full validation and CI are required before merge or maturity promotion; details are in [TEST_REPORT.md](docs/TEST_REPORT.md).
 
-The lease heartbeat now preserves renewal failures that settle during cleanup, prevents cancelled work from reporting success, checks cancellation before deferred worker startup, retains arbitrary rejection values and supports short lease intervals. Cleanup still waits for both the worker and renewal to settle.
+## Latest engineering checkpoint
 
-Local verification now uses the complete restored workspace and frozen lockfile: the full workspace build passes after aligning Stagehand's Zod version. **193 D_AI tests plus 57 pi-ai regression/adapter tests pass**; an additional opt-in test runs a hash-verified Qwen3.5-2B GGUF on CPU through the real native adapter and isolated adviser. This one scenario validates transport, contract and isolation, not overall model quality or a fully live mission. SearXNG is integrated and covered with a real HTTP fixture; live public-engine search remains pending. Receipts and limitations are in [TEST_REPORT.md](docs/TEST_REPORT.md).
+The opt-in native scheduler now rotates live root owners after the last successful wake enqueue and admits at most one wake per owner in each scan. It reuses existing native inboxes, schedule messages, approval checks, global slots and durable cycle receipts. Its cursor resets at process restart. Cold-session activation, crash/fault injection and distributed fairness remain pending.
 
-The [local/self-hosted guide](docs/user/d-ai-local.md) provides explicit worker/adviser routes, a small tool catalog, native context compaction and cloud preparation. The source profile boots and serves its authenticated web page locally. [Open-source decisions](docs/OPEN_SOURCE_INTEGRATIONS.md) distinguish connected components from candidates. No model has been promoted, weights are not embedded in Git, cloud hosting is not deployed, and the complete D_AI Control Center remains unfinished.
+The [local/self-hosted guide](docs/user/d-ai-local.md) owns model/search configuration. [Open-source decisions](docs/OPEN_SOURCE_INTEGRATIONS.md) separate connected components from candidates. SearXNG live engine acceptance, complete live missions, model promotion/training, cloud hosting and the Control Center remain unfinished.
 
 ## What is being worked on right now
 
@@ -57,7 +57,7 @@ The active engineering path is:
 
 1. Continue thinning the runtime composition root behind characterization tests; shared owner/turn/mutation invariants and typed projection reads are already centralized.
 2. Restore an executable CI gate and run the full current branch validation. No maturity promotion happens while Actions is failing before steps.
-3. Extend loaded-owner scheduling to cold-session activation, prove cross-owner fairness and crash recovery, then validate distributed/multi-process workers.
+3. Run the new cross-owner native regression, extend loaded-owner scheduling to cold-session activation and crash recovery, then validate distributed/multi-process workers.
 4. Extend resource telemetry beyond real wall-clock metering to model tokens/cost, data-access cost and human-attention accounting without fabricated estimates.
 5. Expand cross-system authorization from Director task execution into the general tool/evidence gateway.
 6. Regenerate/verify the Harness persistence catalog for all D_AI Session events as part of the gate.
