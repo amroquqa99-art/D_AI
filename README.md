@@ -1,5 +1,9 @@
 # D_AI — Depth AI
 
+## Docker development environment
+
+The project now has a versioned Linux container toolchain for targeted D_AI build/test work. Use `docker compose build verify` and `docker compose run --rm verify`; read [container environments](docs/container-environments.md) for native compiler requirements, lockfile reuse, offline image transport, and unverified gates. The container is not a finished D_AI application or production deployment.
+
 > **Latest development checkpoint:** 2026-10-09 (Asia/Jerusalem) · [PR #19 — scheduler owner fairness](https://github.com/amroquqa99-art/D_AI/pull/19), stacked on PR #18 · draft and unmerged.
 
 The [current Arabic status report](https://github.com/amroquqa99-art/D_AI/blob/dai/scheduler-owner-fairness-20261008/D_AI_EXECUTION_STATUS_AR.md) and [current verification report](https://github.com/amroquqa99-art/D_AI/blob/dai/scheduler-owner-fairness-20261008/docs/TEST_REPORT.md) describe the development branch. All six domain slices are integrated there; the complete product, Control Center and live connectors remain unfinished. This checkpoint adds cross-owner wake rotation with eight passing focused Node tests; its native integration regression and complete build/type checks are not yet run. The previous PR #18 build and 250 native tests are historical evidence. Current Actions run [37848091696](https://github.com/amroquqa99-art/D_AI/actions/runs/37848091696) failed before workflow steps; no CI success is claimed. Source changes remain on the development branches rather than being silently treated as merged into `main`.
