@@ -15,7 +15,7 @@ This matrix separates **implementation maturity** from **verification state**. A
 
 Verification is tracked separately because the last inspected Actions run fails before workflow steps execute. The current native D_AI/context set passes 250 tests in 49 files; one live test is skipped in the keyless run. Two hash-verified CPU recordings each pass the original smoke and complete all sixteen development cases. The full workspace build and 330 public declaration APIs under NodeNext pass. CI, full live missions and live search remain pending. The 1,000-task check proves logical admission only; it does not establish distributed worker scale.
 
-The new cross-owner scheduler ordering has eight passing dependency-free checks and a rejecting fixed-order negative control. Its native AgentLoop regression is added but unrun; complete current build, TypeScript, package tests and CI remain pending. The 250-test result and model recordings below refer to the previous PR #18 checkpoint. This update does not promote any capability.
+The new cross-owner scheduler ordering has eight passing dependency-free checks and twelve passing production-coordinator isolation checks with fixture Context/Agent/runtime boundaries and genuine Zod/message helpers. The fixed-order helper fails seven of eight negative-control checks; the actual pre-fix coordinator fails four of twelve. Its native AgentLoop regression is added but unrun; complete current build, TypeScript, package tests and CI remain pending. The 250-test result and model recordings below refer to the previous PR #18 checkpoint. This update does not promote any capability.
 
 ## Current checkpoint
 

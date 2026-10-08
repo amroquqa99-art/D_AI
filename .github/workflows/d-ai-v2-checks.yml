@@ -48,6 +48,8 @@ jobs:
         run: pnpm exec tsc -b packages/experimental/d-ai/tsconfig.json --pretty false
       - name: Workspace build
         run: pnpm run build
+      - name: Director coordinator isolation tests
+        run: node --experimental-transform-types --test packages/experimental/d-ai/tests/director-scheduler-coordinator.test.mjs
       - name: Local provider context regressions
         run: pnpm exec vitest run packages/llm/llm-pi-ai/tests/small-context-budget.spec.ts packages/llm/llm-pi-ai/tests/adapter.spec.ts --maxWorkers=4
       - name: D_AI package tests
