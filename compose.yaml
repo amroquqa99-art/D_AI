@@ -1,0 +1,14 @@
+name: dai-dev
+
+services:
+  verify:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dai-dev:local
+    init: true
+    environment:
+      CI: "1"
+    # No project secrets or host credentials are provided by default.
+    # E2E tests involving live services require explicit operator configuration.
+    command: ["pnpm", "exec", "vitest", "run", "packages/experimental/d-ai/tests"]
