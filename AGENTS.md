@@ -184,3 +184,8 @@ Docs accompany every code change: update affected README and JSDoc contracts tog
 ## Vendoring policy
 
 `vendor/` packages are pinned source copies (manifest with upstream SHAs in [vendor/README.md](vendor/README.md)). Update via the sync procedure there; re-apply or retire the logged local modifications; rerun `pnpm run test && pnpm run build`.
+
+
+## Mandatory container/toolchain policy (2026-10-09)
+
+Read [container environments](docs/container-environments.md) before installing new toolchains. Keep the Dockerfile, Compose recipe, lockfile, pinned Node/pnpm toolchain and `.dockerignore` in sync with source changes. Run targeted checks inside the container when possible, preserve BuildKit caches, and do not install fresh host-wide packages for every test. Treat live API credentials, session data, local model artifacts and hardware-specific integrations as external, never bake them into images. Document tests actually run; a Dockerfile alone is not passing test evidence. For Linux/container unsupported behavior, use an explicit host-specific verification lane.
