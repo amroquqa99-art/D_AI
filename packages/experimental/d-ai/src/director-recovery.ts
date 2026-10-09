@@ -49,8 +49,15 @@ export class DirectorOwnerRecovery implements DirectorSchedulerRecovery {
       const next = selectDurableRunnableTasks(scoped, 1, profiles)
       const pendingLeases = leases.filter(lease => lease.releasedAt === undefined
         && scoped.tasks.some(task => task.id === lease.taskId))
-      const candidate = Math.max(Date.parse(schedule.nextWakeAt), next.selected.length > 0
-        ? 0 : Math.min(...pendingLeases.map(lease => Date.parse(lease.expiresAt))))
+      const leaseDeadlines = new Map<string, number>()
+      for (const lease of pendingLeases) {
+        leaseDeadlines.set(lease.taskId, Math.max(leaseDeadlines.get(lease.taskId) ?? 0, Date.parse(lease.expiresAt)))
+      }
+      const selected = next.selected[0]
+      const eligibleWorkAt = selected === undefined
+        ? Math.min(...leaseDeadlines.values())
+        : leaseDeadlines.get(selected.id) ?? 0
+      const candidate = Math.max(Date.parse(schedule.nextWakeAt), eligibleWorkAt)
       const view = { plan, tasks: scoped.tasks, next, phase: deriveMissionPhase(plan.status, scoped.tasks) }
       if (Number.isFinite(candidate) && shouldWakeDirectorSchedule(schedule, view, execution, candidate)) {
         earliest = Math.min(earliest, candidate)

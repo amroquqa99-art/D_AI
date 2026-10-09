@@ -18,7 +18,7 @@ import DAI from '../../lib/index.js'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../../core/agent-loop/tests/mock-adapter.ts'
 
 const [mode, root] = process.argv.slice(2)
-if (!['running', 'recover'].includes(mode) || root === undefined || process.send === undefined) {
+if (!['running', 'claim-gap', 'recover'].includes(mode) || root === undefined || process.send === undefined) {
   throw new Error('Expected test mode, private root and IPC channel')
 }
 const id = SessionId('process-crash-owner')
@@ -52,9 +52,23 @@ function snapshot(agent) {
   }
 }
 
-if (mode === 'running') {
+if (mode !== 'recover') {
   const agent = await ctx.agentLoop.create(id, { provider: 'mock', model: 'fixture' })
   const plan = () => ctx.dai.readDirector(agent).ledgers[0].plans[0]
+  if (mode === 'claim-gap') {
+    const flush = ctx.sessions.flush.bind(ctx.sessions)
+    ctx.sessions.flush = async (session, ...args) => {
+      await flush(session, ...args)
+      const state = snapshot(agent)
+      if (session.id === id && state.task?.state === 'READY' && state.leases?.length === 1) {
+        await ctx.sessionPersistence.flush()
+        process.send({ stage: 'claim-gap', ...state })
+        // Hold the exact durable gap; the parent kills without graceful cleanup.
+        await new Promise(() => {})
+      }
+    }
+  }
+
   script.push(
     toolCallResponse('plan', 'd_ai_director_plan_create', {
       objective: 'Recover a genuinely interrupted task', primary_system: 'investigation',

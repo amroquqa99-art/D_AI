@@ -2,6 +2,26 @@
 
 Date: 2026-10-10 (Asia/Jerusalem)
 
+## Task claim durability checkpoint — 2026-10-10
+
+Source base: PR #22 at `d3d76718a70a9afd46d9975615a2dd5b09f49e39`; current branch `dai/crash-claim-order-20261010`. New claims persist and flush their execution lease before persisting RUNNING, and launch a worker only after both operations succeed. Every new-claim crash prefix has either runnable work, runnable work with a recoverable lease, or running work with that lease. Cold eligibility waits for the latest unreleased lease generation of the selected task, including READY tasks, so early wake attempts cannot exhaust schedule failure limits before expiry. Old ambiguous RUNNING records without leases are not silently reinterpreted.
+
+| Executed check | Result and scope |
+|---|---|
+| Native package suite | PASS; 219 tests, one opt-in live skip. Existing claim, fencing, retry, approval, budget, side-effect, replay and Loader recovery paths retain acceptance. |
+| Complete workspace build | PASS; native addon, Host/Client, desktop and frontend, using the same pinned toolchain and verified headers. |
+| Built coordinator and process acceptance | PASS; 14 tests, including both POSIX SIGKILL boundaries. |
+| Running-worker interruption | PASS; initial task RUNNING, fence 1 and five fixture model requests; restart completes under fence 2 with both leases released and one new scripted model request. |
+| Claim-gap interruption | PASS; readiness is emitted only after the native flush of fence 1 while the task remains READY and the worker has not requested inference (four setup requests). SIGKILL occurs at this barrier. The fresh process waits for lease expiry, completes under fence 2, retains both released leases and exits normally. |
+| Old-order negative control | EXPECTED FAILURE; against the preceding built source, the new claim-gap test receives worker-running readiness rather than lease-before-RUNNING readiness. The normal implementation change makes the exact same assertion pass. |
+| Concurrent process isolation | PASS; two independent copies each execute both interruption cases using private temporary roots and drained child teardown. Repetition is not extra distinct test coverage. |
+| Scoped recovery type-aware lint / composition staged lint | PASS. Legacy full type-aware composition debt and repository JSDoc/budget failures remain as reported below. |
+| Persistence/configuration catalogs and third-party notices | PASS without generation; no Session format, event shape, released generation or lockfile changes. |
+| README pair / Markdown formatting and links | PASS via the direct ESM verifiers; root README links point to this checkpoint. |
+| GitHub / Docker / live acceptance | The PR #22 workflow `37995840690` failed before steps in both jobs (`114041572349`, `114041572758`). Current outgoing CI is inspected separately after publication. Docker and live-provider proof remain unavailable here. |
+
+[The claim-order receipt](../docker/verification/claim-order-20261010.json) binds current source and local logs. These results close the new-claim ordering gap identified in the preceding checkpoint; they do not establish power-loss disk integrity, arbitrary historical repair, multiple live writers or full production acceptance. The unchanged 15 generator and 16 runner/order checks from the preceding checkpoint still apply; there are 264 distinct passing checks across the combined current scope, with one opt-in skip.
+
 ## Explicit cold-owner recovery checkpoint — 2026-10-10
 
 Source base: `b88a20bd7fdf9745df9fb37a3ea3355d85cc58f1`, the verified complete-source PR #21 head. The current branch is `dai/cold-owner-recovery-20261010`. Recovery uses an explicit bounded root allowlist, native projection replay, exclusive native writer ownership and publication revalidation. It preserves pending human input and resumes a sole saved scheduler wake; Director mutations still occur only in native Agent turns. [The machine-readable receipt](../docker/verification/cold-recovery-20261010.json) binds the relevant source inputs, commands and log hashes.
