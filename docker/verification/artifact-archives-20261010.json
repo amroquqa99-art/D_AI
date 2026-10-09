@@ -73,8 +73,23 @@
     "multi-host sharing, retention/delta, curation, full product remain unfinished"
   ],
   "ci": {
-    "scope": "not yet published archive checkpoint",
-    "state": "pending; prior PR24 failed before workflow steps"
+    "scope": "first published production checkpoint; documentation-only follow-up does not alter production source",
+    "pullRequest": 25,
+    "commit": "13499180548f7252e00998846bbe7e0de09d4388",
+    "run": 38002892474,
+    "state": "failure before steps",
+    "jobs": [
+      {
+        "id": 114064918904,
+        "steps": null,
+        "logs": null
+      },
+      {
+        "id": 114064919033,
+        "steps": null,
+        "logs": null
+      }
+    ]
   },
   "logSHA256": {
     "archive-package.log": "7999c9ff74a9456f9ee8b232571f09f775d9a4ce16adf083972ee65d2f73146d",
