@@ -1,0 +1,19 @@
+name: dai
+
+x-source: &source
+  image: dai-source:local
+  build:
+    context: .
+    target: source
+  init: true
+  environment:
+    NODE_OPTIONS: --max-old-space-size=8192
+
+services:
+  check:
+    <<: *source
+    command: [bash, docker/check.sh]
+
+  build:
+    <<: *source
+    command: [pnpm, run, build]

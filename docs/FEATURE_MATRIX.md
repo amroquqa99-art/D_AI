@@ -45,6 +45,7 @@ The new cross-owner scheduler ordering has eight passing dependency-free checks 
 | SearXNG search | fixed JSON endpoint, native web provider, byte/timeout limits, source URLs | INTEGRATED | LOCAL_HTTP_FIXTURE_PASS / CI_PENDING | live configured SearXNG engines and investigation acceptance |
 | Local/self-hosted profile | explicit worker/adviser routes, eight root tools, native compaction, no implicit paid fallback | INTEGRATED | LOCAL_AUTHENTICATED_HTTP_BOOT_PASS / CI_PENDING | full user-driven mission/browser acceptance, offline packaging |
 | Cloud hosting | remote endpoints and persistent VM/container guidance | FOUNDATION | NOT_DEPLOYED | select target, authentication, durable storage, restore and operational testing |
+| Container build/check environment | digest-pinned Node, exact pnpm, frozen install, copied-source Compose build/check services and fail-fast check runner | IMPLEMENTED | LOCAL_CONFIG_AND_RUNNER_PASS / IMAGE_BUILD_PENDING | complete Docker-host build/install/native acceptance, fresh-checkout proof and image transfer acceptance |
 | Control Center read API | consolidated platform snapshot | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | full backend control APIs and browser UI |
 | Admin / Control Center UI | product specification only | NOT_STARTED | NOT_RUN | mission/agent/task/evidence/model/policy/resource views + RTL |
 | Collaborative rooms | cross-system handoff primitives only | FOUNDATION | CI_PENDING | durable room/message/task coordination + scoped sharing |

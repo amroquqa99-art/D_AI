@@ -2,6 +2,28 @@
 
 Date: 2026-10-09 (Asia/Jerusalem)
 
+## Container environment checkpoint — 2026-10-09
+
+The container source environment pins official Node `24.19.0-bookworm` by its multi-platform registry index digest and installs pnpm `11.7.0`, matching `package.json`. It preserves the existing frozen lockfile, workspace patches and reviewed install scripts. The source image runs as `node`; Compose has build/check services without host bind mounts, credentials, Docker-socket access, models or application deployment. [The container guide](../docker/README.md) owns setup, snapshot lifetime and transfer limitations.
+
+| Executed check | Result and scope |
+|---|---|
+| `node --test docker/tests/check-runner.test.mjs packages/experimental/d-ai/tests/director-owner-order.test.mjs` | PASS; 16 checks: eight current production-ordering cases plus eight command-runner regressions. Runner cases substitute `node`/`pnpm`, check order/working directory/fixture proxy settings and retain exit 37 on failure; they do not execute native build/tests. |
+| `bash -n docker/check.sh` | PASS; shell syntax only. |
+| Named README translation-pair check | PASS; root and container English/Chinese pages and generated consistency records pass the actual repository pairing verifier. This is not the corpus-wide documentation check. |
+| Dockerfile AST parse | PASS with `dockerfile-ast` 0.7.1; toolchain/source stages are recognized. Parsing is not a BuildKit build or lint result. |
+| Exact pnpm `11.7.0` inconsistent-workspace probe | EXPECTED REJECTION; `pnpm_config_verify_deps_before_run=error` stops with `ERR_PNPM_VERIFY_DEPS_BEFORE_RUN` before a marker script executes. This validates the workspace command policy, not frozen installation or a Docker image. |
+| Docker Compose `5.6.0` configuration rendering | PASS using the official standalone binary, verified against its release checksum; both services resolve the source build target and expected commands. No Engine involved. |
+| Official image registry manifest | Verified `node:24.19.0-bookworm` index digest `sha256:4196d66a565c6f195728d9952f161f4adfe2ad753052a08b7ec7f1c5a6bda42b`; Linux amd64/arm64/ppc64le entries are declared. This is identity evidence, not a pulled or run image. |
+| Image build / frozen installation / complete in-container suite | NOT RUN; Docker Engine/socket is unavailable in this execution environment. The selected-source checkout also cannot supply a complete build context. |
+| Current strict TypeScript/native AgentLoop/Loader/full build | NOT RUN; previous checkpoint receipts below remain historical. No subsystem is promoted. |
+
+The runner verifies the committed persistence catalog without first regenerating it, builds before importing the normal built coordinator entries, and fails on the first unsuccessful command. CI adds a separate container job; its execution remains unverified until an actual job result is inspected. The container packaging does not resolve cold-session activation, distributed recovery, live connectors or Control Center acceptance. Root documentation is consolidated around current reports and its inherited Chinese page is aligned with D_AI rather than the original upstream product.
+
+Validation-only Markdown/AST dependencies live outside the project and use a local `node_modules` link; they are not a workspace install and are not published or added to the production lockfile. Aggregate documentation/lint and full source compilation require the complete installed repository. This checkpoint keeps their status pending rather than substituting configuration parsing for native acceptance.
+
+`pnpm run doc-sync` and `pnpm run lint` are BLOCKED before their scripts: the selected-source workspace lacks `@deepseek-ai/dsh-agent`, and pnpm 11's automatic dependency check attempts an install, then rejects the missing workspace package. This is incomplete-checkout evidence, not a documentation/lint pass. The image sets command-time dependency verification to `error`, retaining checks while prohibiting implicit installation of an inconsistent snapshot; explicit frozen installation remains the image-build step.
+
 This document separates **historical verified evidence** from the **current branch checkpoint**. A source file, fixture path or failed CI launch is never promoted to test evidence.
 
 ## Cross-owner wake admission checkpoint — 2026-10-09

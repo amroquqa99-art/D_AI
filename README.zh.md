@@ -1,96 +1,47 @@
-# DeepSeek Harness
+# D_AI — Depth AI
 
 [English](README.md) | 中文
 
-DeepSeek Harness（`dsh`）是由 [DeepSeek AI](https://deepseek.com) 开发的开源 agent harness（智能体框架）。
+D_AI 是基于真实 DeepSeek Harness 源码构建的多系统 AI 运行环境。它使用原生 Cordis 插件、独立子 agent（智能体）、持久 Session（会话）事件、明确权限和有界执行。上游变更经过审核后手动集成；应用在运行时不会下载实时上游检出目录。
 
-它构建于**一切皆插件**的架构之上，由 [Cordis](https://github.com/cordiverse/cordis) 驱动，其设计参见论文 [_A Programming Paradigm for Spatiotemporal Composability_](https://arxiv.org/abs/2608.25512)。
+## 开发状态
 
-文档：[https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
+当前开发分支为 `dai/container-environment-20261009`，基于尚未合并的调度器所有者公平性检查点。D_AI 尚非完整生产版本。源码变更、fixture（测试前置数据）证据与真实提供方验收分别记录状态。
 
-## 开发者预览
+六个领域切片——调查、科学研究、投资分析、网络安全、行动与情报、创新与发现——已有原生运行时路径。共享基础设施包括任务计划、带 fencing 的执行租约、检查点、证据与控制投影、路由策略以及本地决策建议器。完整 Control Center、真实连接器、分布式调度和受治理训练仍未完成。
 
-DeepSeek Harness 处于 _开发者预览_ 阶段，正在快速迭代。**未来将出现破坏兼容性的变更。**
+使用下列当前报告查看实现与就绪情况：
 
-运行本项目前，请阅读[安全说明](SAFETY.zh.md)。
+- [阿拉伯语执行状态](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/D_AI_EXECUTION_STATUS_AR.md)。
+- [功能验收矩阵](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/FEATURE_MATRIX.md)。
+- [已执行检查与限制](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/TEST_REPORT.md)。
 
-<a id="run"></a>
+## 容器开发检查
 
-## 运行
-
-### 通过 `npm` 运行
-
-安装 `Node.js`，然后运行：
+[容器指南](docker/README.zh.md)说明固定摘要的 Node 镜像、仓库精确 pnpm 版本、冻结依赖、构建与检查服务以及镜像迁移。容器配置与失败传播检查已在本地通过。镜像构建及容器内完整原生检查仍待在 Docker 主机执行；拟议命令不代表容器部署已经完成。
 
 ```sh
-npx @deepseek-ai/dsh web
+docker compose config --quiet
+docker compose build check
+docker compose run --rm check
 ```
 
-该命令默认会在 `http://127.0.0.1:3080` 启动 Web UI，本机启动时还会用默认浏览器打开页面。通过 SSH 启动时只打印宿主机 URL，因为本地转发地址由 SSH 客户端或编辑器持有。传入 `--no-open` 可仅运行服务器而不打开浏览器。详见 [Web UI 指南](docs/user/guide/index.zh.md)。
+复制源码的环境避免修改主机检出目录。它不包含模型或用户数据，也不启动产品 Web 应用。修改源码或锁文件后应重新构建。CI 设有独立容器作业；失败或未启动的工作流步骤不计为验证。
 
-<a id="run-from-source"></a>
+## 源码应用
 
-### 从源码运行
-
-如需从仓库源码运行：
+现有源码路径使用受支持的 `dsh` 启动器：
 
 ```sh
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-cd deepseek-harness
-pnpm install
+pnpm install --frozen-lockfile
 pnpm run build
 pnpm dsh web
 ```
 
-`pnpm run build` 会准备仓库产物。`pnpm dsh web` 会直接使用这些已构建产物，不会重新构建。
+该命令启动底层 Harness Web 应用。完善的 D_AI 启动器与 Control Center 仍需构建。[可选本地推理与搜索指南](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/user/d-ai-local.md)连接明确选择的本地提供方；完整真实任务与离线部署还需进一步验收。
 
-## 社区与支持
+## 工程与来源归属
 
-- 通过 [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions) 提交反馈或 bug 报告。
-- 为你的插件仓库添加 [`dsh-plugin`](https://github.com/topics/dsh-plugin) 话题，便于被发现。
-- 欢迎加入 DeepSeek Harness 企微群！扫描下方二维码填写入群问卷，小助手会定期发送入群邀请。
+修改共享约定前，请阅读 [AGENTS.md](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/AGENTS.md)、[产品规格](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/PRODUCT_SPEC.md)及[工程协议](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/ENGINEERING_WORKING_AGREEMENT.md)。运行时权限、审批、审计与持久化规则保持执行；打包不会扩大权限。
 
-<table>
-  <thead>
-    <tr>
-      <th align="center">入群问卷</th>
-      <th align="center">微信公众号</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td align="center"><a href="https://trtgsjkv6r.feishu.cn/share/base/form/shrcnIt5twSVdLGD52KJBckGCgg"><img src="https://cdn.deepseek.com/harness/readme/community-wecom-survey.png" alt="DeepSeek Harness 入群问卷二维码" width="180" height="180"></a></td>
-      <td align="center"><img src="https://cdn.deepseek.com/harness/readme/community-wechat-official-account.png" alt="DeepSeek Harness 团队微信公众号二维码" width="180" height="180"></td>
-    </tr>
-  </tbody>
-</table>
-
-## 参与贡献
-
-参见 [CONTRIBUTING.md](CONTRIBUTING.zh.md)。
-
-## 开发
-
-请先阅读[开发指南](docs/development.zh.md)与[架构文档](docs/architecture.zh.md)。
-
-`pnpm run dev:web` 会在一个终端里完成构建、启动，并在源码修改时重建 client bundle；`make help` 列出 Web 与 Desktop 对应的 Make target。完整表格见开发指南的「应用命令」一节。
-
-面向 agent：请遵循 [AGENTS.md](AGENTS.md)。
-
-## 引用
-
-```bibtex
-@misc{deepseek-harness2026,
-  title={DeepSeek Harness: Everything is a Plugin},
-  author={DeepSeek-AI},
-  year={2026},
-  publisher={GitHub},
-  howpublished={\url{https://github.com/deepseek-ai/deepseek-harness}},
-}
-```
-
-## 许可证
-
-[MIT](LICENSE)
-
-第三方依赖及其许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+源码来源为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)。保留其 [MIT 许可证](LICENSE)与[第三方声明](THIRD_PARTY_NOTICES.md)。
