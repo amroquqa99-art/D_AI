@@ -1,6 +1,33 @@
 # D_AI verification report
 
-Date: 2026-10-09 (Asia/Jerusalem)
+Date: 2026-10-10 (Asia/Jerusalem)
+
+## Explicit cold-owner recovery checkpoint — 2026-10-10
+
+Source base: `b88a20bd7fdf9745df9fb37a3ea3355d85cc58f1`, the verified complete-source PR #21 head. The current branch is `dai/cold-owner-recovery-20261010`. Recovery uses an explicit bounded root allowlist, native projection replay, exclusive native writer ownership and publication revalidation. It preserves pending human input and resumes a sole saved scheduler wake; Director mutations still occur only in native Agent turns. [The machine-readable receipt](../docker/verification/cold-recovery-20261010.json) binds the relevant source inputs, commands and log hashes.
+
+| Executed check | Result and scope |
+|---|---|
+| `pnpm install --frozen-lockfile --offline` with exact pnpm 11.7.0 | PASS; all 344 workspace projects, no lockfile changes. Installed Vitest resolves to 4.1.11 under the existing lockfile. |
+| `NODE_HEADERS_DIR=<verified-headers> pnpm run build` | PASS; native addon, Host/Client libraries, desktop and frontend; 357 client artifacts. Node 24.19.0 header archive matches the official SHA-256 manifest. |
+| `NODE_USE_ENV_PROXY=0 node node_modules/vitest/vitest.mjs run packages/experimental/d-ai/tests scripts/gen-config-catalog.spec.ts --maxWorkers=4` | PASS; 234 tests: 219 native D_AI tests plus 15 generator regressions, with one opt-in live test skipped. |
+| Real native Loader recovery | Included above: empty/saved-wake restart, completed owners staying cold, disabled/human-pending refusal, read overflow, zero capacity, excluded identity, original live-owner preservation, human-arrival publication race and cancellation/read-handle closure. Inference remains scripted. |
+| Recovery disconnected negative control | EXPECTED FAILURE; removing only the constructor wiring makes both cold Loader recovery tests fail. Exact original source bytes are restored afterward. No assertions or timeouts were weakened. |
+| Package-relative schema alias negative control | Both new generator tests fail before the fix. With relative resolution enabled, all 15 generator tests pass, including rejection of undeclared fields and private workspace exports. |
+| `node --experimental-transform-types --test packages/experimental/d-ai/tests/director-scheduler-coordinator.test.mjs packages/experimental/d-ai/tests/director-recovery-process.test.mjs` | PASS; 13 tests: 12 production-coordinator fixture cases and one genuine POSIX process crash/restart case through the ordinary built D_AI entry. |
+| Abrupt-process acceptance | A durable running task holds fence 1 and an active native worker. The parent observes readiness after a native persistence flush, sends SIGKILL and verifies the signal exit. A fresh process waits for lease expiry, restores the owner automatically, completes the task under fence 2, retains both released leases and an EXECUTED schedule receipt, makes one scripted inference request and exits normally. This is not a disk/power-loss fault test. |
+| Independent-process fixture isolation | PASS; two separate copies of the crash test run concurrently with separate atomic temporary roots. Both complete. Child environments exclude model credentials; teardown kills and awaits owned children before removing files. |
+| Runner / owner ordering | PASS; 16 tests. The eight runner cases substitute commands and verify the new process-test command/order/failure propagation. |
+| Changed TypeScript scoped lint | PASS; configuration, recovery, configuration/Loader tests, generator and generator tests. `.mjs` tests are explicitly excluded by repository lint configuration; their acceptance is executable. |
+| Committed persistence/configuration catalogs | PASS; verification runs without regeneration. Configuration generation adds the recovery option; no new durable event or released Session generation is introduced. |
+| Root README pair / Markdown wrap / relative links | PASS; named English/Chinese pair, no prose hard wraps across 1,753 Markdown files, and valid relative links/fragments across 1,731 files. Existing locale README wraps are corrected mechanically. |
+| Aggregate `pnpm run doc-sync` | BLOCKED at tsx CLI Unix-socket startup: `listen EPERM`; direct ESM checks above run independently. Git hooks now run the same source verifiers through the supported ESM hook, retaining all checks. The first feature commit correctly rejects inherited non-null assertions and overlong lines in the composition modules; the affected assertions are replaced with direct immutable returns of the already committed typed records, and formatting is corrected before retrying. |
+| Repository export JSDoc / instruction budgets | Existing FAIL; 740 completeness violations, none for the new recovery class/config/interface; full type-aware lint of the legacy composition modules also reports existing deprecations and typing debt, while their staged lint passes; root AGENTS.md remains above its unchanged word budget. These failures prevent claiming aggregate documentation acceptance. |
+| Docker image / CI / live-provider acceptance | Docker Engine unavailable; image/in-container execution is unrun. GitHub checks are independent and pending until inspected after publication. Models, web sources and approvals in these tests are fixtures. |
+
+There are 263 passing distinct checks across the executed package/generator, built coordinator/crash and runner/ordering sets, with one opt-in skip. Concurrent repetitions establish fixture isolation and are not counted as extra distinct tests. The initial race fixture used an invalid timestamp field instead of the native `time` field; correcting the fixture makes the real durable human-input race pass. Strict full compilation caught unbranded fixture sequences, now constructed with `SessionSeq`. Earlier build attempts and historical receipts below do not substitute for this current checkpoint.
+
+This verifies configured native cold-root restart and one abrupt-process task recovery. It does not accept arbitrary scoped-plugin restoration, multi-host scheduling, storage power-loss integrity, production mutable connectors, a complete Control Center, training or full live missions. [The operations guide](OPERATIONS.md#unattended-owner-recovery) owns configuration and limitations.
 
 ## Complete-source host checkpoint — 2026-10-09
 

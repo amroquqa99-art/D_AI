@@ -1,0 +1,216 @@
+{
+  "schema": "d_ai.host-verification.v1",
+  "date": "2026-10-10",
+  "timezone": "Asia/Jerusalem",
+  "sourceBaseCommit": "b88a20bd7fdf9745df9fb37a3ea3355d85cc58f1",
+  "branch": "dai/cold-owner-recovery-20261010",
+  "node": "24.19.0",
+  "pnpm": "11.7.0",
+  "vitest": "4.1.11",
+  "nodeHeadersArchiveSha256": "54f14a297d47ea0794fe272363703d9dc419c96ac68f20d890f98b63754a3e4c",
+  "nodeHeadersManifest": "https://nodejs.org/dist/v24.19.0/SHASUMS256.txt",
+  "sourceInputsSha256": {
+    "packages/experimental/d-ai/src/config.ts": "4e69d9dc437b9c790e88ff04bea85e71cc56381d1c8e199c5cb3c2b960f51f58",
+    "packages/experimental/d-ai/src/director-recovery.ts": "9f168af27debd3ce28ee9621f98f2019070572995ca19b32686c1a9a974a6f47",
+    "packages/experimental/d-ai/src/director-scheduler.ts": "85584a6ee0a5777611f55c8a9b93fcf510107f683e7fe36a6fe6632a6456158b",
+    "packages/experimental/d-ai/src/index.ts": "be401cbf65525eedcb1f5eb21193665db45f9ab0304a249e3bf790d72858281c",
+    "packages/experimental/d-ai/tests/config.spec.ts": "06e218cf6cff6b455454286ddd420fceac05654299a80c9133e3e64902201a56",
+    "packages/experimental/d-ai/tests/director-scheduler-loader.spec.ts": "70125482aea6d07609cc7df27fb03296e30e4c25dd027417b54abbdf872507ff",
+    "packages/experimental/d-ai/tests/director-recovery-process.test.mjs": "5ae5857ec1ba3c68df733f018713fce73dae116a694f8160d5ac58f0f9bd2730",
+    "packages/experimental/d-ai/tests/fixtures/director-recovery-process.mjs": "afc8c29b0953589ecb0108fb57f02fe92f3bc35cce660a82db88483bcb6e392e",
+    "scripts/gen-config-catalog.ts": "77f8a2dbb41219e7b06120fc48304059e30db4ecd4362a45ebac82568feaad36",
+    "scripts/gen-config-catalog.spec.ts": "72e1b6a5d3b7915e048c79f1e2afae68c3f437295de19bd2dbd95868bddb2938",
+    "docker/check.sh": "1b596c9933fbbf3a3350fb17e426dab5fde711b7083af6cc6146b37f238dd13f",
+    "docker/tests/check-runner.test.mjs": "379867fcfb5b28a0419d7a231ed4abb8295ae04d857846379a2b3cb397110a33",
+    ".github/workflows/d-ai-v2-checks.yml": "11fdc2c0a33e03bad4492fed5e3696a73ff811a093f8d348b7ea2cc24ef4cc30",
+    "lefthook.yml": "fe3024c7a8a3595ec8f991fcb6a946ded4b479c8415541db0cfedc950c0a4dd3"
+  },
+  "checks": [
+    {
+      "command": "pnpm_config_verify_deps_before_run=error node /opt/codex/tools/pnpm/bin/pnpm.cjs install --frozen-lockfile --offline",
+      "result": "PASS",
+      "log": "frozen-install.log",
+      "logSha256": "832df14931eea0210d9624cdf3d13f06ff9bffefd944d7e7fae3ee1c870f841d"
+    },
+    {
+      "command": "NODE_HEADERS_DIR=<verified Node 24.19.0 headers> pnpm_config_verify_deps_before_run=error node /opt/codex/tools/pnpm/bin/pnpm.cjs run build",
+      "result": "PASS",
+      "log": "build.log",
+      "logSha256": "1600b13ab37da989a1fb2d99008a64e2114fa6c408a69905d45ab83e74f77d67"
+    },
+    {
+      "command": "NODE_USE_ENV_PROXY=0 node node_modules/vitest/vitest.mjs run packages/experimental/d-ai/tests scripts/gen-config-catalog.spec.ts --maxWorkers=4",
+      "result": "PASS_234_SKIP_1",
+      "log": "package.log",
+      "logSha256": "1710e2cfeeb6338e84a56e72e677fb52f0fb37024bb4262448292c7382e101a8"
+    },
+    {
+      "command": "node --experimental-transform-types --test packages/experimental/d-ai/tests/director-scheduler-coordinator.test.mjs packages/experimental/d-ai/tests/director-recovery-process.test.mjs",
+      "result": "PASS_13",
+      "log": "process.log",
+      "logSha256": "621beb2c1d0db5636c204d6d04a08a383b1093d969ad321fbb5512db188714ba"
+    },
+    {
+      "command": "node --test docker/tests/check-runner.test.mjs packages/experimental/d-ai/tests/director-owner-order.test.mjs",
+      "result": "PASS_16",
+      "log": "runner.log",
+      "logSha256": "813b76a09e8f8e96b454f38b5bad690ea3d13d8e12e92ce92321986be1fd6f93"
+    },
+    {
+      "command": "node --experimental-transform-types --test packages/experimental/d-ai/tests/director-recovery-process.test.mjs",
+      "result": "PASS_1_CONCURRENT",
+      "log": "process-parallel-a.log",
+      "logSha256": "cefad54b1c685f8bb39f0bf475dd6774206909f01cac751cc2b82a8c94e33424"
+    },
+    {
+      "command": "node --experimental-transform-types --test packages/experimental/d-ai/tests/director-recovery-process.test.mjs",
+      "result": "PASS_1_CONCURRENT",
+      "log": "process-parallel-b.log",
+      "logSha256": "2b6df52aad31eed4e048e81a66a055438e3069c3f7a0ee3e4b4efe8d84b657e8"
+    },
+    {
+      "command": "node node_modules/vitest/vitest.mjs run scripts/gen-config-catalog.spec.ts -t package-relative",
+      "result": "EXPECTED_FAIL_2_BEFORE_FIX",
+      "log": "catalog-negative.log",
+      "logSha256": "7bb94e118f67b782776e2f2c4b91610a5f721cd97d8741d798974a5b1d280215"
+    },
+    {
+      "command": "NODE_USE_ENV_PROXY=0 node node_modules/vitest/vitest.mjs run packages/experimental/d-ai/tests/director-scheduler-loader.spec.ts -t \"recovers a cold Loader owner\" --maxWorkers=1",
+      "result": "EXPECTED_FAIL_2_DISCONNECTED_WIRING_RESTORED",
+      "log": "recovery-negative.log",
+      "logSha256": "94dccf153b087349067d1f84555f68d15a0f1355385d88ffd310157c00d4a807"
+    },
+    {
+      "command": "node --import tsx/esm scripts/run-oxlint.ts <six changed TypeScript source/test files>",
+      "result": "PASS_SCOPED_TS",
+      "log": "lint.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "node --import tsx/esm scripts/gen-persistence-catalog.ts --check",
+      "result": "PASS",
+      "log": "persistence.log",
+      "logSha256": "0b94ccd6b72409fde2a779406cbab9106a6b7fb75d628efaa55d6b0418b7f8fe"
+    },
+    {
+      "command": "node --import tsx/esm scripts/gen-config-catalog.ts --check",
+      "result": "PASS",
+      "log": "catalog.log",
+      "logSha256": "a1652449aaf0d73a66b03fc831d22fd102283579404228e1b8b81fb92c2c5155"
+    },
+    {
+      "command": "node --import tsx/esm scripts/verify-node-next-types.ts",
+      "result": "PASS_330",
+      "log": "node-next.log",
+      "logSha256": "7036d9660ab047ececf4aafd708c12a7dac5358f388fd039c441b0ce7962120e"
+    },
+    {
+      "command": "node --import tsx/esm scripts/gen-module-graph.ts --check",
+      "result": "PASS",
+      "log": "module-graph.log",
+      "logSha256": "0eb3498bae5009761a1c2a7225ad26ae4208ef20f4f73610e37b34bda4693ccb"
+    },
+    {
+      "command": "node --import tsx/esm scripts/gen-third-party-notices.ts --check",
+      "result": "PASS",
+      "log": "notices.log",
+      "logSha256": "06c18c7e50ad4ff415485f6d36a81f832c3898b22dfd56c9925231537d953245"
+    },
+    {
+      "command": "node --import tsx/esm scripts/verify-translation-pairing.ts README.md",
+      "result": "PASS_NAMED_PAIR",
+      "log": "pair-check.log",
+      "logSha256": "f648fd21b531eda386e17f4ce365d5cff34872447cccc4aa4cb2b2e905022290"
+    },
+    {
+      "command": "node --import tsx/esm scripts/verify-md-wrap.ts",
+      "result": "PASS_1753_FILES",
+      "log": "wrap.log",
+      "logSha256": "c647ebdd98664e39c79e9a9688c9a352e03172631715d22520ac0e72f3c9bbbd"
+    },
+    {
+      "command": "node --import tsx/esm scripts/verify-md-links.ts",
+      "result": "PASS_1731_FILES",
+      "log": "links.log",
+      "logSha256": "a28de903064281ef9bac41fd96f3e07ec642e70b89db19d4f7d5f5ce79b8291c"
+    },
+    {
+      "command": "pnpm_config_verify_deps_before_run=error node /opt/codex/tools/pnpm/bin/pnpm.cjs run doc-sync",
+      "result": "BLOCKED_TSX_UNIX_SOCKET_EPERM",
+      "log": "doc-sync.log",
+      "logSha256": "9cc2cef6a6206996b91597a9982d62b6e59a264a1ba3c23db8a18cba75ac8bc9"
+    },
+    {
+      "command": "node --import tsx/esm scripts/verify-export-jsdoc.ts",
+      "result": "FAIL_740_EXISTING_VIOLATIONS",
+      "log": "jsdoc.log",
+      "logSha256": "1461a984fc4906399174d7c6b3a571748b3ba9d5971b4e78132af4c6317d80c2"
+    },
+    {
+      "command": "node --import tsx/esm scripts/verify-doc-budgets.ts",
+      "result": "FAIL_EXISTING_AGENTS_BUDGET",
+      "log": "budgets.log",
+      "logSha256": "2ba7d817743e8452a79a61c0b090e1c1831caf40acb3183281534800bb585df7"
+    },
+    {
+      "command": "node --import tsx/esm scripts/run-oxlint.ts --config .oxlintrc.staged.json packages/experimental/d-ai/src/index.ts packages/experimental/d-ai/src/director-scheduler.ts",
+      "result": "PASS",
+      "log": "staged-composition-lint.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "node --import tsx/esm scripts/run-oxlint.ts packages/experimental/d-ai/src/index.ts packages/experimental/d-ai/src/director-scheduler.ts",
+      "result": "FAIL_EXISTING_TYPE_AWARE_DEBT",
+      "log": "composition-lint.log",
+      "logSha256": "1c482bcb9ebe8a12b37332b11c22e35027077ed49b1560a96bb3a1030e1fffca"
+    }
+  ],
+  "distinctPassingTests": 263,
+  "optInSkippedTests": 1,
+  "crashEvidence": {
+    "signal": "SIGKILL",
+    "initialTaskState": "RUNNING",
+    "restoredTaskState": "COMPLETED",
+    "fences": [
+      1,
+      2
+    ],
+    "bothLeasesReleased": true,
+    "recoveredModelRequests": 1,
+    "secondProcessExit": {
+      "code": 0,
+      "signal": null
+    }
+  },
+  "fixtureBoundaries": [
+    "model adapter and inference",
+    "approval responder",
+    "coordinator Context/Agent/runtime isolation fixtures",
+    "container command runner"
+  ],
+  "realBoundaries": [
+    "native Loader for in-process recovery",
+    "native AgentLoop and subagent workers",
+    "native Session projections and JSONL persistence",
+    "POSIX process termination and writer ownership release",
+    "built D_AI package entry"
+  ],
+  "notAccepted": [
+    "Docker image execution",
+    "CI acceptance",
+    "live provider missions or connectors",
+    "disk/power-loss integrity",
+    "multiple contending live process owners",
+    "distributed scheduling",
+    "arbitrary scoped-plugin or credential restoration",
+    "Control Center UI",
+    "governed model training",
+    "crash between RUNNING task transition and durable lease acquisition"
+  ],
+  "failureNotes": [
+    "Invalid race fixture timestamp was corrected to native time; strict compilation rejects and now brands test seq with SessionSeq.",
+    "Header extraction initially emitted ownership warnings in this managed filesystem; official archive digest and successful native compilation verify the actual header bytes.",
+    "Full build initially rejected two unbranded fixture sequences; the corrected final full build passes.",
+    "Initial pre-commit hook rejects inherited non-null assertions and overlong lines; committed typed side-effect records are returned directly after append succeeds, and formatting is corrected. Package and full build are rerun afterward."
+  ]
+}

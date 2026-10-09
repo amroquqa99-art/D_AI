@@ -96,7 +96,7 @@ export interface Config {
 
 - `inject`: `agents` · `sessions` · `llm` · `tools` · `systemPrompt` · `sessionProjections`
 - `refs`: [`AgentOptions`](subsystems/core.zh.md) · [`SessionId`](subsystems/core.zh.md) · `Volatile` (`@deepseek-ai/cosmokit`)
-- `source`: [`packages/core/agent-loop/src/index.ts:292`](../packages/core/agent-loop/src/index.ts)
+- `source`: [`packages/core/agent-loop/src/index.ts:293`](../packages/core/agent-loop/src/index.ts)
 
 ```ts config-catalog
 /** Agent-loop plugin configuration. */
@@ -992,6 +992,85 @@ export interface Config {
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-d-ai -->
+<a id="deepseek-aidsh-experimental-d-ai"></a>
+
+## `@deepseek-ai/dsh-experimental-d-ai`
+
+- `inject`: `agents` · `sessions` · `sessionProjections` · `storageDomain` · `web` · `subagents` · `tools` · `approval`
+- `source`: [`packages/experimental/d-ai/src/config.ts:22`](../packages/experimental/d-ai/src/config.ts)
+
+```ts config-catalog
+/** Deployment-owned configuration. Model output must never mutate these bounds. */
+export interface Config {
+  /** Native subagent provider used for delegated domain workers. */
+  subagentProvider?: string
+  /** Maximum descendant depth for delegated workers. */
+  maxDepth?: number
+  /** Output token limit for each delegated model request. */
+  maxOutputTokens?: number
+  /** Maximum model requests for one delegated child. */
+  maxRequestsPerChild?: number
+  /** Deadline in milliseconds for a delegated child. */
+  timeoutMs?: number
+  /** Maximum UTF-8 bytes retained per captured source. */
+  maxSourceBytes?: number
+  /** Maximum serialized bytes retained per investigation mission. */
+  maxMissionBytes?: number
+  /** Maximum captured sources per investigation mission. */
+  maxSources?: number
+  /** Optional model override for investigation research workers. */
+  researchModel?: string
+  /** Optional model override for independent investigation verification. */
+  verificationModel?: string
+  /** Optional model override for literature review workers. */
+  literatureModel?: string
+  /** Optional model override for scientific methodology review. */
+  methodologyModel?: string
+  /** Optional model override for investor fundamental analysis. */
+  fundamentalModel?: string
+  /** Optional model override for independent investment risk review. */
+  riskModel?: string
+  /** Optional model override for authorized defensive assessment. */
+  cyberAssessmentModel?: string
+  /** Optional model override for defensive remediation review. */
+  cyberRemediationModel?: string
+  /** Optional model override for operations evidence fusion. */
+  operationsFusionModel?: string
+  /** Optional model override for adversarial operations review. */
+  operationsAdversarialModel?: string
+  /** Optional model override for candidate mechanism exploration. */
+  innovationExplorerModel?: string
+  /** Optional model override for independent candidate criticism. */
+  innovationCriticModel?: string
+  /** Explicit delegated tool allowlist; cyber workers default to no tools. */
+  allowedTools?: string[]
+  /** Maximum serialized bytes accepted from a delegated result. */
+  maxResultBytes?: number
+  /** Enable unattended native-turn schedule wakes. Defaults to false. */
+  directorSchedulerEnabled?: boolean
+  /** Polling interval in milliseconds, at least 10. */
+  directorSchedulerPollMs?: number
+  /** Maximum active or queued scheduled cycles across owners, from 1 to 32. */
+  directorSchedulerMaxConcurrentCycles?: number
+  /** Up to 32 explicit root sessions eligible for unattended recovery. Defaults to none. */
+  directorSchedulerResumeOwners?: DirectorResumeOwner[]
+}
+
+/** Explicit root-session route and replay bound for unattended restart recovery. */
+export interface DirectorResumeOwner {
+  /** Persisted root Session identity; recovery never discovers other sessions. */
+  readonly sessionId: string
+  /** Native model adapter name to use for the resumed owner. */
+  readonly provider: string
+  /** Explicit model selection; no paid fallback is implied. */
+  readonly model: string
+  /** Maximum persisted events inspected before recovery refuses this owner. */
+  readonly maxEvents: number
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-d-ai -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-experimental-inspector -->
 <a id="deepseek-aidsh-experimental-inspector"></a>
@@ -4353,6 +4432,7 @@ export interface Config {
 | `@deepseek-ai/dsh-api-remotes` | `typertGateway` | [`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts) |
 | `@deepseek-ai/dsh-authorization` | `credentials` | [`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts) |
 | `@deepseek-ai/dsh-browser-use` | — | [`packages/browser-use/browser-use/src/index.ts`](../packages/browser-use/browser-use/src/index.ts) |
+| `@deepseek-ai/dsh-client-d-ai-locale` | — | [`packages/client/d-ai-locale/src/index.ts`](../packages/client/d-ai-locale/src/index.ts) |
 | `@deepseek-ai/dsh-client-file-upload` | `agents` · `attachments` · `commands` · `connection` | [`packages/client/file-upload/src/index.ts`](../packages/client/file-upload/src/index.ts) |
 | `@deepseek-ai/dsh-client-locale` | — | [`packages/client/locale/src/index.ts`](../packages/client/locale/src/index.ts) |
 | `@deepseek-ai/dsh-client-modules` | `loader` | [`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.ts) |
