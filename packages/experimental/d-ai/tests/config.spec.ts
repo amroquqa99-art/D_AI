@@ -14,6 +14,7 @@ describe('D_AI runtime configuration', () => {
       enabled: false,
       pollMs: 1000,
       maxConcurrentCycles: 1,
+      resumeOwners: [],
     })
     expect(runtime.delegations.investigation.allowedTools).toEqual(['web_search', 'web_fetch'])
     expect(runtime.delegations.scientific.allowedTools).toEqual(['web_search', 'web_fetch'])
@@ -47,6 +48,7 @@ describe('D_AI runtime configuration', () => {
       enabled: false,
       pollMs: 250,
       maxConcurrentCycles: 4,
+      resumeOwners: [],
     })
     expect(runtime.delegations.investigation).toMatchObject({
       provider: 'isolated',
@@ -64,6 +66,19 @@ describe('D_AI runtime configuration', () => {
     })
     expect(runtime.delegations.operations.adversarialModel).toBe('ops-e')
     expect(runtime.delegations.innovation.criticModel).toBe('innovation-f')
+  })
+
+  it('validates and snapshots explicit recovery routes', () => {
+    const route = { sessionId: 'owner', provider: 'mock', model: 'fixture', maxEvents: 1000 }
+    const runtime = buildRuntimeConfiguration({ directorSchedulerResumeOwners: [route] })
+    route.model = 'changed'
+    expect(runtime.scheduler.resumeOwners[0]?.model).toBe('fixture')
+    expect(Object.isFrozen(runtime.scheduler.resumeOwners[0])).toBe(true)
+    for (const invalid of [
+      [{ ...route, provider: ' ' }], [{ ...route, maxEvents: 0 }],
+      [{ ...route, maxEvents: Number.MAX_SAFE_INTEGER }], [route, route],
+      Array.from({ length: 33 }, (_, i) => ({ ...route, sessionId: String(i) })),
+    ]) expect(() => buildRuntimeConfiguration({ directorSchedulerResumeOwners: invalid })).toThrow()
   })
 
   it('rejects invalid resource bounds before service construction', () => {

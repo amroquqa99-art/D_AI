@@ -70,6 +70,7 @@ import type { DirectorFact, DirectorLedger, DirectorPlan, DirectorState } from '
 import { directorScheduleFactSchema, directorScheduleStagnationReason } from './director-schedule-state.ts'
 import type { DirectorSchedule, DirectorScheduleCycle, DirectorScheduleFact, DirectorScheduleLedger, DirectorScheduleState } from './director-schedule-state.ts'
 import { DirectorScheduler, isCurrentDirectorScheduleWake } from './director-scheduler.ts'
+import { DirectorOwnerRecovery } from './director-recovery.ts'
 import type { ScheduledDirectorCycleResult } from './director-scheduler.ts'
 import { deriveMissionPhase } from './mission-director.ts'
 import { runDirectorPlanner } from './director-orchestration.ts'
@@ -146,7 +147,9 @@ export class DAI extends Service {
       const scheduler = new DirectorScheduler(ctx, this, {
         pollMs: runtime.scheduler.pollMs,
         maxConcurrentCycles: runtime.scheduler.maxConcurrentCycles,
-      })
+      }, runtime.scheduler.resumeOwners.length === 0
+        ? undefined
+        : new DirectorOwnerRecovery(ctx, runtime.scheduler.resumeOwners))
       ctx.effect(() => async () => scheduler.dispose(), 'dai.directorScheduler()')
     }
   }
@@ -1302,36 +1305,36 @@ export class DAI extends Service {
 
       const schedule: DirectorSchedule = existing === undefined
         ? {
-            id: randomUUID(),
-            planId,
-            ownerAgentId: agent.id,
-            enabled: input.enabled,
-            intervalMs,
-            maxTasksPerCycle,
-            maxParallelTasks,
-            maxConsecutiveFailures,
-            maxConsecutiveIdleCycles,
-            consecutiveFailures: 0,
-            consecutiveIdleCycles: 0,
-            leaseTtlMs,
-            nextWakeAt,
-            createdAt: now,
-            updatedAt: now,
-          }
+          id: randomUUID(),
+          planId,
+          ownerAgentId: agent.id,
+          enabled: input.enabled,
+          intervalMs,
+          maxTasksPerCycle,
+          maxParallelTasks,
+          maxConsecutiveFailures,
+          maxConsecutiveIdleCycles,
+          consecutiveFailures: 0,
+          consecutiveIdleCycles: 0,
+          leaseTtlMs,
+          nextWakeAt,
+          createdAt: now,
+          updatedAt: now,
+        }
         : {
-            ...existing,
-            enabled: input.enabled,
-            intervalMs,
-            maxTasksPerCycle,
-            maxParallelTasks,
-            maxConsecutiveFailures,
-            maxConsecutiveIdleCycles,
-            consecutiveFailures: input.resetStagnation === true ? 0 : existing.consecutiveFailures,
-            consecutiveIdleCycles: input.resetStagnation === true ? 0 : existing.consecutiveIdleCycles,
-            leaseTtlMs,
-            nextWakeAt,
-            updatedAt: now,
-          }
+          ...existing,
+          enabled: input.enabled,
+          intervalMs,
+          maxTasksPerCycle,
+          maxParallelTasks,
+          maxConsecutiveFailures,
+          maxConsecutiveIdleCycles,
+          consecutiveFailures: input.resetStagnation === true ? 0 : existing.consecutiveFailures,
+          consecutiveIdleCycles: input.resetStagnation === true ? 0 : existing.consecutiveIdleCycles,
+          leaseTtlMs,
+          nextWakeAt,
+          updatedAt: now,
+        }
 
       return this.appendDirectorScheduleLedger(agent, 'UPSERT', {
         ownerAgentId: agent.id,
@@ -1394,23 +1397,23 @@ export class DAI extends Service {
     const taskFailed = cycle?.executed.some(item => item.execution.outcome === 'FAILED') ?? false
     const receipt: DirectorScheduleCycle = !failed
       ? {
-          attemptedAt,
-          outcome: taskFailed
-            ? 'FAILED'
-            : (cycle?.executed.length ?? 0) > 0
-              ? 'EXECUTED'
-              : 'IDLE',
-          executedTasks: cycle?.executed.length ?? 0,
-          phase: finalView.phase,
-          ...(taskFailed ? { error: 'D_AI_TASK_FAILED' } : {}),
-        }
+        attemptedAt,
+        outcome: taskFailed
+          ? 'FAILED'
+          : (cycle?.executed.length ?? 0) > 0
+            ? 'EXECUTED'
+            : 'IDLE',
+        executedTasks: cycle?.executed.length ?? 0,
+        phase: finalView.phase,
+        ...(taskFailed ? { error: 'D_AI_TASK_FAILED' } : {}),
+      }
       : {
-          attemptedAt,
-          outcome: 'FAILED',
-          executedTasks: cycle?.executed.length ?? 0,
-          phase: finalView.phase,
-          error: failure instanceof Error ? failure.message : String(failure),
-        }
+        attemptedAt,
+        outcome: 'FAILED',
+        executedTasks: cycle?.executed.length ?? 0,
+        phase: finalView.phase,
+        error: failure instanceof Error ? failure.message : String(failure),
+      }
 
     await this.transact(agent, async () => {
       const latest = this.directorScheduleLedger(agent)
@@ -1425,17 +1428,17 @@ export class DAI extends Service {
         revision: latest.revision + 1,
         schedules: latest.schedules.map(item => item.id === scheduleId
           ? {
-              ...item,
-              nextWakeAt,
-              updatedAt,
-              lastCycle: receipt,
-              consecutiveFailures: receipt.outcome === 'FAILED'
-                ? item.consecutiveFailures + 1
-                : 0,
-              consecutiveIdleCycles: receipt.outcome === 'IDLE'
-                ? item.consecutiveIdleCycles + 1
-                : 0,
-            }
+            ...item,
+            nextWakeAt,
+            updatedAt,
+            lastCycle: receipt,
+            consecutiveFailures: receipt.outcome === 'FAILED'
+              ? item.consecutiveFailures + 1
+              : 0,
+            consecutiveIdleCycles: receipt.outcome === 'IDLE'
+              ? item.consecutiveIdleCycles + 1
+              : 0,
+          }
           : item),
       })
     })
@@ -1590,11 +1593,11 @@ export class DAI extends Service {
       const now = new Date().toISOString()
       const release = decision.promote
         ? createModelReleasePointerInternal(
-            baseline.result as ModelEvaluationResult,
-            candidate.result as ModelEvaluationResult,
-            decision,
-            now,
-          )
+          baseline.result as ModelEvaluationResult,
+          candidate.result as ModelEvaluationResult,
+          decision,
+          now,
+        )
         : undefined
       const promotion: GovernedPromotion = {
         id: randomUUID(),
@@ -2263,12 +2266,12 @@ export class DAI extends Service {
         } catch (error) {
           fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_TRANSITION')
         }
-        const next = await this.appendSideEffectLedger(agent, 'REBIND', {
+        await this.appendSideEffectLedger(agent, 'REBIND', {
           ownerAgentId: agent.id,
           revision: current.revision + 1,
           records: current.records.map(record => record.id === existing.id ? rebound : record),
         })
-        return immutableSnapshot(next.records.find(record => record.id === existing.id)!)
+        return immutableSnapshot(rebound)
       }
 
       let reserved: SideEffectRecord
@@ -2278,12 +2281,12 @@ export class DAI extends Service {
         fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_INPUT')
       }
 
-      const next = await this.appendSideEffectLedger(agent, 'RESERVE', {
+      await this.appendSideEffectLedger(agent, 'RESERVE', {
         ownerAgentId: agent.id,
         revision: current.revision + 1,
         records: [...current.records, reserved],
       })
-      return immutableSnapshot(next.records.at(-1)!)
+      return immutableSnapshot(reserved)
     })
   }
 
@@ -2316,12 +2319,12 @@ export class DAI extends Service {
         fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_TRANSITION')
       }
 
-      const next = await this.appendSideEffectLedger(agent, 'MARK_DISPATCHED', {
+      await this.appendSideEffectLedger(agent, 'MARK_DISPATCHED', {
         ownerAgentId: agent.id,
         revision: current.revision + 1,
         records: current.records.map(item => item.id === record.id ? dispatched : item),
       })
-      return immutableSnapshot(next.records.find(item => item.id === record.id)!)
+      return immutableSnapshot(dispatched)
     })
   }
 
@@ -2370,12 +2373,12 @@ export class DAI extends Service {
         fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_TRANSITION')
       }
 
-      const next = await this.appendSideEffectLedger(agent, 'COMMIT', {
+      await this.appendSideEffectLedger(agent, 'COMMIT', {
         ownerAgentId: agent.id,
         revision: current.revision + 1,
         records: current.records.map(item => item.id === record.id ? committed : item),
       })
-      return immutableSnapshot(next.records.find(item => item.id === record.id)!)
+      return immutableSnapshot(committed)
     })
   }
 
@@ -2402,12 +2405,12 @@ export class DAI extends Service {
         fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_TRANSITION')
       }
 
-      const next = await this.appendSideEffectLedger(agent, 'MARK_UNKNOWN', {
+      await this.appendSideEffectLedger(agent, 'MARK_UNKNOWN', {
         ownerAgentId: agent.id,
         revision: current.revision + 1,
         records: current.records.map(item => item.id === record.id ? unknown : item),
       })
-      return immutableSnapshot(next.records.find(item => item.id === record.id)!)
+      return immutableSnapshot(unknown)
     })
   }
 
@@ -2440,12 +2443,12 @@ export class DAI extends Service {
         fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_TRANSITION')
       }
 
-      const next = await this.appendSideEffectLedger(agent, 'ABORT', {
+      await this.appendSideEffectLedger(agent, 'ABORT', {
         ownerAgentId: agent.id,
         revision: current.revision + 1,
         records: current.records.map(item => item.id === record.id ? aborted : item),
       })
-      return immutableSnapshot(next.records.find(item => item.id === record.id)!)
+      return immutableSnapshot(aborted)
     })
   }
 
@@ -2491,12 +2494,12 @@ export class DAI extends Service {
         fail(error instanceof Error ? error.message : String(error), 'D_AI_INVALID_TRANSITION')
       }
 
-      const next = await this.appendSideEffectLedger(agent, 'RECONCILE', {
+      await this.appendSideEffectLedger(agent, 'RECONCILE', {
         ownerAgentId: agent.id,
         revision: current.revision + 1,
         records: current.records.map(item => item.id === record.id ? reconciled : item),
       })
-      return immutableSnapshot(next.records.find(item => item.id === record.id)!)
+      return immutableSnapshot(reconciled)
     })
   }
 
@@ -2664,13 +2667,13 @@ export class DAI extends Service {
       return this.appendBudgetLedger(agent, 'ADD_USAGE', {
         ownerAgentId: agent.id,
         revision: current.revision + 1,
-        profiles: current.profiles.map((profile) => matchingIds.has(profile.id)
+        profiles: current.profiles.map(profile => matchingIds.has(profile.id)
           ? {
-              ...profile,
-              usage: addResourceUsage(profile.usage, delta),
-              updatedAt: now,
-              updatedBy: agent.id,
-            }
+            ...profile,
+            usage: addResourceUsage(profile.usage, delta),
+            updatedAt: now,
+            updatedBy: agent.id,
+          }
           : profile),
       })
     })
@@ -3027,7 +3030,10 @@ export class DAI extends Service {
       const result = await runScientificDelegates(this.ctx, agent, project.question, signal, {
         ...this.scientificDelegation,
         ...(literatureRoute === undefined ? {} : { literatureModel: literatureRoute.id, literatureProvider: literatureRoute.provider }),
-        ...(methodologyRoute === undefined ? {} : { methodologyModel: methodologyRoute.id, methodologyProvider: methodologyRoute.provider }),
+        ...(methodologyRoute === undefined ? {} : {
+          methodologyModel: methodologyRoute.id,
+          methodologyProvider: methodologyRoute.provider,
+        }),
       })
       signal.throwIfAborted()
       return await this.transact(agent, async () => {
@@ -3152,7 +3158,10 @@ export class DAI extends Service {
       const riskRoute = this.optionalRoutedModel(agent, 'investor', 'risk')
       const result = await runInvestorDelegates(this.ctx, agent, value.objective, signal, {
         ...this.investorDelegation,
-        ...(fundamentalRoute === undefined ? {} : { fundamentalModel: fundamentalRoute.id, fundamentalProvider: fundamentalRoute.provider }),
+        ...(fundamentalRoute === undefined ? {} : {
+          fundamentalModel: fundamentalRoute.id,
+          fundamentalProvider: fundamentalRoute.provider,
+        }),
         ...(riskRoute === undefined ? {} : { riskModel: riskRoute.id, riskProvider: riskRoute.provider }),
       })
       signal.throwIfAborted()
@@ -3190,7 +3199,9 @@ export class DAI extends Service {
       })
       if (outcome !== 'allowed-once') fail('owner approval is required for this cybersecurity engagement')
     }
-    if (objective.trim().length === 0 || authorization.targetDescription.trim().length === 0 || authorization.permittedActions.length === 0) {
+    if (objective.trim().length === 0
+      || authorization.targetDescription.trim().length === 0
+      || authorization.permittedActions.length === 0) {
       fail('cybersecurity objective and explicit authorization scope are required', 'D_AI_INVALID_INPUT')
     }
     const issued = Date.parse(authorization.issuedAt)
@@ -3307,7 +3318,10 @@ export class DAI extends Service {
         {
           ...this.cyberDelegation,
           ...(assessmentRoute === undefined ? {} : { assessmentModel: assessmentRoute.id, assessmentProvider: assessmentRoute.provider }),
-          ...(remediationRoute === undefined ? {} : { remediationModel: remediationRoute.id, remediationProvider: remediationRoute.provider }),
+          ...(remediationRoute === undefined ? {} : {
+            remediationModel: remediationRoute.id,
+            remediationProvider: remediationRoute.provider,
+          }),
         },
       )
       signal.throwIfAborted()
@@ -3507,7 +3521,10 @@ export class DAI extends Service {
       const result = await runOperationsDelegates(this.ctx, agent, value.objective, signal, {
         ...this.operationsDelegation,
         ...(fusionRoute === undefined ? {} : { fusionModel: fusionRoute.id, fusionProvider: fusionRoute.provider }),
-        ...(adversarialRoute === undefined ? {} : { adversarialModel: adversarialRoute.id, adversarialProvider: adversarialRoute.provider }),
+        ...(adversarialRoute === undefined ? {} : {
+          adversarialModel: adversarialRoute.id,
+          adversarialProvider: adversarialRoute.provider,
+        }),
       })
       signal.throwIfAborted()
       return await this.transact(agent, async () => {
@@ -3590,7 +3607,9 @@ export class DAI extends Service {
     id: string,
     input: { title: string; objective: string; protocol: string; successCriteria: string; failureCriteria: string },
   ): Promise<InnovationProject> {
-    if ([input.title, input.objective, input.protocol, input.successCriteria, input.failureCriteria].some(value => value.trim().length === 0)) {
+    if ([
+      input.title, input.objective, input.protocol, input.successCriteria, input.failureCriteria,
+    ].some(value => value.trim().length === 0)) {
       fail('innovation experiment fields are required', 'D_AI_INVALID_INPUT')
     }
     return this.transact(agent, async () => {
@@ -3710,7 +3729,11 @@ export class DAI extends Service {
    * @param input - claim text, captured source, exact excerpt, optional contradicted claim.
    * @returns committed next mission revision retaining every earlier claim.
    */
-  async addClaim(agent: Agent, id: string, input: { text: string; sourceId: string; excerpt: string; contradicts?: string }): Promise<Mission> {
+  async addClaim(
+    agent: Agent,
+    id: string,
+    input: { text: string; sourceId: string; excerpt: string; contradicts?: string },
+  ): Promise<Mission> {
     return this.transact(agent, async () => {
       const mission = this.mission(agent, id)
       const source = mission.sources.find(s => s.id === input.sourceId)
@@ -3738,7 +3761,10 @@ export class DAI extends Service {
       const result = await runInvestigationDelegates(this.ctx, agent, mission.objective, signal, {
         ...this.delegation,
         ...(researchRoute === undefined ? {} : { researchModel: researchRoute.id, researchProvider: researchRoute.provider }),
-        ...(verificationRoute === undefined ? {} : { verificationModel: verificationRoute.id, verificationProvider: verificationRoute.provider }),
+        ...(verificationRoute === undefined ? {} : {
+          verificationModel: verificationRoute.id,
+          verificationProvider: verificationRoute.provider,
+        }),
       })
       signal.throwIfAborted()
       return await this.transact(agent, async () => {

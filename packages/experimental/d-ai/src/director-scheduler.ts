@@ -60,6 +60,20 @@ export interface DirectorSchedulerRuntime {
   ): Promise<ScheduledDirectorCycleResult>
 }
 
+/** Owned cold-session activation; callers share the scheduler admission capacity. */
+export interface DirectorSchedulerRecovery {
+  /**
+   * Inspect explicit cold owners and acquire at most the remaining slots.
+   * @param nowMs - current scheduling time.
+   * @param signal - cancellation for inspection and native resume.
+   * @param maxOwners - currently free scheduler capacity.
+   * @returns resolution after the serial activation pass.
+   */
+  scan(nowMs: number, signal: AbortSignal, maxOwners: number): Promise<void>
+  /** Release and drain only the handles acquired by this recovery instance. */
+  dispose(): Promise<void>
+}
+
 function scheduleKey(agentId: string, scheduleId: string): string {
   return agentId + ':' + scheduleId
 }
@@ -199,6 +213,7 @@ export class DirectorScheduler {
     private readonly ctx: Context,
     private readonly runtime: DirectorSchedulerRuntime,
     private readonly config: DirectorSchedulerConfig,
+    private readonly recovery?: DirectorSchedulerRecovery,
   ) {
     if (!Number.isSafeInteger(config.pollMs) || config.pollMs < 10) {
       throw new TypeError('Director scheduler pollMs must be an integer of at least 10 ms')
@@ -211,9 +226,8 @@ export class DirectorScheduler {
 
     this.removePreStep = ctx.on('agent/pre-step', async ({ agent, messages, signal }, next) => {
       const wakes = messages.filter(isDirectorSchedulerWake)
-      if (wakes.length !== 1 || messages.length !== 1) return next()
-
-      const wake = wakes[0]!
+      const wake = wakes[0]
+      if (wake === undefined || wakes.length !== 1 || messages.length !== 1) return next()
       const source = directorSchedulerWake(wake)
       if (source === undefined) return next()
       const key = scheduleKey(agent.id, source.scheduleId)
@@ -261,7 +275,13 @@ export class DirectorScheduler {
       while (true) {
         await sleep(this.config.pollMs, undefined, { signal })
         signal.throwIfAborted()
-        this.scan(Date.now())
+        const now = Date.now()
+        const queued = [...this.ctx.agents.roots()].reduce((count, agent) =>
+          count + [...agent.inbox.nextTurn, ...agent.inbox.nextStep].filter(isDirectorSchedulerWake).length, 0)
+        const slots = directorSchedulerRemainingSlots(this.config.maxConcurrentCycles, this.active.size, queued)
+        if (slots > 0) await this.recovery?.scan(now, signal, slots)
+        signal.throwIfAborted()
+        this.scan(now)
       }
     } catch (error) {
       if (!signal.aborted) throw error
@@ -361,5 +381,6 @@ export class DirectorScheduler {
     this.removePreStep()
     this.controller.abort(new Error('D_AI Director scheduler disposed'))
     await Promise.allSettled([this.loop, ...this.cycles])
+    await this.recovery?.dispose()
   }
 }
