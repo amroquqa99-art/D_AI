@@ -13,7 +13,7 @@ This matrix separates **implementation maturity** from **verification state**. A
 - `VERIFIED` — the appropriate executable acceptance checks have passed for the relevant current code.
 - `LIVE_VERIFIED` — required real-provider/browser/environment proof also exists.
 
-The current native package and configuration-catalog regression set passes 234 tests with one opt-in live test skipped: 219 native D_AI tests plus 15 generator checks. Cold owner recovery is connected through real Cordis Loader composition and native Session persistence. Model responses remain scripted. Build, abrupt-process acceptance and CI results are recorded separately in [TEST_REPORT.md](TEST_REPORT.md).
+The current native package and configuration-catalog regression set passes 234 tests with one opt-in live test skipped: 219 native D_AI tests plus 15 generator checks. Cold owner recovery is connected through real Cordis Loader composition and native Session persistence. New task claims persist ownership before RUNNING; two POSIX abrupt-process boundaries are tested separately from the package suite. Model responses remain scripted. Build, abrupt-process acceptance and CI results are recorded separately in [TEST_REPORT.md](TEST_REPORT.md).
 
 ## Current checkpoint
 

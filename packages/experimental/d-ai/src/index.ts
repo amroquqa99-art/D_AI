@@ -1917,19 +1917,12 @@ export class DAI extends Service {
         })
         task = ready
       }
-      const running = transitionTaskInternal(task, 'RUNNING')
-      taskLedger = await this.appendTaskLedger(agent, 'TRANSITION', {
-        ownerAgentId: agent.id,
-        revision: taskLedger.revision + 1,
-        tasks: taskLedger.tasks.map(item => item.id === task.id ? running : item),
-      })
-
       const lease: TaskLease = {
         id: randomUUID(),
-        taskId: running.id,
-        missionId: running.missionId,
+        taskId: task.id,
+        missionId: task.missionId,
         holderId,
-        fence: nextLeaseFence(executions.leases, running.id),
+        fence: nextLeaseFence(executions.leases, task.id),
         acquiredAt: nowIso,
         expiresAt: new Date(now.getTime() + ttlMs).toISOString(),
       }
@@ -1938,6 +1931,15 @@ export class DAI extends Service {
         revision: executions.revision + 1,
         leases: [...executions.leases, lease],
         checkpoints: [...executions.checkpoints],
+      })
+
+      // Persist ownership before RUNNING: every crash prefix is either
+      // runnable work with a recoverable lease or a leased running task.
+      const running = transitionTaskInternal(task, 'RUNNING')
+      taskLedger = await this.appendTaskLedger(agent, 'TRANSITION', {
+        ownerAgentId: agent.id,
+        revision: taskLedger.revision + 1,
+        tasks: taskLedger.tasks.map(item => item.id === task.id ? running : item),
       })
 
       return immutableSnapshot({ task: running, lease })

@@ -1,0 +1,191 @@
+{
+  "schema": "d_ai.host-verification.v1",
+  "date": "2026-10-10",
+  "timezone": "Asia/Jerusalem",
+  "sourceBaseCommit": "d3d76718a70a9afd46d9975615a2dd5b09f49e39",
+  "sourceBaseTree": "427d8e236c8b074411b0aa32b4d5dec42b2c3223",
+  "branch": "dai/crash-claim-order-20261010",
+  "node": "24.19.0",
+  "pnpm": "11.7.0",
+  "sourceInputsSha256": {
+    "packages/experimental/d-ai/src/index.ts": "7fd24197951aa8014688ce25c9fd880f8863ba94dc24e289de0f34e109572e49",
+    "packages/experimental/d-ai/src/director-recovery.ts": "825c197bc6770da02049deb27ad4e9a1636d1623cdefaabad09229bdbe2944b7",
+    "packages/experimental/d-ai/tests/director-recovery-process.test.mjs": "b1606545b1198c1c785a4de8b2198b57d85e0366aff9364a94a85b2e1f384718",
+    "packages/experimental/d-ai/tests/fixtures/director-recovery-process.mjs": "ffcbb4fb0710551ed1c948742198b786621a7f0cc2e0e3c2eb27176af1754633"
+  },
+  "checks": [
+    {
+      "command": "NODE_USE_ENV_PROXY=0 node node_modules/vitest/vitest.mjs run packages/experimental/d-ai/tests --maxWorkers=4",
+      "result": "PASS_219_SKIP_1",
+      "log": "claim-package.log",
+      "logSha256": "31b988b19048f4b3b91bd573cea13725d6661d67ab95b5c6494015f575246d39"
+    },
+    {
+      "command": "NODE_HEADERS_DIR=<verified Node 24.19.0 headers> pnpm_config_verify_deps_before_run=error node /opt/codex/tools/pnpm/bin/pnpm.cjs run build",
+      "result": "PASS",
+      "log": "claim-build-final.log",
+      "logSha256": "b72f700abedc3d686b856d0a8d396fcbf5b9507fe8bc9437d840bf0585180fea"
+    },
+    {
+      "command": "Python subprocess.run wrapper records the full build exit and terminal timestamp",
+      "result": "PASS_EXIT_0",
+      "log": "claim-build-exit.json",
+      "logSha256": "20e2933673b2f703e0a5d798f2aef51c23c8b8584aa5081440fad6a95d07c125"
+    },
+    {
+      "command": "node --experimental-transform-types --test packages/experimental/d-ai/tests/director-scheduler-coordinator.test.mjs packages/experimental/d-ai/tests/director-recovery-process.test.mjs",
+      "result": "PASS_14",
+      "log": "claim-process.log",
+      "logSha256": "62d1e9c4eb8abdb29205dd4cacd1a00c003ad8cb8a04023fd9e048d6404681dd"
+    },
+    {
+      "command": "node --experimental-transform-types --test --test-name-pattern=claim-gap packages/experimental/d-ai/tests/director-recovery-process.test.mjs against preceding built source",
+      "result": "EXPECTED_FAILURE_OLD_ORDER",
+      "log": "claim-gap-negative.log",
+      "logSha256": "0cbc57d31b43085423cb5f3ef00cf0cd9361b5c66c819e157a270f522de38857"
+    },
+    {
+      "command": "node --experimental-transform-types --test packages/experimental/d-ai/tests/director-recovery-process.test.mjs",
+      "result": "PASS_2_CONCURRENT",
+      "log": "claim-parallel-a.log",
+      "logSha256": "21f047a0fdaae9e6982517350ea5447206f2336efa702f6dcf5ae3ef90981bb8"
+    },
+    {
+      "command": "node --experimental-transform-types --test packages/experimental/d-ai/tests/director-recovery-process.test.mjs",
+      "result": "PASS_2_CONCURRENT",
+      "log": "claim-parallel-b.log",
+      "logSha256": "76ff9ae435c08338713d0c41745d68e709d64894301233a091ecea788fbab0cc"
+    },
+    {
+      "command": "node --import tsx/esm scripts/run-oxlint.ts packages/experimental/d-ai/src/director-recovery.ts",
+      "result": "PASS",
+      "log": "claim-lint.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "node --import tsx/esm scripts/run-oxlint.ts --config .oxlintrc.staged.json packages/experimental/d-ai/src/index.ts",
+      "result": "PASS",
+      "log": "claim-staged-lint.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": "node --import tsx/esm scripts/gen-persistence-catalog.ts --check",
+      "result": "PASS",
+      "log": "claim-persistence.log",
+      "logSha256": "0b94ccd6b72409fde2a779406cbab9106a6b7fb75d628efaa55d6b0418b7f8fe"
+    },
+    {
+      "command": "node --import tsx/esm scripts/gen-config-catalog.ts --check",
+      "result": "PASS",
+      "log": "claim-catalog.log",
+      "logSha256": "a1652449aaf0d73a66b03fc831d22fd102283579404228e1b8b81fb92c2c5155"
+    },
+    {
+      "command": "node --import tsx/esm scripts/gen-third-party-notices.ts --check",
+      "result": "PASS",
+      "log": "claim-notices.log",
+      "logSha256": "06c18c7e50ad4ff415485f6d36a81f832c3898b22dfd56c9925231537d953245"
+    },
+    {
+      "command": "node --import tsx/esm scripts/verify-translation-pairing.ts README.md",
+      "result": "PASS_NAMED_PAIR",
+      "log": "claim-pair.log",
+      "logSha256": "f648fd21b531eda386e17f4ce365d5cff34872447cccc4aa4cb2b2e905022290"
+    },
+    {
+      "command": "node --import tsx/esm scripts/verify-md-links.ts",
+      "result": "PASS_1731_FILES",
+      "log": "claim-links.log",
+      "logSha256": "6215b3b7438d8995220eb872c986de84d0c273dc6e0e704c9df6d8a99931d19b"
+    },
+    {
+      "command": "node --import tsx/esm scripts/verify-md-wrap.ts",
+      "result": "PASS_1753_FILES",
+      "log": "claim-wrap.log",
+      "logSha256": "c647ebdd98664e39c79e9a9688c9a352e03172631715d22520ac0e72f3c9bbbd"
+    }
+  ],
+  "currentNativePackageTests": 219,
+  "currentBuiltCoordinatorProcessTests": 14,
+  "optInSkippedTests": 1,
+  "unchangedPriorGeneratorAndRunnerTests": 31,
+  "combinedDistinctPassingTests": 264,
+  "nativeCrashCases": [
+    {
+      "barrier": "running worker",
+      "before": {
+        "task": "RUNNING",
+        "fence": 1,
+        "modelRequests": 5
+      },
+      "after": {
+        "task": "COMPLETED",
+        "fences": [
+          1,
+          2
+        ],
+        "retryCounter": 1,
+        "modelRequests": 1,
+        "bothLeasesReleased": true,
+        "normalExit": true
+      }
+    },
+    {
+      "barrier": "lease durably flushed before RUNNING",
+      "before": {
+        "task": "READY",
+        "fence": 1,
+        "modelRequests": 4
+      },
+      "after": {
+        "task": "COMPLETED",
+        "fences": [
+          1,
+          2
+        ],
+        "retryCounter": 0,
+        "modelRequests": 1,
+        "bothLeasesReleased": true,
+        "normalExit": true
+      }
+    }
+  ],
+  "realBoundaries": [
+    "native persistence flush at the claim gap",
+    "SIGKILL exit",
+    "exclusive writer ownership release",
+    "fresh-process cold activation",
+    "native task/lease/schedule projections",
+    "ordinary built D_AI entry"
+  ],
+  "fixtureBoundaries": [
+    "scripted inference",
+    "approval responder",
+    "fixture-only flush interception to stop at the durable gap",
+    "coordinator Context/Agent/runtime fixtures"
+  ],
+  "ciBaseObserved": {
+    "run": 37995840690,
+    "jobs": [
+      114041572349,
+      114041572758
+    ],
+    "conclusion": "failure",
+    "steps": null
+  },
+  "notAccepted": [
+    "historical ambiguous RUNNING records without leases",
+    "disk integrity on power loss",
+    "multiple contending live owners",
+    "distributed scheduling",
+    "Docker image execution",
+    "live providers/connectors",
+    "Control Center UI",
+    "training"
+  ],
+  "failureNotes": [
+    "The preceding implementation fails the exact claim-gap stage assertion.",
+    "The attempt field counts FAILED-to-PENDING retries, not total execution starts; the added assertions use its native 1/0 semantics.",
+    "An earlier build log lacked its terminal marker despite a reported exit; the Python-owned final rerun records exit 0 and the 357-artifact terminal marker."
+  ]
+}
