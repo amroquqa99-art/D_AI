@@ -11,6 +11,7 @@ import { DaiRuntimeKernel } from './runtime-kernel.ts'
 import { immutableSnapshot } from './runtime-state.ts'
 import { failDai } from './runtime-errors.ts'
 import { registerArtifactTools } from './artifact-tools.ts'
+import { createArtifactArchive, decodeArtifactArchive } from './artifact-archive.ts'
 
 export type { ArtifactMetadata, ArtifactRecord } from './artifact-record.ts'
 
@@ -24,9 +25,14 @@ export interface Config {
   maxArtifactsPerOwner?: number
   /** Maximum UTF-8 bytes for a complete JSON tool-result envelope. */
   maxToolResultBytes?: number
+  /** Maximum complete UTF-8 bytes of a portable archive, including base64 and receipts. */
+  maxArchiveBytes?: number
 }
 
-const defaults = { maxArtifactBytes: 1048576, maxManifestBytes: 16384, maxArtifactsPerOwner: 1000, maxToolResultBytes: 2097152 }
+const defaults = {
+  maxArtifactBytes: 1048576, maxManifestBytes: 16384, maxArtifactsPerOwner: 1000,
+  maxToolResultBytes: 2097152, maxArchiveBytes: 33554432,
+}
 
 /** Validated limits for the optional artifact-store plugin. */
 export const Config: schema<Config> = schema.object({
@@ -34,6 +40,7 @@ export const Config: schema<Config> = schema.object({
   maxManifestBytes: schema.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(defaults.maxManifestBytes),
   maxArtifactsPerOwner: schema.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(defaults.maxArtifactsPerOwner),
   maxToolResultBytes: schema.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(defaults.maxToolResultBytes),
+  maxArchiveBytes: schema.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(defaults.maxArchiveBytes),
 })
 
 declare module '@deepseek-ai/cordis' {
@@ -62,6 +69,7 @@ export class ArtifactStore extends Service {
       maxManifestBytes: validated.maxManifestBytes ?? defaults.maxManifestBytes,
       maxArtifactsPerOwner: validated.maxArtifactsPerOwner ?? defaults.maxArtifactsPerOwner,
       maxToolResultBytes: validated.maxToolResultBytes ?? defaults.maxToolResultBytes,
+      maxArchiveBytes: validated.maxArchiveBytes ?? defaults.maxArchiveBytes,
     }
     this.kernel = new DaiRuntimeKernel(ctx)
     this.catalog = ctx.storageDomain.open(artifactCatalogSpec).then(async (catalog) => {
@@ -190,6 +198,72 @@ export class ArtifactStore extends Service {
         .map(([, record]) => record).filter(record => record.document.ownerSessionId === agent.id)
         .sort((left, right) => left.manifest.attachmentId.localeCompare(right.manifest.attachmentId)))
     })
+  }
+
+  /**
+   * Export the complete owner catalog and verified bytes, deduplicating shared content.
+   * @param agent - exact live root owner; the archive retains this Session identity.
+   * @param signal - optional cancellation; no provider writes are performed.
+   * @returns a bounded deterministic UTF-8 archive; it does not include the Session log.
+   */
+  async exportArchive(agent: Agent, signal?: AbortSignal): Promise<Uint8Array> {
+    return this.run(agent, signal, cancellation => this.kernel.transact(agent, async () => {
+      const records = await this.list(agent)
+      if (records.length > this.limits.maxArtifactsPerOwner) failDai('artifact owner catalog exceeds the configured limit', 'D_AI_ARTIFACT_LIMIT')
+      const archive = createArtifactArchive(agent.id, records, this.limits.maxArchiveBytes)
+      for (const record of records) {
+        cancellation.throwIfAborted()
+        const value = await this.read(agent, record.manifest.attachmentId, cancellation)
+        archive.add(record.document.content.attachmentId, value.data)
+      }
+      cancellation.throwIfAborted()
+      return archive.finish()
+    }))
+  }
+
+  /**
+   * Restore exact manifests to the same native owner, validating the complete archive first.
+   * Individual receipts commit parent-first; interrupted imports can be retried safely.
+   * @param agent - exact live root owner with an open native turn.
+   * @param input - bounded UTF-8 archive bytes from an operator-controlled backup.
+   * @param signal - optional cancellation; committed receipts remain on interruption.
+   * @returns all imported receipts, including identical receipts already present.
+   */
+  async importArchive(agent: Agent, input: Uint8Array, signal?: AbortSignal): Promise<readonly ArtifactRecord[]> {
+    return this.run(agent, signal, cancellation => this.kernel.transact(agent, async () => {
+      this.kernel.requireOpenTurn(agent)
+      const archive = decodeArtifactArchive(input, agent.id, this.limits)
+      cancellation.throwIfAborted()
+      const table = (await this.catalog).table('artifacts')
+      const owned = [...table.entries()].filter(([, record]) => record.document.ownerSessionId === agent.id)
+      let additions = 0
+      for (const record of archive.records) {
+        const prior = table.get(artifactCatalogKey(agent.id, record.manifest.attachmentId))
+        if (prior === undefined) additions++
+        else if (JSON.stringify(prior) !== JSON.stringify(record)) failDai('archive conflicts with a stored receipt', 'D_AI_ARTIFACT_CORRUPT')
+      }
+      if (owned.length + additions > this.limits.maxArtifactsPerOwner) failDai('artifact owner catalog is full', 'D_AI_ARTIFACT_LIMIT')
+      for (const record of archive.records) {
+        this.kernel.requireOpenTurn(agent)
+        cancellation.throwIfAborted()
+        const content = archive.contents.get(record.document.content.attachmentId)
+        if (content === undefined) failDai('validated archive content is absent', 'D_AI_ARTIFACT_CORRUPT')
+        const saved = await this.ctx.attachments.saveFile({ data: content, name: record.document.content.name })
+        if (saved.attachmentId !== record.document.content.attachmentId || saved.bytes !== record.document.content.bytes
+          || saved.name !== record.document.content.name) failDai('restored content receipt differs from the archive', 'D_AI_ARTIFACT_CORRUPT')
+        cancellation.throwIfAborted()
+        const manifest = await this.ctx.attachments.saveFile({
+          data: Buffer.from(JSON.stringify(record.document)), name: record.manifest.name,
+        })
+        if (manifest.attachmentId !== record.manifest.attachmentId || manifest.bytes !== record.manifest.bytes
+          || manifest.name !== record.manifest.name) failDai('restored manifest receipt differs from the archive', 'D_AI_ARTIFACT_CORRUPT')
+        this.kernel.requireOpenTurn(agent)
+        cancellation.throwIfAborted()
+        const key = artifactCatalogKey(agent.id, record.manifest.attachmentId)
+        if (table.get(key) === undefined) await table.put(key, record)
+      }
+      return immutableSnapshot(archive.records)
+    }))
   }
 }
 

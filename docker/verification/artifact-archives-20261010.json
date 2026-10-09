@@ -1,0 +1,119 @@
+{
+  "format": "d_ai.verification.v1",
+  "checkpoint": "portable-artifact-archives",
+  "date": "2026-10-10",
+  "sourceBase": {
+    "pullRequest": 24,
+    "commit": "312b6925f36353bdc4bba8691da60dc8c83c9d85"
+  },
+  "sourceSHA256": {
+    "packages/experimental/d-ai/src/artifact-store.ts": "eb0625e46ab9ea39f0672679931af98373587727963c4708d519da031bdc1425",
+    "packages/experimental/d-ai/src/artifact-archive.ts": "057ae324a48fb889ed7ece1d38f1b426c9d0b8f1aae9547607e96c4f9e4c6942",
+    "packages/experimental/d-ai/src/artifact-record.ts": "deb9c378600208fbff87f1f85a4bec7235cc52793476064951d0a1655d4fa821",
+    "packages/experimental/d-ai/src/artifact-tools.ts": "7838eeb2cd989fd842aff62e122be7fbfe14200421e5d36fbeb744fa8ff91293",
+    "packages/experimental/d-ai/src/runtime-kernel.ts": "dee5d487d73c174527c4b35ca28be36537d4ce66b13470146b1fd760649bfb7d",
+    "packages/experimental/d-ai/tests/artifact-store.spec.ts": "b8316b1aa58260f7636850c28987307fb9fc2c02a1d999dd89d8185d24af8a20",
+    "packages/experimental/d-ai/tests/artifact-store-built.test.mjs": "b84cdf0c9f15c1eab3327178d1429be197ff6c3f74e2a7b618624d5cbe3252e3",
+    "packages/experimental/d-ai/cordis.artifacts.patch.yml": "b45b6db0fd8311af6b2774446fe547f46e83921ee22ed41f09f3c79ca375c71f"
+  },
+  "local": {
+    "package": {
+      "pass": 248,
+      "skip": 1
+    },
+    "artifact": {
+      "pass": 14,
+      "newArchiveCases": 5
+    },
+    "parallelCopies": {
+      "passEach": 14,
+      "copies": 2
+    },
+    "authorizationNegativeControl": "expected failure with archive owner check removed; restored exact source",
+    "build": {
+      "exit": {
+        "exitCode": 0,
+        "started": 1791586944.462822,
+        "completed": 1791587009.9109354
+      },
+      "record": {
+        "formatVersion": 1,
+        "environment": {
+          "DSH_CLIENT_COMMIT_HASH": "c3d0766",
+          "DSH_CLIENT_GIT_DIRTY": "true",
+          "DSH_CLIENT_VERSION": "0.2.1-alpha.1"
+        },
+        "artifacts": {
+          "fileCount": 357,
+          "sha256": "fce9f605e88ae94dfb8a952dcab030967c288c57325cdd51d417cfeaf0d7cf00"
+        }
+      },
+      "scope": "ordinary full build of current production source, before documentation commit"
+    },
+    "publishedEntry": {
+      "pass": 15,
+      "coordinatorCases": 12,
+      "sigkillCases": 2,
+      "artifactBuiltCases": 1,
+      "archiveImport": "successful built host API import during a logged native turn"
+    },
+    "distinctPassed": 263,
+    "typeAwareLint": "PASS",
+    "nodeNextDeclarationAPIs": 330,
+    "cordisConfigurationFiles": 220,
+    "configAndModuleCatalogs": "PASS; unchanged generated artifacts",
+    "normalPrePushHook": "PASS; incremental Host/Client typecheck, 29.86 seconds; no bypass",
+    "documentation": "PASS; direct link and wrapping checks; aggregate historical doc-sync debt remains"
+  },
+  "limitations": [
+    "artifact-only, same-owner transfer; Session log is backed up separately",
+    "individual parent-first commits, not a whole-archive transaction",
+    "host APIs only; no model archive tool or browser transfer UI",
+    "scripted model fixtures; no Docker or live-provider acceptance",
+    "multi-host sharing, retention/delta, curation, full product remain unfinished"
+  ],
+  "ci": {
+    "scope": "first published production checkpoint; documentation-only follow-up does not alter production source",
+    "pullRequest": 25,
+    "commit": "13499180548f7252e00998846bbe7e0de09d4388",
+    "run": 38002892474,
+    "state": "failure before steps",
+    "jobs": [
+      {
+        "id": 114064918904,
+        "steps": null,
+        "logs": null
+      },
+      {
+        "id": 114064919033,
+        "steps": null,
+        "logs": null
+      }
+    ]
+  },
+  "logSHA256": {
+    "archive-package.log": "7999c9ff74a9456f9ee8b232571f09f775d9a4ce16adf083972ee65d2f73146d",
+    "archive-parallel-a.log": "dc9ca14c431112aabf446357bff26c3a823a23dfa65e990329dff8f2bded6e0a",
+    "archive-parallel-b.log": "6aeb0923321d1a1906d22163be9d1b3012f4af2fc4e8ef35bb6de45b22e9286c",
+    "archive-owner-negative.log": "92b899519e63f5e2cd2e3c4bb5b47eeef90ed228ff7fd4ce1c565d5c708c8639",
+    "archive-built-final.log": "c716e3936917005bfe901f67c8f6926b72c5c011759a63666eb3661213fa6b11",
+    "archive-build-final.log": "18ac62b9ce503343783a0de769333dc5027a5c1fef0c1f0b16cf2227d154ba5a",
+    "archive-build-final-exit.json": "0f5ea093232425c7cfddc38781c1041422b892e1e1f5aff5041864106ae82b7f",
+    "archive-build-record.log": "892c7048fb2f17dacc3f1df784a88742c7ec62f369166e12ad83cbed1be247e9",
+    "archive-node-next.log": "7036d9660ab047ececf4aafd708c12a7dac5358f388fd039c441b0ce7962120e",
+    "archive-lint-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "archive-cordis.log": "6733a14c55ca833530b661e58f91fa6c6da38f27499bb543d8904eed4638602c",
+    "archive-config-catalog.log": "a1652449aaf0d73a66b03fc831d22fd102283579404228e1b8b81fb92c2c5155",
+    "archive-module-graph.log": "0eb3498bae5009761a1c2a7225ad26ae4208ef20f4f73610e37b34bda4693ccb",
+    "archive-links-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "archive-wrap-final.log": "c647ebdd98664e39c79e9a9688c9a352e03172631715d22520ac0e72f3c9bbbd",
+    "archive-pre-push.log": "8c4de5696750886714a955f9e2b956f8e9912b0b3d13c18a3164d47cc9495a20"
+  },
+  "verificationNotes": [
+    "Initial intermediate build preceded final source edits; the final build is authoritative",
+    "tsx CLI lint was blocked by a Unix-socket sandbox boundary; direct supported ESM launch passed",
+    "Two initial verification commands named nonexistent files; corrected owning script and exact CI built argv passed",
+    "Archive owner negative mutation ran after the first build finished; original bytes restored before the final build",
+    "Unchanged runner/owner-order checks retain the separate PR24 receipt and are not added to this checkpoint count"
+  ]
+}
