@@ -72,6 +72,7 @@ jobs:
           node --experimental-transform-types --test
           packages/experimental/d-ai/tests/director-scheduler-coordinator.test.mjs
           packages/experimental/d-ai/tests/director-recovery-process.test.mjs
+          packages/experimental/d-ai/tests/artifact-store-built.test.mjs
       - name: Local provider context regressions
         run: pnpm exec vitest run packages/llm/llm-pi-ai/tests/small-context-budget.spec.ts packages/llm/llm-pi-ai/tests/adapter.spec.ts --maxWorkers=4
       - name: D_AI package tests

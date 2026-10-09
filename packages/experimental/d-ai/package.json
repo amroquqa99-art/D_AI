@@ -19,6 +19,10 @@
     "./web-searxng": {
       "types": "./lib/types/web-searxng.d.ts",
       "default": "./lib/web-searxng.js"
+    },
+    "./artifact-store": {
+      "types": "./lib/types/artifact-store.d.ts",
+      "default": "./lib/artifact-store.js"
     }
   },
   "license": "MIT",
@@ -40,7 +44,8 @@
     "@deepseek-ai/dsh-tools": "workspace:*",
     "@deepseek-ai/dsh-user-approval": "workspace:*",
     "@deepseek-ai/dsh-system-prompt": "workspace:*",
-    "@deepseek-ai/dsh-agent-loop": "workspace:*"
+    "@deepseek-ai/dsh-agent-loop": "workspace:*",
+    "@deepseek-ai/dsh-attachment": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
@@ -61,7 +66,9 @@
     "@deepseek-ai/dsh-storage-json": "workspace:*",
     "@deepseek-ai/dsh-user-approval": "workspace:*",
     "@deepseek-ai/dsh-llm-pi-ai": "workspace:*",
-    "@deepseek-ai/dsh-system-prompt": "workspace:*"
+    "@deepseek-ai/dsh-system-prompt": "workspace:*",
+    "@deepseek-ai/dsh-attachment": "workspace:*",
+    "@deepseek-ai/dsh-attachment-local": "workspace:*"
   },
   "publishConfig": {
     "access": "public"

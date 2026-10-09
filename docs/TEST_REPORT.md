@@ -2,6 +2,31 @@
 
 Date: 2026-10-10 (Asia/Jerusalem)
 
+## Native artifact checkpoint — 2026-10-10
+
+Source base: PR #23 at `5d66ee733678ed409d4dbfbdacfa9e0538ff9764`; branch `dai/artifact-store-20261010`. The optional public `artifact-store` entry connects native attachment bytes, immutable owner-bound lineage manifests, a durable storage-domain catalog and three logged text tools. Native root/turn authorization is shared with D_AI's runtime kernel. Existing Session formats and event schemas remain unchanged.
+
+| Executed check | Result and scope |
+|---|---|
+| Native package and generator regression suites | PASS; 243 tests: 228 D_AI tests plus 15 configuration-generator tests; one opt-in live skip. |
+| Artifact acceptance | PASS; nine cases cover exact Arabic/UTF-8/BOM output, binary bytes, invalid UTF-8, duplicate receipts at capacity, same-owner parents, foreign/forged owner denial, malformed catalog keys, corrupted native files, manifest disagreement, exact byte limits, complete envelope limits, restart and disposal/drain behavior. |
+| Authorization negative control | EXPECTED FAILURE; disabling the owner assertion makes the forged-owner regression fail. Exact source bytes are restored before the final acceptance build. |
+| Concurrent artifact isolation | PASS; two independent copies each run all nine cases with private roots and settled teardown. These repetitions add no distinct coverage count. |
+| Published built entry | PASS; ordinary package subpath import, built native providers and a scripted model perform a real logged artifact put/read and reject a forged owner. |
+| Built coordinator / interruption acceptance | PASS; 15 cases: 12 coordinator checks, two real POSIX SIGKILL boundaries and the public artifact entry smoke. |
+| Runner / owner-order checks | PASS; 16 cases, including the updated runner's exact artifact acceptance command. |
+| Complete workspace build | PASS; native addon, Host/Client, desktop and frontend on Node 24.19.0 and pnpm 11.7.0 with verified Node headers. Exit status and a fresh 357-file build record are checked; the build-record verifier recomputes all artifact hashes. |
+| Public NodeNext declarations | PASS for current exports, including the new artifact subpath. |
+| Scoped type-aware lint | PASS for the three production artifact modules and native acceptance spec. |
+| Frozen dependency install | PASS offline after adding two existing workspace references; no registry version, dependency snapshot or patch changes. Full offline lock regeneration lacks cached LibreOffice metadata, so only the two exact native workspace links are recorded and checked by frozen install. |
+| Configuration / persistence / module / notices checks | PASS; native Cordis configuration includes the opt-in source patch; module catalogs are regenerated. No Session persistence artifact changes. |
+| Documentation checks | PASS through direct ESM pair, formatting and link verifiers. Aggregate `doc-sync`, legacy JSDoc and standing-order budget limitations remain described in the preceding checkpoint. |
+| GitHub / Docker / live acceptance | The PR #23 workflow `37996663801` failed before steps in both jobs (`114044378080`, `114044378284`). Outgoing CI is checked after publication. No Docker-host or live-provider acceptance is inferred from local fixtures. |
+
+[The artifact receipt](../docker/verification/artifacts-20261010.json) binds current source and logs. There are 274 distinct passing checks and one opt-in skip across the reported suites. Model responses are scripted; native storage, ownership, replay and process termination are actual. HTTP fixture tests require `NODE_USE_ENV_PROXY=0`; the ordinary build uses its configured 4 GiB compiler heap and an explicit verified header directory on this host. Initial invocations without those host settings failed and are not acceptance evidence.
+
+Artifact durability requires backing up both the catalog backend and attachment files. Catalog publication is not atomic with tool-result publication; retries preserve the same immutable receipt. Failed/interrupted saves can leave unreachable files. The store does not implement organizational accounts, multi-host catalog coordination, export/import, retention, delta storage or automatic experiment/dataset curation. These results do not finish the full product or establish power-loss acceptance.
+
 ## Task claim durability checkpoint — 2026-10-10
 
 Source base: PR #22 at `d3d76718a70a9afd46d9975615a2dd5b09f49e39`; current branch `dai/crash-claim-order-20261010`. New claims persist and flush their execution lease before persisting RUNNING, and launch a worker only after both operations succeed. Every new-claim crash prefix has either runnable work, runnable work with a recoverable lease, or running work with that lease. Cold eligibility waits for the latest unreleased lease generation of the selected task, including READY tasks, so early wake attempts cannot exhaust schedule failure limits before expiry. Old ambiguous RUNNING records without leases are not silently reinterpreted.

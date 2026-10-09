@@ -6,23 +6,27 @@ D_AI 是基于真实 DeepSeek Harness 源码构建的多系统 AI 运行环境�
 
 ## 开发状态
 
-当前开发分支为 `dai/crash-claim-order-20261010`，基于尚未合并的调度器所有者公平性检查点。D_AI 尚非完整生产版本。源码变更、fixture（测试前置数据）证据与真实提供方验收分别记录状态。
+当前开发分支为 `dai/artifact-store-20261010`，基于尚未合并的调度器所有者公平性检查点。D_AI 尚非完整生产版本。源码变更、fixture（测试前置数据）证据与真实提供方验收分别记录状态。
 
 六个领域切片——调查、科学研究、投资分析、网络安全、行动与情报、创新与发现——已有原生运行时路径。共享基础设施包括任务计划、带 fencing 的执行租约、检查点、证据与控制投影、路由策略以及本地决策建议器。完整 Control Center、真实连接器、分布式调度和受治理训练仍未完成。
 
 使用下列当前报告查看实现与就绪情况：
 
-- [阿拉伯语执行状态](https://github.com/amroquqa99-art/D_AI/blob/dai/crash-claim-order-20261010/D_AI_EXECUTION_STATUS_AR.md)。
-- [功能验收矩阵](https://github.com/amroquqa99-art/D_AI/blob/dai/crash-claim-order-20261010/docs/FEATURE_MATRIX.md)。
-- [已执行检查与限制](https://github.com/amroquqa99-art/D_AI/blob/dai/crash-claim-order-20261010/docs/TEST_REPORT.md)。
+- [阿拉伯语执行状态](https://github.com/amroquqa99-art/D_AI/blob/dai/artifact-store-20261010/D_AI_EXECUTION_STATUS_AR.md)。
+- [功能验收矩阵](https://github.com/amroquqa99-art/D_AI/blob/dai/artifact-store-20261010/docs/FEATURE_MATRIX.md)。
+- [已执行检查与限制](https://github.com/amroquqa99-art/D_AI/blob/dai/artifact-store-20261010/docs/TEST_REPORT.md)。
 
 ## 重启恢复
 
-可选调度器通过原生单写者恢复，重新打开明确配置的冷 root Session，执行到期且已获批准的工作。它保留人工输入、预算、审批和带 fence 的任务尝试。配置和限制见[恢复指南](https://github.com/amroquqa99-art/D_AI/blob/dai/crash-claim-order-20261010/docs/OPERATIONS.md#unattended-owner-recovery)；完整停机、分布式及真实提供方验收分别记录。
+可选调度器通过原生单写者恢复，重新打开明确配置的冷 root Session，执行到期且已获批准的工作。它保留人工输入、预算、审批和带 fence 的任务尝试。配置和限制见[恢复指南](https://github.com/amroquqa99-art/D_AI/blob/dai/artifact-store-20261010/docs/OPERATIONS.md#unattended-owner-recovery)；完整停机、分布式及真实提供方验收分别记录。
+
+## 实验产物
+
+可选原生产物插件以 SHA256 标识、不可变父级谱系和按所有者隔离的持久目录保存精确文件。文本工具及主机字节 API 强制检查当前 live root 身份与配置限制。[产物指南](https://github.com/amroquqa99-art/D_AI/blob/dai/artifact-store-20261010/packages/experimental/d-ai/README.md#immutable-experiment-artifacts)说明启用、备份及失败行为。导出与导入、保留策略、自动训练数据整理以及组织共享仍未完成。
 
 ## 容器开发检查
 
-[容器指南](docker/README.zh.md)说明固定摘要的 Node 镜像、仓库精确 pnpm 版本、冻结依赖、构建与检查服务以及镜像迁移。容器配置与失败传播检查已在本地通过；[验证报告](https://github.com/amroquqa99-art/D_AI/blob/dai/crash-claim-order-20261010/docs/TEST_REPORT.md)另行记录当前完整源码的主机检查。镜像构建及容器内完整原生检查仍待在 Docker 主机执行；拟议命令不代表容器部署已经完成。
+[容器指南](docker/README.zh.md)说明固定摘要的 Node 镜像、仓库精确 pnpm 版本、冻结依赖、构建与检查服务以及镜像迁移。容器配置与失败传播检查已在本地通过；[验证报告](https://github.com/amroquqa99-art/D_AI/blob/dai/artifact-store-20261010/docs/TEST_REPORT.md)另行记录当前完整源码的主机检查。镜像构建及容器内完整原生检查仍待在 Docker 主机执行；拟议命令不代表容器部署已经完成。
 
 ```sh
 docker compose config --quiet
@@ -44,10 +48,10 @@ pnpm run build
 pnpm dsh web
 ```
 
-该命令启动底层 Harness Web 应用。完善的 D_AI 启动器与 Control Center 仍需构建。[可选本地推理与搜索指南](https://github.com/amroquqa99-art/D_AI/blob/dai/crash-claim-order-20261010/docs/user/d-ai-local.md)连接明确选择的本地提供方；完整真实任务与离线部署还需进一步验收。
+该命令启动底层 Harness Web 应用。完善的 D_AI 启动器与 Control Center 仍需构建。[可选本地推理与搜索指南](https://github.com/amroquqa99-art/D_AI/blob/dai/artifact-store-20261010/docs/user/d-ai-local.md)连接明确选择的本地提供方；完整真实任务与离线部署还需进一步验收。
 
 ## 工程与来源归属
 
-修改共享约定前，请阅读 [AGENTS.md](https://github.com/amroquqa99-art/D_AI/blob/dai/crash-claim-order-20261010/AGENTS.md)、[产品规格](https://github.com/amroquqa99-art/D_AI/blob/dai/crash-claim-order-20261010/docs/PRODUCT_SPEC.md)及[工程协议](https://github.com/amroquqa99-art/D_AI/blob/dai/crash-claim-order-20261010/docs/ENGINEERING_WORKING_AGREEMENT.md)。运行时权限、审批、审计与持久化规则保持执行；打包不会扩大权限。
+修改共享约定前，请阅读 [AGENTS.md](https://github.com/amroquqa99-art/D_AI/blob/dai/artifact-store-20261010/AGENTS.md)、[产品规格](https://github.com/amroquqa99-art/D_AI/blob/dai/artifact-store-20261010/docs/PRODUCT_SPEC.md)及[工程协议](https://github.com/amroquqa99-art/D_AI/blob/dai/artifact-store-20261010/docs/ENGINEERING_WORKING_AGREEMENT.md)。运行时权限、审批、审计与持久化规则保持执行；打包不会扩大权限。
 
 源码来源为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)。保留其 [MIT 许可证](LICENSE)与[第三方声明](THIRD_PARTY_NOTICES.md)。

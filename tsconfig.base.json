@@ -29,6 +29,7 @@
     // under its own tsconfig boundary.
     "paths": {
       "@deepseek-ai/dsh-experimental-d-ai": ["./packages/experimental/d-ai/src"],
+      "@deepseek-ai/dsh-experimental-d-ai/artifact-store": ["./packages/experimental/d-ai/src/artifact-store.ts"],
       "@deepseek-ai/dsh-client-d-ai-locale": ["./packages/client/d-ai-locale/src"],
       "@deepseek-ai/dsh-client-product-analytics": ["./packages/client/product-analytics/src/index.ts"],
       "@deepseek-ai/dsh-client-product-analytics/types": ["./packages/client/product-analytics/src/events.ts"],
