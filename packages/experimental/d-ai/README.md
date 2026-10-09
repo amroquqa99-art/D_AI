@@ -40,8 +40,11 @@ Content and manifests use the native SHA256 attachment store. The owner catalog 
 | `maxManifestBytes` | 16,384 | Complete immutable manifest bytes |
 | `maxArtifactsPerOwner` | 1,000 | Newly admitted manifests per root |
 | `maxToolResultBytes` | 2,097,152 | Complete serialized JSON tool envelope |
+| `maxArchiveBytes` | 33,554,432 | Complete UTF-8 archive, including receipts and base64 |
 
-Interrupted or rejected saves can leave unreachable immutable files. A successful catalog commit can precede a failed tool-result publication; retry is idempotent, and the host read/list APIs expose the durable receipt. Preserve both the attachment root and catalog backend in backups. Owner identity is a native live Agent identity, not an organizational login. Export/import, retention, delta storage, automated experiment/dataset curation and organizational sharing remain deferred.
+`ctx.daiArtifacts.exportArchive(agent, signal?)` returns deterministic UTF-8 bytes for the complete owner catalog, verifies every native file and deduplicates shared content. `importArchive(agent, bytes, signal?)` restores exact manifests to the same native Session identity inside an open turn. The complete archive's schema, canonical base64, SHA256 hashes, lengths, owner, unique identities and closed parent lineage are verified before writes; destination capacity is checked against both existing and incoming receipts. Import commits individual receipts parent-first. An interrupted import retains complete committed receipts and can be retried after restart; it is not an atomic whole-archive transaction. Neither operation uploads data, calls a model or authorizes another owner. These are host APIs, with no archive tool or browser transfer flow.
+
+Interrupted or rejected saves can leave unreachable immutable files. A successful catalog commit can precede a failed tool-result publication; retry is idempotent, and the host read/list APIs expose the durable receipt. Preserve both the attachment root and catalog backend in full backups. A portable artifact archive contains no Session log, policy, schedule or credentials; it cannot restore an entire workspace. Owner identity is a native live Agent identity, not an organizational login. Retention, delta storage, automated experiment/dataset curation, organizational sharing and full-workspace export/import remain deferred.
 
 ## Local decision and open-source search
 

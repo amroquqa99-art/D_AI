@@ -7,3 +7,4 @@
         maxManifestBytes: 16384
         maxArtifactsPerOwner: 1000
         maxToolResultBytes: 2097152
+        maxArchiveBytes: 33554432

@@ -2,6 +2,23 @@
 
 Date: 2026-10-10 (Asia/Jerusalem)
 
+## Portable artifact archive checkpoint — 2026-10-10
+
+Source base: PR #24 at `312b6925f36353bdc4bba8691da60dc8c83c9d85`; branch `dai/artifact-archive-20261010`. The optional native artifact service now exports a complete bounded owner archive and restores exact manifests to the same Session identity through host APIs. SHA256 contents, canonical base64, byte lengths, owner, unique identities and closed parent lineage are checked before writing. Import commits individual receipts parent-first and can resume through an identical retry after native restart. Native Session formats and the three model tool schemas are unchanged.
+
+| Executed check | Result and scope |
+|---|---|
+| Package and configuration-generator regressions | PASS; 248 tests: 233 native D_AI plus 15 generator tests, with one opt-in live skip. |
+| Artifact/restore acceptance | PASS; 14 cases, including five new archive cases: isolated-host Loader restore, exact Arabic/BOM and binary bytes, content deduplication, identical retry at capacity, malformed receipt/byte/owner rejection before writes, missing parent rejection, provider failure after a committed parent, native restart/retry, complete envelope limits and pre-write cancellation/capacity. |
+| Archive owner negative control | EXPECTED FAILURE; temporarily removing archive-owner validation makes the corrupt-archive regression fail on the foreign envelope. Exact source bytes are restored before the final build. |
+| Concurrent artifact/restore isolation | PASS; two independent processes each pass all 14 cases with private native storage roots and settled teardown. Repeated cases add no distinct coverage count. |
+| Built published entry / full workspace build | PASS; ordinary full native/Host/Client/desktop/frontend build exits zero and records 357 verified client artifacts. The built public subpath exercises export and successful import during an actual native turn; 15 built coordinator/artifact/process cases pass, including both SIGKILL boundaries. Public declarations compile for 330 workspace APIs. No fixture-only result is promoted to live evidence. |
+| Configuration and catalogs | PASS; 220 native Cordis configs; configuration and module artifacts remain up to date. The optional patch adds the explicit archive byte bound. |
+
+The [archive receipt](../docker/verification/artifact-archives-20261010.json) binds source hashes and executed checks. The portable format is `d_ai.artifact.archive.v1`, with a default complete archive bound of 33,554,432 bytes. Archive APIs make no model or network request and have no browser upload/download or model tool. Models in acceptance are scripted; native Loader, attachments, storage-domain, Session turns, restart and logged results are real.
+
+Archives preserve the original owner identity and omit Session logs, policy, schedules and credentials. Restore Session history separately before resuming work. Imports are not whole-archive atomic; interruption retains committed receipts and may leave unreachable immutable files. Organizational sharing, multi-host coordination, complete-workspace transfer, retention, delta storage, curation, Control Center UI, live connectors and governed training remain unfinished. GitHub CI, Docker-host and live-provider acceptance remain separate from these local checks.
+
 ## Native artifact checkpoint — 2026-10-10
 
 Source base: PR #23 at `5d66ee733678ed409d4dbfbdacfa9e0538ff9764`; branch `dai/artifact-store-20261010`. The optional public `artifact-store` entry connects native attachment bytes, immutable owner-bound lineage manifests, a durable storage-domain catalog and three logged text tools. Native root/turn authorization is shared with D_AI's runtime kernel. Existing Session formats and event schemas remain unchanged.
