@@ -55,6 +55,9 @@
     },
     {
       "path": "../../core/agent-loop"
+    },
+    {
+      "path": "../../attachment/attachment"
     }
   ]
 }

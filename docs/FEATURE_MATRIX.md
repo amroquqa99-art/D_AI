@@ -1,6 +1,6 @@
 # D_AI feature acceptance reference
 
-Date: 2026-10-09 (Asia/Jerusalem)
+Date: 2026-10-10 (Asia/Jerusalem)
 
 This matrix separates **implementation maturity** from **verification state**. A feature can be wired into the runtime while the latest CI gate is unavailable; that does not make it verified.
 
@@ -13,7 +13,7 @@ This matrix separates **implementation maturity** from **verification state**. A
 - `VERIFIED` — the appropriate executable acceptance checks have passed for the relevant current code.
 - `LIVE_VERIFIED` — required real-provider/browser/environment proof also exists.
 
-The current native package and configuration-catalog regression set passes 234 tests with one opt-in live test skipped: 219 native D_AI tests plus 15 generator checks. Cold owner recovery is connected through real Cordis Loader composition and native Session persistence. New task claims persist ownership before RUNNING; two POSIX abrupt-process boundaries are tested separately from the package suite. Model responses remain scripted. Build, abrupt-process acceptance and CI results are recorded separately in [TEST_REPORT.md](TEST_REPORT.md).
+The current native package and configuration-catalog regression set passes 243 tests with one opt-in live test skipped: 228 native D_AI tests plus 15 generator checks. Cold owner recovery is connected through real Cordis Loader composition and native Session persistence. New task claims persist ownership before RUNNING; two POSIX abrupt-process boundaries are tested separately from the package suite. Model responses remain scripted. Build, abrupt-process acceptance and CI results are recorded separately in [TEST_REPORT.md](TEST_REPORT.md).
 
 ## Current checkpoint
 
@@ -48,15 +48,15 @@ The current native package and configuration-catalog regression set passes 234 t
 | Control Center read API | consolidated platform snapshot | INTEGRATED | LOCAL_NATIVE_FIXTURE_PASS / CI_PENDING | full backend control APIs and browser UI |
 | Admin / Control Center UI | product specification only | NOT_STARTED | NOT_RUN | mission/agent/task/evidence/model/policy/resource views + RTL |
 | Collaborative rooms | cross-system handoff primitives only | FOUNDATION | CI_PENDING | durable room/message/task coordination + scoped sharing |
-| Artifact/Experiment Store | artifact references/checksums in several state paths | FOUNDATION | CI_PENDING | content-addressed blob store, lineage manifests, export/import |
+| Artifact/Experiment Store | opt-in native SHA256 attachments, immutable owner-scoped lineage manifests, durable catalog and logged text tools | INTEGRATED | LOCAL_NATIVE_ARTIFACT_PASS / CI_PENDING | export/import, retention/delta storage, automatic experiment curation, organizational sharing and broader outage acceptance |
 | AI Model Engineering & Research Lab | Local Core governance/lifecycle pieces | FOUNDATION | CI_PENDING | explicit lab manifest/workspace, baseline eval loop and future roadmap |
 | Offline/fresh-checkout handoff | native source repository + durable Session model | FOUNDATION | CURRENT_HOST_SOURCE_BUILD_PASS / CI_PENDING | offline packaging, restore/export/import and clean-clone/container acceptance |
 
 ## Current verification blocker
 
 Latest inspected D_AI v2 workflow:
-- run `37694129527`
-- job `113041387558`
+- run `38000791898`
+- jobs `114058075947` (native) and `114058076182` (container)
 - conclusion `failure`
 - workflow steps: none (`steps: null`); runner rejection reason unavailable
 

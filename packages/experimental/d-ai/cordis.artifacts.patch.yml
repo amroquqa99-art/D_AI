@@ -1,0 +1,9 @@
+# Apply to a Web-derived profile with native attachments and storage-domain mounted.
+- insert:
+    - id: d-ai-artifacts
+      name: './src/artifact-store.ts'
+      config:
+        maxArtifactBytes: 1048576
+        maxManifestBytes: 16384
+        maxArtifactsPerOwner: 1000
+        maxToolResultBytes: 2097152

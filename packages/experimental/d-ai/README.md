@@ -26,6 +26,23 @@ Live root owners are considered in stable identity order, starting after the las
 
 Cold root recovery is opt-in through `directorSchedulerResumeOwners`. The scheduler reads bounded logs for an explicit allowlist, restores useful approved work under native single-writer ownership, revalidates at publication and releases only its own handles on shutdown. It preserves pending human input and can continue a sole persisted schedule wake. [Configuration and operating limits](../../../docs/OPERATIONS.md#unattended-owner-recovery) are owned by the operations guide.
 
+## Immutable experiment artifacts
+
+Mount the optional `@deepseek-ai/dsh-experimental-d-ai/artifact-store` plugin before creating owners, with native `attachments`, `storage-domain`, `agents` and `tools` services. In a source checkout, add `--patch packages/experimental/d-ai/cordis.artifacts.patch.yml` to the Web-derived D_AI launch. A restricted local profile must explicitly include `d_ai_artifact_put_text`, `d_ai_artifact_read_text` and `d_ai_artifact_list` in its root tool allow list.
+
+`ctx.daiArtifacts.put` stores exact binary bytes and an immutable version-one lineage manifest; `read` verifies the manifest and content; `list` returns only the live root's receipts. The text tools retain exact UTF-8, including a leading BOM, and refuse invalid UTF-8 on read. A receipt's `manifest.attachmentId` is its artifact identity and can be cited by existing artifact-reference fields. Up to 32 distinct same-owner parent identities are admitted; child and foreign root access is refused. Declared media types do not validate content or authorize training.
+
+Content and manifests use the native SHA256 attachment store. The owner catalog uses the configured native storage-domain backend, separate from Session events; tool inputs and results remain native logged transcript data. Repeating identical bytes and metadata yields the same receipt without using another catalog slot. An owner at its configured capacity cannot write new content. Reads fail on missing/corrupt files or disagreement between an immutable manifest and its catalog. Catalog owner/key disagreement fails plugin initialization.
+
+| Configuration | Default | Applied limit |
+|---|---:|---|
+| `maxArtifactBytes` | 1,048,576 | Exact stored/read content bytes |
+| `maxManifestBytes` | 16,384 | Complete immutable manifest bytes |
+| `maxArtifactsPerOwner` | 1,000 | Newly admitted manifests per root |
+| `maxToolResultBytes` | 2,097,152 | Complete serialized JSON tool envelope |
+
+Interrupted or rejected saves can leave unreachable immutable files. A successful catalog commit can precede a failed tool-result publication; retry is idempotent, and the host read/list APIs expose the durable receipt. Preserve both the attachment root and catalog backend in backups. Owner identity is a native live Agent identity, not an organizational login. Export/import, retention, delta storage, automated experiment/dataset curation and organizational sharing remain deferred.
+
 ## Local decision and open-source search
 
 The opt-in `local-intelligence` entry runs one tool-free, fresh-context native child against an explicitly configured model, validates bounded advisory JSON and rejects invented references. It does not mutate domain facts or promote models. The opt-in `web-searxng` entry registers a bounded native web search provider against a deployment-owned SearXNG JSON endpoint. Both contributions are disposed with their Cordis plugin. The adviser rejects and disposes a provider run without an in-process native child; an explicit local or remote inference endpoint is still supported.
@@ -40,11 +57,11 @@ The adviser defaults `includeExecutionContext` to false: executor runtime snapsh
 
 #### What the model sees
 
-The five `d_ai_*` schemas and bounded JSON mission state. Source content and independent assessments are untrusted data. Claim tools append observations but provide no operation to self-promote claims to `VERIFIED_WITH_SCOPE`.
+The base D_AI schemas and bounded JSON state, plus three artifact schemas when that plugin is mounted. Source content and independent assessments are untrusted data. Claim tools append observations but provide no operation to self-promote claims to `VERIFIED_WITH_SCOPE`.
 
 #### Token effect
 
-Tool schemas add a fixed prompt cost. Captured content and mission results add variable history cost bounded by configured source/mission limits. Each delegated role has a configured token/request/time/output-byte budget.
+Tool schemas add a fixed prompt cost. Captured content and mission results add variable history cost bounded by configured source/mission limits. Each delegated role has a configured token/request/time/output-byte budget. Artifact writes add no model requests; text reads and receipt lists add history bounded by the artifact tool-result byte limit.
 
 #### KV Cache effect
 
@@ -52,6 +69,6 @@ Tool registration changes the assembled tool prefix once at activation. Subseque
 
 ## Known Limitations and Deferred Work
 
-The Local Intelligence Core is a separate governed platform component, not a seventh domain, and has no trained or activated D_AI model. Durable task ledgers, fenced leases/checkpoints, budgets, grants, model routing, bounded Director cycles, a durable unattended Director scheduler and budget-safe same-plan parallel worker waves now exist. The scheduler persists cadence/cycle receipts, wakes only idle root Agents, executes inside native Agent turns, preserves lease/fencing recovery, requires human approval for schedule changes, orders due plans fairly within one owner, bounds cross-owner concurrency and can execute independent tasks in exact-task parallel waves without sharing an applicable durable budget profile. Distributed scheduling, broad crash acceptance, provider health/secrets/telemetry, original binary artifact storage, a complete system-manager hierarchy and the Control Center UI remain unfinished. Real wall-clock usage is measured; automatic token/money/data/human-attention metering and VRAM reservations remain incomplete.
+The Local Intelligence Core is a separate governed platform component, not a seventh domain, and has no trained or activated D_AI model. Durable task ledgers, fenced leases/checkpoints, budgets, grants, model routing, bounded Director cycles, a durable unattended Director scheduler and budget-safe same-plan parallel worker waves now exist. The scheduler persists cadence/cycle receipts, wakes only idle root Agents, executes inside native Agent turns, preserves lease/fencing recovery, requires human approval for schedule changes, orders due plans fairly within one owner, bounds cross-owner concurrency and can execute independent tasks in exact-task parallel waves without sharing an applicable durable budget profile. Distributed scheduling, broad crash acceptance, provider health/secrets/telemetry, artifact export/import, a complete system-manager hierarchy and the Control Center UI remain unfinished. Real wall-clock usage is measured; automatic token/money/data/human-attention metering and VRAM reservations remain incomplete.
 
 The index is not reconciled automatically after a Session-success/index-failure. A failed Session flush rejects the mutation but native pending in-memory Session events remain visible until retry or restart; no cross-store transaction or rollback is promised. Events emitted inside an interrupted turn retain native Harness recovery semantics. Two POSIX process-crash cases pass through the ordinary built package entry: SIGKILL interrupts either a running worker or a claim between durable lease acquisition and RUNNING; a new process completes the task under fence 2 and both leases remain in the log. Claims persist the lease first, and cold recovery waits for the latest unreleased generation even when the task is still READY. Broader storage/power-loss faults, multiple live writers and live-provider recovery remain unverified.

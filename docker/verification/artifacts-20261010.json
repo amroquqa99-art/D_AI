@@ -1,0 +1,130 @@
+{
+  "formatVersion": 1,
+  "checkpoint": "native-artifacts-20261010",
+  "createdAt": "2026-10-09T22:38:14.843018+00:00",
+  "sourceBase": {
+    "repository": "amroquqa99-art/D_AI",
+    "remoteCommit": "5d66ee733678ed409d4dbfbdacfa9e0538ff9764",
+    "tree": "2ef1e858a19c9b06bb14ff7f8c1772c86ed775ca",
+    "localCommit": "f72fbddadfe82b9b274650b123de1520d289751b"
+  },
+  "sourceSHA256": {
+    "packages/experimental/d-ai/src/artifact-record.ts": "deb9c378600208fbff87f1f85a4bec7235cc52793476064951d0a1655d4fa821",
+    "packages/experimental/d-ai/src/artifact-store.ts": "4e3b4da9864856a4047111d21b3745d4ccf30e814f96ca459ff4e6e880e21c91",
+    "packages/experimental/d-ai/src/artifact-tools.ts": "7838eeb2cd989fd842aff62e122be7fbfe14200421e5d36fbeb744fa8ff91293",
+    "packages/experimental/d-ai/tests/artifact-store.spec.ts": "6b341231f3be9b5d4d8d4b157804e1282bc13febf1b2f33f7ec8b353c273fcde",
+    "packages/experimental/d-ai/tests/artifact-store-built.test.mjs": "b93c1d954d16aff3a072e5a4c911d14aac60ed838acd7f83d4324714aebaee25",
+    "packages/experimental/d-ai/cordis.artifacts.patch.yml": "760540779deaf65410ce01b4b35715e637c269811d35ea7f1ddd289ad693031c",
+    "packages/experimental/d-ai/package.json": "057a673bc520b1e67712f8b3658fafb0583ba396a3d87b933217c16db08848d6",
+    "packages/experimental/d-ai/tsconfig.json": "d4a36bb8e897f6e5ea72e6dd805061b569f2606715b03ff1d272b0e3f49c2d86",
+    "packages/experimental/d-ai/tsdown.config.ts": "a7b13bf6635e2c3f7a68a5c0462935918b7e5d83e2a10500377d989790b71ce2",
+    "tsconfig.base.json": "2dc3b82e7f6179a75ecfb70ad987c86614baf92f6e36838998ecefd7e1be4758",
+    "pnpm-lock.yaml": "708fac255b67de3a42548636ae430d686a0a73fd0863319613065e8b14b06482",
+    "docker/check.sh": "88c9e5719135fc483c4b2ba15f605387a0d103bb828ea758e6a43cc8f8d7c047",
+    "docker/tests/check-runner.test.mjs": "2d6d061544fb7032c5745f78f62e4943c4923dbfb05f055fd6440f1c5958dc81",
+    ".github/workflows/d-ai-v2-checks.yml": "968bfaf4b042e9c8f4d66c3b059ffadfe70f1529705d6b1b4f09ce8788ed7d08"
+  },
+  "logSHA256": {
+    "artifact-install.log": "4de684f2ea338a484c3fb4db50ed45fd393929e0f73370f2a6f011ddf8dc86db",
+    "artifact-package.log": "5fb37473d405e394e21dcebc27a3bd7278853d5938f0767ca1872615d2531aa5",
+    "artifact-owner-negative.log": "60176ba6150bbd3db631fb079b77711bf1283ca0b1781173e0cec8a919dc72e5",
+    "artifact-parallel-a.log": "e77860d84885875eae34bdc8cff9d7b4ad4f855af8fc91e70914940b56fc46fc",
+    "artifact-parallel-b.log": "f26ab1b761615187e1cb6f4ceb5e1bfc697376f0cb2b90ffa956dbe28fd74ad5",
+    "artifact-built-final.log": "7bafc449a3d1f0fa44a7926fa343ce1ebdb46baa066b4af4f71022272bb0ccdc",
+    "artifact-process.log": "dff4220e6e3faa69cd259bca122c52de717e9e0f313b8321ed64c964776fbb9b",
+    "artifact-runner.log": "ac8b71f0b6383aa1ae603c3cf0c08975857a4da140bda406cc614ce173d3f39c",
+    "artifact-build-final.log": "681a80c49d28561a5461e7aa69d343d443beec13c7b53e1a43512e3d0669882b",
+    "artifact-build-record.log": "90e5334d17a9af16f1b747f4768e0205025b72bf02036d00aa34d25e49b22fd6",
+    "artifact-node-next.log": "7036d9660ab047ececf4aafd708c12a7dac5358f388fd039c441b0ce7962120e",
+    "artifact-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "artifact-cordis.log": "6733a14c55ca833530b661e58f91fa6c6da38f27499bb543d8904eed4638602c",
+    "artifact-module.log": "0eb3498bae5009761a1c2a7225ad26ae4208ef20f4f73610e37b34bda4693ccb",
+    "artifact-persistence.log": "0b94ccd6b72409fde2a779406cbab9106a6b7fb75d628efaa55d6b0418b7f8fe",
+    "artifact-catalog.log": "a1652449aaf0d73a66b03fc831d22fd102283579404228e1b8b81fb92c2c5155",
+    "artifact-notices.log": "06c18c7e50ad4ff415485f6d36a81f832c3898b22dfd56c9925231537d953245",
+    "artifact-pair.log": "3e0382b1a7317a82a82faf5d9c8b97490031075fa80bb49385562b871123760d",
+    "artifact-wrap.log": "c647ebdd98664e39c79e9a9688c9a352e03172631715d22520ac0e72f3c9bbbd",
+    "artifact-links.log": "6215b3b7438d8995220eb872c986de84d0c273dc6e0e704c9df6d8a99931d19b"
+  },
+  "acceptance": {
+    "packageTestsPassed": 228,
+    "configurationTestsPassed": 15,
+    "builtTestsPassed": 15,
+    "runnerAndOwnerOrderingTestsPassed": 16,
+    "distinctPassed": 274,
+    "optInLiveSkipped": 1,
+    "artifactCases": 9,
+    "artifactConcurrentCopies": 2,
+    "modelAdapter": "scripted fixture",
+    "nativePaths": [
+      "AgentLoop and native logged tool results",
+      "Session persistence and resume",
+      "native immutable attachment files",
+      "native storage-domain JSON catalog",
+      "actual POSIX SIGKILL and fenced restart"
+    ],
+    "negativeControl": {
+      "mutation": "disable exact live-root assertion",
+      "result": "expected forged-owner denial regression failure",
+      "restoredSource": "byte-for-byte restoration before final package and build acceptance"
+    },
+    "buildExit": {
+      "command": "pnpm run build",
+      "exitCode": 0,
+      "completedAt": 1791585007.4758875
+    },
+    "clientBuildRecord": {
+      "formatVersion": 1,
+      "environment": {
+        "DSH_CLIENT_COMMIT_HASH": "f72fbdd",
+        "DSH_CLIENT_GIT_DIRTY": "true",
+        "DSH_CLIENT_VERSION": "0.2.1-alpha.1"
+      },
+      "artifacts": {
+        "fileCount": 357,
+        "sha256": "94e367dd5c306ea48d0e0f34dc5144f4e1bb01065a5a6886c60042d6fabf63fe"
+      }
+    },
+    "publicDeclarations": "330 workspace package APIs, including declared subpath exports, compile with NodeNext",
+    "lint": "three production artifact modules and native spec pass type-aware lint",
+    "configurationFilesVerified": 220,
+    "frozenInstall": "offline frozen install and 1685-entry supply-chain policy check pass; only two existing native workspace references added",
+    "persistence": "existing Session event schemas, versions and generated persistence artifacts unchanged"
+  },
+  "observedCI": {
+    "pr": 24,
+    "commit": "ed9e2883c962d4fd502fcc9fa6150e60403c62a7",
+    "runId": 38000791898,
+    "jobs": [
+      114058075947,
+      114058076182
+    ],
+    "conclusion": "failure before any steps",
+    "steps": null,
+    "logs": null,
+    "scope": "first published source checkpoint; documentation-only evidence updates do not change production source"
+  },
+  "verificationNotes": [
+    "Complete build exit status and fresh client build record are verified; client-build verifier recomputes all 357 artifact hashes. Captured build output ends before its final console marker.",
+    "Initial HTTP fixture invocation without NODE_USE_ENV_PROXY=0 failed; corrected lane passes.",
+    "Host uses verified Node headers and the ordinary build compiler heap; a direct default-heap compiler attempt ran out of memory.",
+    "Full offline lock regeneration lacks cached LibreOffice metadata; frozen install validates the two explicit existing workspace links.",
+    "Repeated and negative-control runs are not counted as extra distinct passing tests."
+  ],
+  "limitations": [
+    "No Docker Engine available; container build/run unverified.",
+    "No live model/provider acceptance for this feature.",
+    "Catalog and attachment files must be restored together.",
+    "Interrupted or rejected saves can leave unreachable immutable files.",
+    "Catalog publication is not atomic with tool-result publication; receipt retry is idempotent.",
+    "No organization accounts or multi-host catalog coordination.",
+    "Export/import, retention/delta storage and automatic experiment/dataset curation remain incomplete.",
+    "Legacy aggregate documentation/JSDoc/budget gates and CI runner acceptance remain separate.",
+    "The full D_AI product remains unfinished."
+  ],
+  "toolchain": {
+    "node": "24.19.0",
+    "pnpm": "11.7.0",
+    "nodeHeadersSHA256": "54f14a297d47ea0794fe272363703d9dc419c96ac68f20d890f98b63754a3e4c"
+  }
+}
