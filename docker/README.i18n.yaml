@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docker/README.md
 /d-ai-container-checks:
-  en: b051338cfe928e2a
-  zh: d78256c3d9bcb0a8
+  en: 163964c732e9a3e3
+  zh: 2343200b1af576cf
 /d-ai-container-checks/1-build-the-source-environment:
   en: b13fc88a2f6cf66f
   zh: 202847c0e4b6fd0e

@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-本贡献者教程定义容器构建与检查路径。它需要完整源码检出，以及可运行的 Docker Engine 和 Docker Compose v2 或更高版本。配置与运行器检查已在本地通过；镜像构建、依赖安装和完整容器内验收仍待执行。[验证报告](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/TEST_REPORT.md)负责区分这些证据。
+本贡献者教程定义容器构建与检查路径。它需要完整源码检出，以及可运行的 Docker Engine 和 Docker Compose v2 或更高版本。配置与运行器检查已在本地通过；镜像构建和完整容器内验收仍待执行。[验证报告](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/TEST_REPORT.md)负责区分这些证据。
 
 ## 1. 构建源码环境
 

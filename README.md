@@ -18,7 +18,7 @@ Use these current reports for implementation and readiness:
 
 ## Container development checks
 
-The [container guide](docker/README.md) describes a digest-pinned Node image, the repository's exact pnpm version, frozen dependencies, build/check services and image transfer. Container configuration and failure-propagation checks pass locally. Building the image and running the complete native checks inside it remain pending on a Docker host; the proposed commands are not a completed container deployment.
+The [container guide](docker/README.md) describes a digest-pinned Node image, the repository's exact pnpm version, frozen dependencies, build/check services and image transfer. Container configuration and failure-propagation checks pass locally; [the verification report](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/TEST_REPORT.md) records the current complete-source host checks separately. Building the image and running the complete native checks inside it remain pending on a Docker host; the proposed commands are not a completed container deployment.
 
 ```sh
 docker compose config --quiet
@@ -27,6 +27,9 @@ docker compose run --rm check
 ```
 
 The copied-source environment avoids changing the host checkout. It includes no models or user data and does not start the product web app. Rebuild after source/lockfile changes. CI has a separate container job; failed or unstarted workflow steps do not count as verification.
+
+<a id="run"></a>
+<a id="run-from-source"></a>
 
 ## Source application
 

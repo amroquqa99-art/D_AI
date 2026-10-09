@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-This contributor tutorial defines the container build/check path. It requires a complete source checkout and a working Docker Engine with Docker Compose v2 or newer. The configuration and runner checks pass locally; image build, dependency installation and complete in-container acceptance remain pending. [The verification report](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/TEST_REPORT.md) owns that distinction.
+This contributor tutorial defines the container build/check path. It requires a complete source checkout and a working Docker Engine with Docker Compose v2 or newer. The configuration and runner checks pass locally; image build and complete in-container acceptance remain pending. [The verification report](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/TEST_REPORT.md) owns that distinction.
 
 ## 1. Build the source environment
 

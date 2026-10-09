@@ -59,10 +59,8 @@ jobs:
         run: node --test packages/experimental/d-ai/tests/director-owner-order.test.mjs
       - name: Install
         run: pnpm install --frozen-lockfile
-      - name: Generate and verify persistence catalog
-        run: |
-          pnpm run gen-persistence-catalog
-          pnpm run verify-persistence-catalog
+      - name: Verify committed persistence catalog
+        run: pnpm run verify-persistence-catalog
       - name: Build Harness native system addon
         run: pnpm run build:native-system
       - name: D_AI TypeScript package check

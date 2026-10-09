@@ -1,0 +1,130 @@
+{
+  "formatVersion": 1,
+  "date": "2026-10-09",
+  "source": {
+    "repository": "amroquqa99-art/D_AI",
+    "commit": "a76079a7ee3be3f52f370da2499a06fe694e913a",
+    "tree": "52165a9bea2fb1b8d82cf625e4c36d26bde56c45",
+    "restoration": {
+      "upstreamCommit": "5badb15009ae1756c3afe0ae0cef1faafc290ccc",
+      "overlayBlobs": 258,
+      "everyOverlayBlobHashMatched": true,
+      "completeGitTreeMatched": true
+    },
+    "localGitHistory": "Shallow upstream history with D_AI overlay; client build metadata reports upstream HEAD and dirty=true."
+  },
+  "environment": {
+    "platform": "linux-x64/glibc",
+    "node": "24.19.0",
+    "pnpm": "11.7.0",
+    "ci": true,
+    "nodeHeadersSha256": "54f14a297d47ea0794fe272363703d9dc419c96ac68f20d890f98b63754a3e4c",
+    "fixtureNodeUseEnvProxy": "0",
+    "dockerEngineAvailable": false
+  },
+  "checks": [
+    {
+      "name": "Frozen installation",
+      "command": "CI=true pnpm install --frozen-lockfile",
+      "exitCode": 0,
+      "logSha256": "ee2b867043945fc04a8cd8bd276a1aa0beb3304d4c433115b9d1a38d5e669743"
+    },
+    {
+      "name": "Runner and owner ordering",
+      "command": "node --test docker/tests/check-runner.test.mjs; node --test packages/experimental/d-ai/tests/director-owner-order.test.mjs",
+      "exitCode": 0,
+      "logSha256": "bcfd6027eec9fec1e0a7e16dcd9ac215edbea7eebe2bcd3209c075592702105c",
+      "measurement": {
+        "passed": 16
+      }
+    },
+    {
+      "name": "Committed catalog and strict D_AI types, complete build",
+      "command": "node --import tsx/esm scripts/gen-persistence-catalog.ts --check && pnpm exec tsc -b packages/experimental/d-ai/tsconfig.json --pretty false && pnpm run build",
+      "exitCode": 0,
+      "logSha256": "b36bc61565ce6382fba58b60499d8ee1d8a9761a0f42d53bf6c0f272f7f5c0bf",
+      "measurement": {
+        "clientArtifacts": 357
+      }
+    },
+    {
+      "name": "Production coordinator via normal built entries",
+      "command": "node --experimental-transform-types --test packages/experimental/d-ai/tests/director-scheduler-coordinator.test.mjs",
+      "exitCode": 0,
+      "logSha256": "d57cbd9319ed7c41ebe30dba8a8e34dfa4f24e996f3c908ed7070859faefe8ad",
+      "measurement": {
+        "passed": 12
+      }
+    },
+    {
+      "name": "D_AI native package",
+      "command": "NODE_USE_ENV_PROXY=0 pnpm exec vitest run packages/experimental/d-ai/tests --maxWorkers=4",
+      "exitCode": 0,
+      "logSha256": "d156c401c4f32e9cee78a6a158da5aa220ec6c7a1f30ae76ccc1c379420d5338",
+      "measurement": {
+        "passed": 210,
+        "skipped": 1,
+        "passedFiles": 46,
+        "skippedFiles": 1
+      }
+    },
+    {
+      "name": "Provider regressions",
+      "command": "NODE_USE_ENV_PROXY=0 pnpm exec vitest run packages/llm/llm-pi-ai/tests/small-context-budget.spec.ts packages/llm/llm-pi-ai/tests/adapter.spec.ts --maxWorkers=4",
+      "exitCode": 0,
+      "logSha256": "a79a3023fe70cad61d875a7dc8ef48137c52326610417952f784a7f6d8990829",
+      "measurement": {
+        "passed": 57,
+        "passedFiles": 2
+      }
+    },
+    {
+      "name": "Published declarations",
+      "command": "node --import tsx/esm scripts/verify-node-next-types.ts",
+      "exitCode": 0,
+      "logSha256": "7036d9660ab047ececf4aafd708c12a7dac5358f388fd039c441b0ce7962120e",
+      "measurement": {
+        "packageApis": 330
+      }
+    },
+    {
+      "name": "Stale catalog negative control",
+      "command": "node --import tsx/esm scripts/gen-persistence-catalog.ts --check",
+      "exitCode": 1,
+      "logSha256": "567b99065ceea9cc40a95291856bee8b81a63456bcfcef6060eb533ed1941c97",
+      "measurement": {
+        "expectedRejection": true,
+        "originalBytesRestored": true
+      }
+    },
+    {
+      "name": "README fragment repair",
+      "command": "node --import tsx/esm scripts/verify-md-links.ts",
+      "exitCode": 0,
+      "logSha256": "6215b3b7438d8995220eb872c986de84d0c273dc6e0e704c9df6d8a99931d19b",
+      "measurement": {
+        "markdownFiles": 1731
+      }
+    },
+    {
+      "name": "Direct full lint",
+      "command": "node --import tsx/esm scripts/run-oxlint.ts .",
+      "exitCode": 1,
+      "result": "tsgolint subprocess receives SIGKILL; full lint is not passing.",
+      "logSha256": "0a1a52f451b9cd1e371b238373c3a37c8443fcb65bb4e13b7c831b96e79a7bed"
+    }
+  ],
+  "totals": {
+    "passedTests": 295,
+    "skippedTests": 1,
+    "failedTestsAfterPrerequisites": 0
+  },
+  "limitations": [
+    "Host verification only; no Docker image build or in-container execution.",
+    "The ordinary check runner and doc-sync fail at tsx CLI Unix-socket startup (EPERM).",
+    "Initial package tests ran before the native addon was built: 172 passed, 38 failed, one skipped; rerun after native build passed.",
+    "Models and HTTP/service endpoints in these tests are fixtures; the opt-in live adviser test is skipped.",
+    "No live-provider mission, cold-session activation, distributed worker or production acceptance.",
+    "Direct full lint exits 1 after tsgolint receives SIGKILL; no successful aggregate lint result."
+  ]
+}
