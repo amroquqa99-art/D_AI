@@ -19,11 +19,32 @@ on:
       - 'docs/MILESTONES.md'
       - 'D_AI_EXECUTION_STATUS_AR.md'
       - '.github/workflows/d-ai-v2-checks.yml'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'compose.yaml'
+      - 'docker/**'
 
 permissions:
   contents: read
 
 jobs:
+  d-ai-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.19.0
+      - name: Container runner regressions
+        run: node --test docker/tests/check-runner.test.mjs
+      - name: Validate container configuration
+        run: docker compose config --quiet
+      - name: Build frozen source environment
+        run: docker compose build check
+      - name: Run D_AI checks in the container
+        run: docker compose run --rm check
+
   d-ai-v2:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -38,10 +59,8 @@ jobs:
         run: node --test packages/experimental/d-ai/tests/director-owner-order.test.mjs
       - name: Install
         run: pnpm install --frozen-lockfile
-      - name: Generate and verify persistence catalog
-        run: |
-          pnpm run gen-persistence-catalog
-          pnpm run verify-persistence-catalog
+      - name: Verify committed persistence catalog
+        run: pnpm run verify-persistence-catalog
       - name: Build Harness native system addon
         run: pnpm run build:native-system
       - name: D_AI TypeScript package check

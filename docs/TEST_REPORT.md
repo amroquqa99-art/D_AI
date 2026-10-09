@@ -2,6 +2,55 @@
 
 Date: 2026-10-09 (Asia/Jerusalem)
 
+## Complete-source host checkpoint — 2026-10-09
+
+The current source snapshot is reconstructed from the pinned official upstream commit and 258 exact D_AI Git blobs. Every overlay blob matches its Git identity, and `git write-tree` matches the complete development tree `52165a9bea2fb1b8d82cf625e4c36d26bde56c45` at source commit `a76079a7ee3be3f52f370da2499a06fe694e913a`. This removes the selected-source checkout blocker. Local Git history remains shallow upstream history plus the overlay, so client build metadata correctly records upstream HEAD and a dirty worktree rather than claiming a clean private-repository clone. [The machine-readable host receipt](../docker/verification/host-check-20261009.json) binds source identity, commands, environment, outcomes and local log hashes.
+
+| Executed check | Result and scope |
+|---|---|
+| Exact pnpm `11.7.0` frozen installation | PASS; all 344 workspace projects, with the committed lockfile and patches unchanged. |
+| Committed persistence catalog | PASS via `node --import tsx/esm scripts/gen-persistence-catalog.ts --check`; verification did not regenerate files. |
+| Stale-catalog negative control | EXPECTED REJECTION, exit 1; an appended temporary marker is rejected and the exact original bytes are restored. Both CI lanes now verify the committed catalog before building; the native lane no longer generates it first. Workflow YAML and command order are checked. |
+| `pnpm exec tsc -b packages/experimental/d-ai/tsconfig.json --pretty false` | PASS; strict package/project-reference compilation. |
+| `pnpm run build` | PASS; host native addon, Host/Client libraries, desktop bundle and frontend; 357 client artifacts recorded. Node development headers match the official Node 24.19.0 SHA-256 manifest. |
+| Production coordinator through normal built package entries | PASS; 12 tests, without the earlier scratch source resolver. Context/Agent/Director runtime boundaries remain fixtures. |
+| Native D_AI package suite | PASS; 210 tests in 46 files, including the two-owner AgentLoop fairness regression and native Loader/restart integration; one opt-in live adviser file/test skipped. |
+| Local provider budget/adapter regressions | PASS; 57 tests in two files. Inference remains scripted. |
+| Runner/production owner-order regressions | PASS; 16 tests. The runner's eight cases substitute commands. |
+| Published TypeScript declarations | PASS; 330 workspace package declaration APIs compile under NodeNext. |
+| README pair records and relative links | PASS; root/container pairs checked, inherited `run`/`run-from-source` bookmarks restored, and links/fragments across 1,731 Markdown files resolve. |
+| Ordinary `bash docker/check.sh`, `pnpm run doc-sync`, `pnpm run lint` | BLOCKED at the `tsx` CLI Unix-socket startup (`listen EPERM`). The runner stops before catalog/build. The lint entry completes its Host build prerequisite, then stops before oxlint; direct ESM checks are recorded separately. Direct full-lint execution reaches `tsgolint`, then its subprocess receives `SIGKILL` and exits 1; full lint is not passing. |
+| Existing documentation formatting/budget checks | FAIL; five hard-wrapped paragraphs in the locale package README and unchanged root `AGENTS.md` at 1,983 words against 1,960. These do not become aggregate documentation success. |
+| Docker image build and in-container suite | NOT RUN; no Engine/socket or permitted rootless runtime exists here. Host build/test success is not image acceptance. |
+
+There are 295 passing tests and one opt-in skip across the four executed test sets. The initial D_AI package invocation started before the native addon prerequisite completed: 172 tests passed, 38 failed and one skipped. The missing addon was built from the repository's C source; the complete package rerun then passed 210 tests with one skip. No assertion, timeout, fixture, catalog, dependency or production code was weakened to obtain the result. Only fixture-test invocations set `NODE_USE_ENV_PROXY=0`.
+
+This checkpoint establishes current host-source acceptance for scheduler fairness and the native package, not real-model quality, live connectors, cold-session activation, distributed scheduling, browser Control Center, Docker image transfer or production readiness. CI remains independently pending because inspected jobs stop before steps. Earlier checkpoint tables below describe their own historical sessions.
+
+## Initial container configuration checkpoint — 2026-10-09
+
+The container source environment pins official Node `24.19.0-bookworm` by its multi-platform registry index digest and installs pnpm `11.7.0`, matching `package.json`. It preserves the existing frozen lockfile, workspace patches and reviewed install scripts. The source image runs as `node`; Compose has build/check services without host bind mounts, credentials, Docker-socket access, models or application deployment. [The container guide](../docker/README.md) owns setup, snapshot lifetime and transfer limitations.
+
+| Executed check | Result and scope |
+|---|---|
+| `node --test docker/tests/check-runner.test.mjs packages/experimental/d-ai/tests/director-owner-order.test.mjs` | PASS; 16 checks: eight current production-ordering cases plus eight command-runner regressions. Runner cases substitute `node`/`pnpm`, check order/working directory/fixture proxy settings and retain exit 37 on failure; they do not execute native build/tests. |
+| `bash -n docker/check.sh` | PASS; shell syntax only. |
+| Named README translation-pair check | PASS; root and container English/Chinese pages and generated consistency records pass the actual repository pairing verifier. This is not the corpus-wide documentation check. |
+| Dockerfile AST parse | PASS with `dockerfile-ast` 0.7.1; toolchain/source stages are recognized. Parsing is not a BuildKit build or lint result. |
+| Exact pnpm `11.7.0` inconsistent-workspace probe | EXPECTED REJECTION; `pnpm_config_verify_deps_before_run=error` stops with `ERR_PNPM_VERIFY_DEPS_BEFORE_RUN` before a marker script executes. This validates the workspace command policy, not frozen installation or a Docker image. |
+| Docker Compose `5.6.0` configuration rendering | PASS using the official standalone binary, verified against its release checksum; both services resolve the source build target and expected commands. No Engine involved. |
+| Official image registry manifest | Verified `node:24.19.0-bookworm` index digest `sha256:4196d66a565c6f195728d9952f161f4adfe2ad753052a08b7ec7f1c5a6bda42b`; Linux amd64/arm64/ppc64le entries are declared. This is identity evidence, not a pulled or run image. |
+| Image build / frozen installation / complete in-container suite | NOT RUN; Docker Engine/socket is unavailable in this execution environment. The selected-source checkout also cannot supply a complete build context. |
+| Current strict TypeScript/native AgentLoop/Loader/full build | NOT RUN; previous checkpoint receipts below remain historical. No subsystem is promoted. |
+
+The runner verifies the committed persistence catalog without first regenerating it, builds before importing the normal built coordinator entries, and fails on the first unsuccessful command. CI adds a separate container job; its execution remains unverified until an actual job result is inspected. The container packaging does not resolve cold-session activation, distributed recovery, live connectors or Control Center acceptance. Root documentation is consolidated around current reports and its inherited Chinese page is aligned with D_AI rather than the original upstream product.
+
+PR #21 consolidates the earlier unbuilt container draft in PR #20 on the current scheduler development line. Its permanent toolchain policy lives in the engineering agreement already required by root `AGENTS.md`, avoiding a second competing Docker recipe or additional root instruction-budget debt. Published commit `410b9d908f1fc75e50f81eca62cf8b25f2374301` contains 15 changed files, all matched to their local Git blob identities. Exact-commit Actions run `37944256405` has both `d-ai-v2` and `d-ai-container` jobs in failure with `steps: null` and no logs URL. No image-build, install or native-test step ran in those jobs; the cause is unavailable through the connector.
+
+Validation-only Markdown/AST dependencies live outside the project and use a local `node_modules` link; they are not a workspace install and are not published or added to the production lockfile. Aggregate documentation/lint and full source compilation require the complete installed repository. This checkpoint keeps their status pending rather than substituting configuration parsing for native acceptance.
+
+`pnpm run doc-sync` and `pnpm run lint` are BLOCKED before their scripts: the selected-source workspace lacks `@deepseek-ai/dsh-agent`, and pnpm 11's automatic dependency check attempts an install, then rejects the missing workspace package. This is incomplete-checkout evidence, not a documentation/lint pass. The image sets command-time dependency verification to `error`, retaining checks while prohibiting implicit installation of an inconsistent snapshot; explicit frozen installation remains the image-build step.
+
 This document separates **historical verified evidence** from the **current branch checkpoint**. A source file, fixture path or failed CI launch is never promoted to test evidence.
 
 ## Cross-owner wake admission checkpoint — 2026-10-09

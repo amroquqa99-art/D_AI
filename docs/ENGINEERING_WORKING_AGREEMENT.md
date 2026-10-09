@@ -283,6 +283,8 @@ A model judge is not the sole authority when a deterministic check exists.
 
 ## 12. Testing expectations
 
+Use the [project container environment](../docker/README.md) for reproducible D_AI toolchain work. Keep the Dockerfile, Compose recipe, frozen lockfile, patches and Node/pnpm pins synchronized. Reuse image layers and BuildKit downloads rather than repeatedly installing host-wide toolchains. Model artifacts, credentials and user Sessions remain external to build images. Run relevant container checks when a Docker host is available; document unavailable checks and use an explicit host-specific lane for unsupported hardware, native sandbox or live-provider behavior. Container configuration alone is not test evidence.
+
 Changes should use the smallest relevant set, then the package gate.
 
 Typical D_AI gates:

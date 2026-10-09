@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docker/README.md
+/d-ai-container-checks:
+  en: 163964c732e9a3e3
+  zh: 2343200b1af576cf
+/d-ai-container-checks/1-build-the-source-environment:
+  en: b13fc88a2f6cf66f
+  zh: 202847c0e4b6fd0e
+/d-ai-container-checks/2-run-acceptance-checks:
+  en: ea8647825e05564f
+  zh: d5a2d8a91d236bba
+/d-ai-container-checks/3-build-or-inspect-the-snapshot:
+  en: aeab953b2bb103fd
+  zh: 31ea0a500972d731
+/d-ai-container-checks/4-transfer-the-prepared-environment:
+  en: c2859845d0a95fb6
+  zh: ace440d786331e8c
