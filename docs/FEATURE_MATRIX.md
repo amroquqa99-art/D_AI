@@ -55,8 +55,8 @@ The current native package and configuration-catalog regression set passes 243 t
 ## Current verification blocker
 
 Latest inspected D_AI v2 workflow:
-- run `37694129527`
-- job `113041387558`
+- run `38000791898`
+- jobs `114058075947` (native) and `114058076182` (container)
 - conclusion `failure`
 - workflow steps: none (`steps: null`); runner rejection reason unavailable
 

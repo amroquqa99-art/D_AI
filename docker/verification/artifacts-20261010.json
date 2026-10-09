@@ -92,14 +92,17 @@
     "persistence": "existing Session event schemas, versions and generated persistence artifacts unchanged"
   },
   "observedCI": {
-    "priorPR": 23,
-    "runId": 37996663801,
+    "pr": 24,
+    "commit": "ed9e2883c962d4fd502fcc9fa6150e60403c62a7",
+    "runId": 38000791898,
     "jobs": [
-      114044378080,
-      114044378284
+      114058075947,
+      114058076182
     ],
     "conclusion": "failure before any steps",
-    "currentPR": "inspect after publication"
+    "steps": null,
+    "logs": null,
+    "scope": "first published source checkpoint; documentation-only evidence updates do not change production source"
   },
   "verificationNotes": [
     "Complete build exit status and fresh client build record are verified; client-build verifier recomputes all 357 artifact hashes. Captured build output ends before its final console marker.",
