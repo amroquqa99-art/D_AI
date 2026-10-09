@@ -1,220 +1,51 @@
 # D_AI — Depth AI
 
-> **Latest development checkpoint:** 2026-10-09 (Asia/Jerusalem) · [PR #19 — scheduler owner fairness](https://github.com/amroquqa99-art/D_AI/pull/19), stacked on PR #18 · draft and unmerged.
+English | [中文](README.zh.md)
 
-The [current Arabic status report](https://github.com/amroquqa99-art/D_AI/blob/dai/scheduler-owner-fairness-20261008/D_AI_EXECUTION_STATUS_AR.md) and [current verification report](https://github.com/amroquqa99-art/D_AI/blob/dai/scheduler-owner-fairness-20261008/docs/TEST_REPORT.md) describe the development branch. All six domain slices are integrated there; the complete product, Control Center and live connectors remain unfinished. This checkpoint adds cross-owner wake rotation with eight passing focused Node tests; its native integration regression and complete build/type checks are not yet run. The previous PR #18 build and 250 native tests are historical evidence. Current Actions run [37848091696](https://github.com/amroquqa99-art/D_AI/actions/runs/37848091696) failed before workflow steps; no CI success is claimed. Source changes remain on the development branches rather than being silently treated as merged into `main`.
+> Latest checkpoint: [PR #21](https://github.com/amroquqa99-art/D_AI/pull/21), draft and unmerged. The source remains on the development branch; this main-branch update changes documentation only.
 
-The ledger below is the earlier 2026-10-06 checkpoint retained on `main`; use the linked current reports for the newest state.
+D_AI is a multi-system AI operating environment built from the real DeepSeek Harness source. It uses native Cordis plugins, independent child agents, durable Session events, explicit permissions and bounded execution. Upstream changes are reviewed and integrated manually; the application does not fetch a live upstream checkout at runtime.
 
-D_AI is a multi-system AI operating environment built by modifying the real DeepSeek Harness source rather than wrapping it as an external dependency. The repository preserves the useful Harness runtime/plugin architecture while D_AI is being developed as its own codebase, control plane, domain system registry, durable state model, and agent orchestration layer.
+## Development status
 
-This repository is **not yet a finished release**. The sections below are the current implementation ledger so the repository itself shows what is real, what is being validated, and what remains.
+The current development branch is `dai/container-environment-20261009`, based on the unmerged scheduler-owner fairness checkpoint. D_AI is not a finished production release. Source changes, fixture evidence and live-provider acceptance have separate statuses.
 
-## Earlier development ledger — 2026-10-06
+The six domain slices—Investigation, Scientific Research, Investor, Cybersecurity, Operations & Intelligence, and Innovation & Discovery—have native runtime paths. Shared infrastructure includes task plans, fenced execution leases, checkpoints, evidence/control projections, routing policies and a local decision adviser. The complete Control Center, live connectors, distributed scheduling and governed training remain unfinished.
 
-Legend:
+Use these current reports for implementation and readiness:
 
-- **TESTED** — implemented and has passed the D_AI test gate at least once.
-- **IMPLEMENTED / CI PENDING** — runtime code and tests exist on the active branch, but the latest complete gate has not yet passed after the newest changes.
-- **FOUNDATION** — contracts/core primitives exist, but the full production behavior is not complete.
-- **NOT BUILT** — planned but not implemented yet.
+- [Arabic execution status](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/D_AI_EXECUTION_STATUS_AR.md).
+- [Feature acceptance matrix](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/FEATURE_MATRIX.md).
+- [Executed checks and limitations](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/TEST_REPORT.md).
 
-| Area | Current state | What exists now |
-| --- | --- | --- |
-| Investigation | **TESTED / native** | Durable missions, bounded source capture, source hashes/provenance, anchored claims/counterclaims, independent research + verification child Agents, replay after restart. |
-| Scientific Research | **IMPLEMENTED / CI PENDING** | Durable research projects, open hypotheses, human/lab experiment handoff, result recording, independent literature + methodology Agents, restart projection. |
-| Investor | **IMPLEMENTED / CI PENDING** | Durable cases, immutable captured financial sources, explicit theses + invalidation conditions, independent fundamental + risk Agents. No capital execution tool. |
-| Cybersecurity | **IMPLEMENTED / CI PENDING** | Explicit authorization scope, defensive findings, remediation, safe retest recording, independent assessment + remediation-review Agents. |
-| Operations & Intelligence | **IMPLEMENTED / CI PENDING** | Durable cases, entities, relationships, timelines, intelligence gaps, human-gated proposed options, fusion + adversarial analysis Agents. |
-| Innovation & Discovery | **IMPLEMENTED / CI PENDING** | Testable candidates, mechanisms, falsification tests, experiment handoff/results, independent explorer + critic Agents. Generated ideas cannot self-declare as discoveries. |
-| Shared Task DAG | **IMPLEMENTED / CI PENDING** | Task states, dependencies, retry accounting, runnable-task selection, and a durable task-ledger Session projection. |
-| Mission Director | **FOUNDATION** | Mission planning primitives, runnable-work selection, resource admission and Value-of-Information ranking. Full long-running scheduler/executor loop is still being built. |
-| Capability control plane | **IMPLEMENTED / CI PENDING** | Scoped ALLOW/DENY grants, fail-closed authorization, human-approved durable grant changes, append-only audit hash chain, durable control-plane projection. |
-| Evidence / Knowledge graph | **FOUNDATION** | Cross-system evidence nodes/edges, support/contradiction representation and claim-tension queries. Persistence/runtime integration is still incomplete. |
-| Cross-system handoff | **FOUNDATION** | Declared collaboration edges, capability-grant checks and audit primitives. Full runtime routing between all systems is still incomplete. |
-| Model Router | **FOUNDATION** | Hard capability/context/locality requirements plus weighted model ranking. Live provider telemetry/routing integration is not complete. |
-| Resource budgets + VoI | **FOUNDATION** | Token, money, time, human-attention and data-access budgets plus Value-of-Information ranking primitives. Full enforcement across every tool call is not complete. |
-| Training governance | **FOUNDATION** | Explicit eligibility, dataset lineage, sensitive-data exclusion rules, evaluation/promotion and rollback primitives. |
-| Local Intelligence Core | **FOUNDATION ONLY** | Architecture, governance, dataset/promotion gates and model-release pointers exist. **There is no claim that a D_AI local model has already been trained.** |
-| Admin / Control Center UI | **NOT BUILT** | Runtime control APIs are being built first; full GUI for users, grants, systems, models, budgets and audit is still pending. |
+## Container development checks
 
-## What is being worked on right now
+The [container guide](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docker/README.md) describes a digest-pinned Node image, the repository's exact pnpm version, frozen dependencies, build/check services and image transfer. Container configuration and failure-propagation checks pass locally. Building the image and running the complete native checks inside it remain pending on a Docker host; the proposed commands are not a completed container deployment.
 
-The active engineering path is:
+Check out `dai/container-environment-20261009` before using the proposed container commands below; their Engine acceptance is pending.
 
-1. Finish the durable shared core: Task Ledger + Control Plane + audit persistence.
-2. Regenerate the Harness persistence catalog for all new D_AI Session events.
-3. Pass the strict D_AI gate:
-   - native system addon build
-   - persistence catalog generation/verification
-   - TypeScript strict check
-   - system registry tests
-   - all D_AI package/integration tests
-4. Promote system registry statuses only after the gate is green.
-5. Continue from primitives to the long-running Mission Director/scheduler and full cross-system runtime.
-6. Build the Control Center/Admin UI after the control APIs and durable state are stable.
-
-The CI workflow used for this branch is `.github/workflows/d-ai-v2-checks.yml`.
-
-## D_AI core currently in the repository
-
-The main implementation is under:
-
-```text
-packages/experimental/d-ai/
-├── src/
-│   ├── index.ts
-│   ├── systems.ts
-│   ├── state.ts
-│   ├── orchestration.ts
-│   ├── scientific-state.ts
-│   ├── scientific-orchestration.ts
-│   ├── investor-state.ts
-│   ├── investor-orchestration.ts
-│   ├── cyber-state.ts
-│   ├── cyber-orchestration.ts
-│   ├── operations-state.ts
-│   ├── operations-orchestration.ts
-│   ├── innovation-state.ts
-│   ├── innovation-orchestration.ts
-│   ├── task-dag.ts
-│   ├── task-ledger-state.ts
-│   ├── mission-director.ts
-│   ├── capability-grants.ts
-│   ├── control-plane-state.ts
-│   ├── audit-log.ts
-│   ├── cross-system.ts
-│   ├── evidence-graph.ts
-│   ├── resource-value.ts
-│   ├── model-router.ts
-│   ├── training-governance.ts
-│   └── model-evaluation.ts
-└── tests/
+```sh
+docker compose config --quiet
+docker compose build check
+docker compose run --rm check
 ```
 
-D_AI uses native Harness concepts instead of storing everything in prompts:
+The copied-source environment avoids changing the host checkout. It includes no models or user data and does not start the product web app. Rebuild after source/lockfile changes. CI has a separate container job; failed or unstarted workflow steps do not count as verification.
 
-- native AgentLoop + child Agents
-- Session facts and deterministic projections
-- JSONL persistence/replay
-- native tools
-- native approval flow
-- Domain Storage for recoverable indexes
-- explicit system registry
-- append-only evidence/control facts
-- bounded resources and fail-closed authorization
+## Source application
 
-## Domain boundaries currently enforced
-
-These are intentional engineering boundaries, not placeholders:
-
-- **Investigation:** claims require captured-source anchors.
-- **Scientific Research:** hypotheses remain hypotheses; real experiment observations are recorded separately.
-- **Investor:** analysis is allowed; there is no buy/sell/order/capital-movement tool in the current slice.
-- **Cybersecurity:** the engagement stores explicit authorization scope; current tools are defensive assessment/remediation/retest oriented.
-- **Operations & Intelligence:** the system can build an operational picture and propose options, but proposed options require human approval and are not external action execution.
-- **Innovation & Discovery:** candidates require falsification tests; model-generated candidates cannot automatically become verified discoveries.
-- **Capability changes:** durable capability grants/denials require native human approval and are audit-chained.
-
-## Local Intelligence Core
-
-The Local Intelligence Core is a platform component, not a seventh domain system.
-
-Current implemented foundation includes:
-
-- explicit training-data eligibility
-- opt-in/opt-out concepts
-- source ownership/license metadata
-- sensitive-data exclusion
-- dataset lineage
-- holdout evaluation
-- before/after model evaluation
-- promotion gates
-- rollback pointer
-
-Still required before it can be called a working D_AI model:
-
-- real governed dataset pipeline
-- local training/fine-tuning jobs
-- benchmark/evaluation harness wired to model artifacts
-- live model registry
-- runtime model-router telemetry
-- promoted model artifact
-- rollback exercised on a real model release
-
-## What still needs major work
-
-The repository is already beyond a design-only prototype, but major engineering remains:
-
-- durable long-running scheduler/executor for missions that last hours/days/weeks
-- checkpoint/recovery across active tool execution, not only Session projection replay
-- cross-system runtime dispatch using the shared grants/control plane
-- persistent shared Evidence/Knowledge Graph backend
-- full per-tool resource-budget enforcement
-- real model-provider manager and live routing telemetry
-- real Local Intelligence Core training pipeline
-- complete Control Center/Admin UI
-- user/role/organization administration for institutional deployments
-- configurable permission templates and temporary grants
-- real connectors/data providers for finance, scholarly research, geospatial/OSINT, and authorized institutional data
-- production observability, secrets/configuration management, deployment packaging and migration tooling
-- full security review and institutional hardening
-- live-provider verification beyond fixture-model integration tests
-
-## Validation commands
-
-From a repository checkout:
+The existing source path uses the supported `dsh` launcher:
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm run gen-persistence-catalog
-pnpm run verify-persistence-catalog
-pnpm run build:native-system
-pnpm exec tsc -b packages/experimental/d-ai/tsconfig.json --pretty false
-pnpm exec vitest run packages/experimental/d-ai/tests
-```
-
-The project does not mark a subsystem as tested merely because source files exist. CI status and integration tests are part of the readiness definition.
-
-## Repository relationship to DeepSeek Harness
-
-D_AI started from the DeepSeek Harness source because its native AgentLoop, Session/event model, plugin architecture and tool runtime are useful foundations. The goal of this repository is to evolve that source into D_AI directly, not to depend on a live upstream checkout at runtime.
-
-Upstream project: [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
-
-Upstream documentation: [deepseek-harness.github.io/deepseek-harness](https://deepseek-harness.github.io/deepseek-harness/)
-
-When an upstream change is useful, it should be reviewed and deliberately integrated into D_AI rather than automatically changing this repository underneath the D_AI code.
-
-## Running the underlying Harness application
-
-### Run from source
-
-```sh
-pnpm install
 pnpm run build
 pnpm dsh web
 ```
 
-The current D_AI engineering work is source-first. A dedicated polished D_AI product launcher and Control Center are still pending.
+This launches the underlying Harness web application. A polished D_AI launcher and Control Center are still required. [The opt-in local inference/search guide](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/user/d-ai-local.md) connects explicitly selected local providers; complete live missions and offline deployment need further acceptance.
 
-## Safety and deployment note
+## Engineering and attribution
 
-D_AI is under active development and is not yet a production-certified system. Review [SAFETY.md](SAFETY.md) before running it. High-impact external actions, sensitive institutional deployments, real-money actions, active security testing and physical experiments require explicit authorization/approval layers appropriate to the deployment.
+Read [AGENTS.md](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/AGENTS.md), [the product specification](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/PRODUCT_SPEC.md) and [the engineering agreement](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/ENGINEERING_WORKING_AGREEMENT.md) before changing shared contracts. Runtime permissions, approvals, audit and persistence rules remain enforced; packaging does not expand them.
 
-## Development
-
-The upstream repository architecture and development notes remain useful while D_AI is being modified:
-
-- [Development guide](docs/development.md)
-- [Architecture documentation](docs/architecture.md)
-- [AGENTS.md](AGENTS.md)
-
-## License and upstream attribution
-
-The inherited DeepSeek Harness code remains subject to its repository license and third-party notices.
-
-- [MIT License](LICENSE)
-- [Third-party notices](THIRD_PARTY_NOTICES.md)
-
-DeepSeek Harness upstream attribution is retained because D_AI is being built from that source base.
+The source originated in [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). Preserve its [MIT license](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md).
