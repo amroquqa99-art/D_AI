@@ -20,7 +20,7 @@ D_AI 是基于真实 DeepSeek Harness 源码构建的多系统 AI 运行环境�
 
 ## 容器开发检查
 
-[容器指南](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docker/README.md)说明固定摘要的 Node 镜像、仓库精确 pnpm 版本、冻结依赖、构建与检查服务以及镜像迁移。容器配置与失败传播检查已在本地通过。镜像构建及容器内完整原生检查仍待在 Docker 主机执行；拟议命令不代表容器部署已经完成。
+[容器指南](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docker/README.md)说明固定摘要的 Node 镜像、仓库精确 pnpm 版本、冻结依赖、构建与检查服务以及镜像迁移。容器配置与失败传播检查已在本地通过；[验证报告](https://github.com/amroquqa99-art/D_AI/blob/dai/container-environment-20261009/docs/TEST_REPORT.md)另行记录当前完整源码的主机检查。镜像构建及容器内完整原生检查仍待在 Docker 主机执行；拟议命令不代表容器部署已经完成。
 
 使用下列拟议容器命令前，请检出 `dai/container-environment-20261009`；这些命令的 Engine 验收仍待执行。
 
@@ -31,6 +31,9 @@ docker compose run --rm check
 ```
 
 复制源码的环境避免修改主机检出目录。它不包含模型或用户数据，也不启动产品 Web 应用。修改源码或锁文件后应重新构建。CI 设有独立容器作业；失败或未启动的工作流步骤不计为验证。
+
+<a id="run"></a>
+<a id="run-from-source"></a>
 
 ## 源码应用
 
