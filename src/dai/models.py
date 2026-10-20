@@ -10,6 +10,7 @@ cost, never merging subscription limits with cash cost.
 from __future__ import annotations
 
 import hashlib
+import re
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -19,6 +20,20 @@ from .memory import MemoryStore, utc_now
 
 COST_BASES = ("measured", "estimated", "unknown")
 AVAILABILITY = ("available", "limited", "unavailable", "unknown")
+
+# A model identity is either a plain bounded name or provider/model, optionally
+# with a variant suffix. It is not a generic record identifier: the provider
+# separator is part of the name when it is present.
+MODEL_ID = re.compile(
+    r"[A-Za-z0-9][A-Za-z0-9._-]*(?:/[A-Za-z0-9][A-Za-z0-9._-]*"
+    r"(?:#[A-Za-z0-9][A-Za-z0-9._-]*)?)?\Z")
+
+
+def _model_id(value: str) -> str:
+    if not isinstance(value, str) or not MODEL_ID.fullmatch(value):
+        raise InvalidRequest(
+            "A model id must be a bounded name or provider/model, optionally with #variant")
+    return value
 AUTO_AVAILABILITY = ("available", "limited")
 
 
@@ -51,7 +66,8 @@ def _cost_amount(value: str | None) -> Decimal | None:
 
 
 def _empty_ledger_bucket() -> dict[str, Any]:
-    return {"records": 0, "input_tokens": 0, "output_tokens": 0,
+    return {"records": 0, "records_with_incomplete_tokens": 0,
+            "input_tokens": 0, "output_tokens": 0,
             "cache_tokens": 0, "cost_sum": None}
 
 
@@ -126,7 +142,7 @@ class ModelRegistry:
                  notes: str = "") -> Record:
         if scope.namespace != "project":
             raise InvalidRequest("A model belongs to a project")
-        identifier(model_id)
+        _model_id(model_id)
         identifier(provider)
         capabilities = _require_strings(capabilities, "capabilities")
         if context_window is not None and (type(context_window) is not int or context_window < 1):
@@ -185,7 +201,7 @@ class ModelRegistry:
         return result
 
     def get(self, actor: Principal, scope: Scope, model_id: str) -> Record:
-        identifier(model_id)
+        _model_id(model_id)
         record = self._model_record(actor, scope, model_id)
         if record is None:
             raise NotFound(f"Model {model_id} is not registered in this scope")
@@ -263,7 +279,7 @@ class ModelRegistry:
                idempotency_key: str | None = None) -> Record:
         if scope.namespace != "project":
             raise InvalidRequest("A model choice belongs to a project")
-        identifier(model_id)
+        _model_id(model_id)
         identifier(role)
         if not isinstance(reason, str) or not reason.strip():
             raise InvalidRequest("A bounded reason is required")
@@ -307,7 +323,7 @@ class ModelRegistry:
               latency_ms: int | None = None, status: str = "ok") -> Record:
         if scope.namespace != "project":
             raise InvalidRequest("Metering belongs to a project")
-        identifier(model_id)
+        _model_id(model_id)
         if not isinstance(task_class, str) or not task_class.strip():
             raise InvalidRequest("A bounded task class is required")
         if cost_basis not in COST_BASES:
@@ -349,6 +365,10 @@ class ModelRegistry:
         }
         for row in rows:
             basis = row["cost_basis"]
+            # A record with an incomplete token profile has no trustworthy cost
+            # total, so it belongs to the unknown bucket: its known tokens are
+            # still reported there, but they never enter an actual or estimated
+            # total and an unknown cost is never shown as zero.
             if (basis == "unknown" or row["input_tokens"] is None
                     or row["output_tokens"] is None or row["cache_tokens"] is None):
                 bucket = "unknown"
@@ -358,6 +378,9 @@ class ModelRegistry:
                 bucket = "estimated"
             b = buckets[bucket]
             b["records"] += 1
+            if (row["input_tokens"] is None or row["output_tokens"] is None
+                    or row["cache_tokens"] is None):
+                b["records_with_incomplete_tokens"] += 1
             if row["input_tokens"] is not None:
                 b["input_tokens"] += row["input_tokens"]
             if row["output_tokens"] is not None:
@@ -371,6 +394,7 @@ class ModelRegistry:
         for name, b in buckets.items():
             result[name] = {
                 "records": b["records"],
+                "records_with_incomplete_tokens": b["records_with_incomplete_tokens"],
                 "input_tokens": b["input_tokens"],
                 "output_tokens": b["output_tokens"],
                 "cache_tokens": b["cache_tokens"],

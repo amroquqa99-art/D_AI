@@ -1,0 +1,8 @@
+{
+  "name": "dai-native-router",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./index.js",
+  "scripts": { "test": "node --test ../../tests/router.test.mjs" }
+}
