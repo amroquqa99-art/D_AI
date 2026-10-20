@@ -1,281 +1,683 @@
-"""Official MCP SDK transport for bounded DAI data/analysis tools."""
+"""MCP server exposing the D_AI 1.0 core as bounded tools over stdio.
+
+Transport: stdio, via the official MCP SDK (mcp.server.fastmcp.FastMCP).
+One bounded, named tool per core operation, grouped by prefix:
+  dai_project_*      (create, list)
+  dai_charter_*      (propose, assess, approve, active)
+  dai_task_*         (create, get, list, state, lease, release, attempt, graph)
+  dai_decision_*     (record, list, supersede, withdraw, affected)
+  dai_team_*         (create, add_agent, agents, tree, assign, message, inbox, acknowledge)
+  dai_consultation_* (open, reply, status, list)
+  dai_model_*        (register, list, route, choose, meter, usage)
+  dai_tool_*         (register, list, resolve, invoke)
+  dai_component_*    (propose, decide, adopt, list, verify, import)
+  dai_update_*       (status, check, plan, decide, apply, rollback)
+  dai_memory_*       (create, get, list, search, archive, restore, history)
+  dai_backup_*       (create)
+
+Every tool takes explicit identifiers and returns a JSON-serialisable dict.
+Project-scoped tools require an explicit project id and never silently fall
+back to a global scope. Collection results are bounded (store defaults and
+explicit limits); nothing dumps whole collections. Errors come only from
+dai.errors and are returned to the host as {"error": "<Type>",
+"message": "<reason>"}; no traceback and no private record content is ever
+printed or returned by a tool.
+
+NOT exposed as MCP tools: memory purge (MemoryStore.request_purge /
+confirm_purge) and backup restore (MemoryStore.restore_snapshot). Both are
+destructive and require live interactive confirmation, so they stay behind
+the CLI exactly as the core CLI enforces.
+"""
+
 from __future__ import annotations
-import hashlib
-import json
+
 import os
-import fnmatch
-import urllib.parse
-import urllib.request
 from pathlib import Path
+
+from dai.errors import DaiError
 from mcp.server.fastmcp import Context, FastMCP
-from pypdf import PdfReader
-from core import Store, calculate, csv_summary
-from native import NativeClient
-from models import probe_local, recommend
 
-PROJECT=Path(os.environ.get("DAI_PROJECT_ROOT",Path(__file__).resolve().parents[2])).resolve()
-DATA=Path(os.environ.get("DAI_DATA_ROOT",Path.home()/".local/share/d-ai-opencode/workspace")).resolve()
-store=Store(DATA,[PROJECT])
-native=NativeClient()
-mcp=FastMCP("DAI evidence and mission tools")
+try:  # imported as adapters.opencode.mcp.server
+    from .dai_core_bridge import DaiCoreBridge
+except ImportError:  # imported standalone with the mcp directory on sys.path
+    from dai_core_bridge import DaiCoreBridge  # type: ignore[no-redef]
 
-def caller(ctx: Context) -> str:
-    meta=ctx.request_context.meta
-    if meta is None:return "unbound-local-call"
-    value=meta.model_dump() if hasattr(meta,"model_dump") else dict(meta)
-    return str(value.get("ai.opencode/sessionID","unbound-local-call"))
+DATA_ROOT = Path(os.environ.get("DAI_DATA_ROOT", Path.home() / ".d-ai"))
+PROJECT_ROOT = Path(os.environ.get("DAI_PROJECT_ROOT", str(DATA_ROOT)))
 
-def actor_agent(ctx: Context) -> str:
-    sid=caller(ctx)
-    if not sid.startswith("ses_"):
-        raise ValueError("Mission access requires native invoking-session metadata")
-    agent=native.session(sid).get("agent","")
-    if not (agent.startswith("dai-") or agent.startswith("dai/")):
-        raise ValueError("A loaded DAI session is required")
-    return agent
+mcp = FastMCP("dai")
+_bridge: DaiCoreBridge | None = None
 
-def authorized(mission_id: str, ctx: Context) -> dict:
-    agent=actor_agent(ctx)
-    data=store.mission_get(mission_id,include_evidence=False)
-    domain=data["system"]
-    allowed=["dai-"+domain,"dai/"+domain+"/*",*data["state"].get("shared_with",[])]
-    if agent.startswith("dai/shared/"):
-        session=native.session(caller(ctx))
-        if session.get("parentID") and native.session(session["parentID"]).get("agent")=="dai-"+domain:
-            return data
-    if not any(fnmatch.fnmatchcase(agent,p) for p in allowed):
-        raise ValueError("Mission not shared with this system/agent")
-    return data
 
-def authorized_file(path: str, ctx: Context) -> Path:
-    current=Path(native.session(caller(ctx))["location"]["directory"])
-    requested=Path(path).expanduser()
-    p=store.safe_path(str(requested if requested.is_absolute() else current/requested),[current])
-    if p.is_relative_to(DATA):
-        relative=p.relative_to(DATA).parts
-        if len(relative)<3 or relative[0]!="missions":
-            raise ValueError("Private internal data files are not readable artifacts")
-        authorized(relative[1],ctx)
-    return p
+def _get_bridge() -> DaiCoreBridge:
+    global _bridge
+    if _bridge is None:
+        _bridge = DaiCoreBridge(data_root=DATA_ROOT, project_root=PROJECT_ROOT)
+    return _bridge
 
-def owner_write(mission_id: str, ctx: Context) -> dict:
-    data=authorized(mission_id,ctx)
-    if actor_agent(ctx)!="dai-"+data["system"]:
-        raise ValueError("Only the originating primary may modify mission data")
-    return data
+
+def _session_id(ctx: Context) -> str | None:
+    """Read the host session id from native request metadata."""
+    meta = getattr(getattr(ctx, "request_context", None), "meta", None)
+    if meta is None:
+        return None
+    value = meta.model_dump() if hasattr(meta, "model_dump") else dict(meta)
+    session_id = value.get("ai.opencode/sessionID")
+    return session_id if isinstance(session_id, str) else None
+
+
+def _actor(ctx: Context):
+    """Resolve the acting principal from the host session; never from text."""
+    return _get_bridge().resolve_principal(
+        _session_id(ctx), _get_bridge().native_client)
+
+
+def _call(tool, ctx: Context, *args, **kwargs):
+    """Run one bridge helper through the server and never leak a traceback."""
+    try:
+        actor = _actor(ctx)
+        return tool(actor, *args, **kwargs)
+    except DaiError as exc:
+        return DaiCoreBridge.error_payload(exc)
+
+
+# ---- project -----------------------------------------------------------
 
 @mcp.tool()
-def mission_create(mission_id: str, system: str, objective: str, acceptance: list[str], ctx: Context) -> dict:
-    """Create an idempotent task contract with persistent state. Does not start an agent."""
-    if actor_agent(ctx)!="dai-"+system:
-        raise ValueError("A primary creates missions only in its own system")
-    store.mission_create(mission_id,system,objective,acceptance,caller(ctx))
-    return authorized(mission_id,ctx)
+def dai_project_create(ctx: Context, name: str,
+                       project_id: str | None = None) -> dict:
+    """Create a project and return its scope (owner, namespace, project id)."""
+    return _call(_get_bridge().dai_project_create, ctx, name,
+                 project_id=project_id)
+
 
 @mcp.tool()
-def mission_read(mission_id: str, ctx: Context) -> dict:
-    """Restore actual state plus bounded evidence metadata/claim summaries. Fetch original text using evidence_read; summary is not full source reading."""
-    return authorized(mission_id,ctx)
+def dai_project_list(ctx: Context) -> list[dict]:
+    """List the projects the acting principal belongs to."""
+    return _call(_get_bridge().dai_project_list, ctx)
+
+
+# ---- charter -----------------------------------------------------------
 
 @mcp.tool()
-def evidence_read(mission_id: str, ctx: Context, source_id: str = "", offset: int = 0, limit: int = 8000, claim_id: str = "") -> dict:
-    """Read original source/claim text in character chunks, or paginate bounded metadata (20 records/page). Hash refers to the complete original source or claim record, not the chunk."""
-    authorized(mission_id,ctx)
-    if offset<0 or not 1<=limit<=16000:raise ValueError("Nonnegative offset and chunk limit 1–16000 required")
-    with store.connect() as db:
-        if source_id and claim_id:raise ValueError("Select a source or a claim, not both")
-        if source_id or claim_id:
-            from core import identifier
-            identifier(source_id or claim_id)
-            table="sources" if source_id else "claims"
-            row=db.execute(f"SELECT payload FROM {table} WHERE mission_id=? AND id=?",(mission_id,source_id or claim_id)).fetchone()
-            if not row:raise ValueError("Unknown original source")
-            source=json.loads(row[0]);text=source.pop("content" if source_id else "text")
-            if claim_id:source["claim_record_sha256"]=hashlib.sha256(row[0].encode()).hexdigest()
-            return {**source,"character_offset":offset,"content_chunk":text[offset:offset+limit],"total_characters":len(text),"next_offset":offset+limit if offset+limit<len(text) else None}
-        result={"offset":offset,"page_size":20}
-        for table in ("sources","claims"):
-            items=[json.loads(r[0]) for r in db.execute(f"SELECT payload FROM {table} WHERE mission_id=? ORDER BY id LIMIT 20 OFFSET ?",(mission_id,offset))]
-            result[table]=[]
-            for item in items:
-                bounded={k:v for k,v in item.items() if k!="content"}
-                for field in ("text","limitations","title"):
-                    if field in bounded:bounded[field]=bounded[field][:500]
-                if "source_ids" in bounded:bounded.update(source_ids=item["source_ids"][:20],source_ref_count=len(item["source_ids"]))
-                result[table].append(bounded)
-        return result
+def dai_charter_propose(ctx: Context, project_id: str,
+                        content: str) -> dict:
+    """Propose a charter draft record. content is a JSON object string."""
+    return _call(_get_bridge().dai_charter_propose, ctx, project_id, content)
+
 
 @mcp.tool()
-def mission_list(ctx: Context, system: str = "") -> list[dict]:
-    """List up to 100 saved missions, optionally filtered by a registered system."""
-    actor_agent(ctx)
-    result=[]
-    for row in store.mission_list(system):
-        try:authorized(row["id"],ctx)
-        except ValueError:continue
-        result.append(row)
-    return result
+def dai_charter_assess(ctx: Context, project_id: str,
+                       draft_id: str) -> dict:
+    """Assess a charter draft and list missing fields."""
+    return _call(_get_bridge().dai_charter_assess, ctx, project_id, draft_id)
+
 
 @mcp.tool()
-def mission_checkpoint(mission_id: str, expected_version: int, status: str, state: dict, ctx: Context) -> dict:
-    """Save a version-checked checkpoint. Include next_action, artifacts, actual receipts and pending_human. Completion is recorded, never an automatic semantic verification."""
-    owner_write(mission_id,ctx)
-    if "shared_with" in state:
-        raise ValueError("Sharing is a separate permission-gated action")
-    result=store.checkpoint(mission_id,expected_version,status,state,caller(ctx))
-    result["export"]=store.export(mission_id)
-    return {**authorized(mission_id,ctx),"export":result["export"]}
+def dai_charter_approve(ctx: Context, project_id: str,
+                        draft_id: str, expected_version: int) -> dict:
+    """Approve a charter draft (version-fenced)."""
+    return _call(_get_bridge().dai_charter_approve, ctx, project_id,
+                 draft_id, expected_version)
+
 
 @mcp.tool()
-def evidence_add(mission_id: str, source_id: str, title: str, locator: str, content: str, ctx: Context, source_kind: str = "provided_text") -> dict:
-    """Preserve immutable original source text or metadata with locator and SHA256. Use a new ID when source content changes."""
-    owner_write(mission_id,ctx)
-    result=store.add_source(mission_id,source_id,title,locator,content,source_kind,caller(ctx))
-    return {k:v for k,v in result.items() if k!="content"}
+def dai_charter_active(ctx: Context, project_id: str) -> dict:
+    """Show the project's approved active charter."""
+    return _call(_get_bridge().dai_charter_active, ctx, project_id)
+
+
+# ---- task --------------------------------------------------------------
 
 @mcp.tool()
-def claim_add(mission_id: str, claim_id: str, text: str, claim_type: str, source_ids: list[str], ctx: Context, limitations: str = "") -> dict:
-    """Register FACT/STATEMENT/ANALYSIS/INFERENCE/HYPOTHESIS/UNKNOWN. Sources must exist; semantic support still requires independent review."""
-    owner_write(mission_id,ctx)
-    return store.add_claim(mission_id,claim_id,text,claim_type,source_ids,limitations,caller(ctx))
+def dai_task_create(ctx: Context, project_id: str, objective: str,
+                    acceptance: list[str] | None = None,
+                    charter_id: str | None = None,
+                    responsibility: str | None = None,
+                    inputs: list[str] | None = None,
+                    outputs: list[str] | None = None,
+                    depends_on: list[str] | None = None,
+                    idempotency_key: str | None = None) -> dict:
+    """Create a task against the approved active charter."""
+    return _call(_get_bridge().dai_task_create, ctx, project_id, objective,
+                 acceptance, charter_id=charter_id,
+                 responsibility=responsibility, inputs=inputs,
+                 outputs=outputs, depends_on=depends_on,
+                 idempotency_key=idempotency_key)
+
 
 @mcp.tool()
-def search_files(query: str, ctx: Context, pattern: str = "*", limit: int = 10, mission_id: str = "") -> dict:
-    """Bounded literal source search with real file/line/hash references; skips secrets, binaries and out-of-root symlinks. Optional mission artifacts require authorized scope. No corpus dumps."""
-    if not query or len(query)>200 or not 1<=limit<=20 or len(pattern)>100 or ".." in pattern:
-        raise ValueError("Bounded literal query, simple glob and limit 1–20 required")
-    root=Path(native.session(caller(ctx))["location"]["directory"]).resolve()
-    if root.is_relative_to(DATA) and not mission_id:
-        raise ValueError("Use an explicitly scoped mission for private artifact search")
-    if mission_id:
-        authorized(mission_id,ctx)
-        root=DATA/"missions"/mission_id/"artifacts"
-    results=[];scanned=0;used=0;exhausted=False
-    for visited,item in enumerate(root.rglob("*"),1):
-        if visited>20_000:exhausted=True;break
-        if not item.is_file() or item.suffix.lower() not in {".md",".txt",".py",".ts",".js",".json",".csv",".yaml",".yml",".toml"} or not item.match(pattern):continue
-        if item.is_symlink():continue
-        try:p=store.safe_path(str(item),[root])
-        except (ValueError,FileNotFoundError):continue
-        if p.is_relative_to(DATA):authorized_file(str(p),ctx)
-        size=p.stat().st_size
-        if size>500_000:continue
-        if scanned>=1000 or used+size>10_000_000:exhausted=True;break
-        scanned+=1;used+=size
-        try:raw=p.read_bytes();text=raw.decode("utf-8")
-        except (OSError,UnicodeError):continue
-        hits=[{"line":i,"text":line[:500]} for i,line in enumerate(text.splitlines(),1) if query.casefold() in line.casefold()][:5]
-        if hits:
-            results.append({"path":str(p),"sha256":hashlib.sha256(raw).hexdigest(),"matches":hits})
-            if len(results)>=limit:exhausted=True;break
-    return {"results":results,"files_scanned":scanned,"bytes_scanned":used,"bounded_or_more_possible":exhausted,"limits":"Literal search; 1000 files/10 MB, 500 KB per file, five lines per match; not exhaustive corpus review"}
+def dai_task_get(ctx: Context, project_id: str,
+                 task_id: str) -> dict:
+    """Show a task record."""
+    return _call(_get_bridge().dai_task_get, ctx, project_id, task_id)
+
 
 @mcp.tool()
-def calculate_decimal(expression: str) -> dict:
-    """Reproduce bounded decimal arithmetic; accepts only numbers and + - * / **. Never executes Python or shell."""
-    return calculate(expression)
+def dai_task_list(ctx: Context, project_id: str,
+                  state: str | None = None,
+                  limit: int = 50) -> list[dict]:
+    """List task records, optionally filtered by state."""
+    return _call(_get_bridge().dai_task_list, ctx, project_id,
+                 state=state, limit=limit)
+
 
 @mcp.tool()
-def summarize_csv(path: str, column: str, ctx: Context) -> dict:
-    """Compute count, missingness, mean, median, min/max and sample stdev from a numeric CSV column inside allowed roots."""
-    p=authorized_file(path,ctx)
-    if p.suffix.lower()!=".csv":raise ValueError("Expected a CSV artifact")
-    current=Path(native.session(caller(ctx))["location"]["directory"])
-    return csv_summary(store,str(p),column,[current])
+def dai_task_state(ctx: Context, project_id: str, task_id: str,
+                   state: str, expected_version: int,
+                   receipt: str | None = None,
+                   note: str = "") -> dict:
+    """Advance a task state (version-fenced)."""
+    return _call(_get_bridge().dai_task_state, ctx, project_id, task_id,
+                 state, expected_version, receipt=receipt, note=note)
+
 
 @mcp.tool()
-def extract_pdf(path: str, ctx: Context, start_page: int = 1, pages: int = 5) -> dict:
-    """Extract actual text from up to ten PDF pages, with source checksum. No OCR or visual verification is implied."""
-    p=authorized_file(path,ctx)
-    if p.suffix.lower()!=".pdf":raise ValueError("Expected a PDF artifact")
-    if not 1<=pages<=10 or start_page<1:raise ValueError("Use 1–10 pages and a positive start_page")
-    reader=PdfReader(p)
-    if reader.is_encrypted:raise ValueError("Encrypted PDF is not supported")
-    end=min(len(reader.pages),start_page-1+pages)
-    result=[{"page":i+1,"text":(reader.pages[i].extract_text() or "")[:15000]} for i in range(start_page-1,end)]
-    return {"path":str(p),"sha256":hashlib.sha256(p.read_bytes()).hexdigest(),"total_pages":len(reader.pages),"pages":result,"limitations":"Text extraction only; no OCR/visual QA"}
+def dai_task_lease(ctx: Context, project_id: str, task_id: str,
+                   owner: str, ttl: int = 300) -> dict:
+    """Take an exclusive lease on a task."""
+    return _call(_get_bridge().dai_task_lease, ctx, project_id, task_id,
+                 owner, ttl=ttl)
+
 
 @mcp.tool()
-def crossref_search(query: str, rows: int = 5) -> dict:
-    """Retrieve real scholarly metadata from Crossref; not full-text reading or study-quality verification."""
-    if not query.strip() or len(query)>500 or not 1<=rows<=10:raise ValueError("Bounded query and 1–10 rows required")
-    url="https://api.crossref.org/works?"+urllib.parse.urlencode({"query":query,"rows":rows})
-    req=urllib.request.Request(url,headers={"User-Agent":"DAI-OpenCode/0.1 (local scholarly metadata research)"})
-    with urllib.request.urlopen(req,timeout=20) as response:
-        data=json.load(response)
-    items=[]
-    for item in data["message"]["items"]:
-        items.append({"doi":item.get("DOI"),"title":item.get("title",[]),"type":item.get("type"),"published":item.get("published"),"authors":item.get("author",[])[:8],"url":item.get("URL"),"abstract":item.get("abstract"),"publisher":item.get("publisher")})
-    return {"source":url,"items":items,"limitations":"Bibliographic metadata; abstracts optional; full text not retrieved"}
+def dai_task_release(ctx: Context, project_id: str, task_id: str,
+                     owner: str) -> dict:
+    """Release a task lease."""
+    return _call(_get_bridge().dai_task_release, ctx, project_id, task_id,
+                 owner)
+
 
 @mcp.tool()
-def mission_share(mission_id: str, target_agent: str, ctx: Context) -> dict:
-    """Explicitly grant a loaded DAI peer read access to mission data. Native tool permission asks the owner before this operation."""
-    data=authorized(mission_id,ctx)
-    if actor_agent(ctx)!="dai-"+data["system"]:
-        raise ValueError("Only the originating primary may share this mission")
-    loaded=native.agents(str(PROJECT))
-    if target_agent not in {a["id"] for a in loaded.get("data",[])}:
-        raise ValueError("Target agent is not loaded")
-    shares=data["state"].get("shared_with",[])
-    if target_agent not in shares:
-        shares=shares+[target_agent]
-        data=store.checkpoint(mission_id,data["version"],data["status"],{"shared_with":shares,"next_action":data["state"]["next_action"]},caller(ctx))
-    return {"id":mission_id,"version":data["version"],"shared_with":shares}
+def dai_task_attempt(ctx: Context, project_id: str, task_id: str,
+                     attempt_id: str, outcome: str,
+                     artifacts: list[str] | None = None,
+                     receipt: str | None = None,
+                     idempotency_key: str | None = None) -> dict:
+    """Record a task attempt (the only path to COMPLETED)."""
+    return _call(_get_bridge().dai_task_attempt, ctx, project_id, task_id,
+                 attempt_id, outcome, artifacts=artifacts, receipt=receipt,
+                 idempotency_key=idempotency_key)
+
 
 @mcp.tool()
-def artifact_write(mission_id: str, name: str, content: str, ctx: Context) -> dict:
-    """Create an immutable text/CSV/Markdown artifact inside this mission. Existing content is never silently replaced."""
-    data=owner_write(mission_id,ctx)
-    if not name or Path(name).name!=name or Path(name).suffix.lower() not in {".md",".txt",".csv",".json"}:raise ValueError("Use a simple text artifact filename")
-    raw=content.encode()
-    if len(raw)>500_000:raise ValueError("Artifact limited to 500 KB")
-    directory=DATA/"missions"/mission_id/"artifacts"
-    directory.mkdir(parents=True,exist_ok=True)
-    if any(p.is_symlink() for p in [directory,*directory.parents] if p.is_relative_to(DATA)):
-        raise ValueError("Artifact directory cannot contain symlink components")
-    path=directory/name
-    if path.exists():
-        if path.is_symlink() or path.read_bytes()!=raw:raise ValueError("Artifact immutable; use a new versioned name")
-    else:
-        fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
-        with os.fdopen(fd,"wb") as f:f.write(raw);f.flush();os.fsync(f.fileno())
-    return {"path":str(path),"sha256":hashlib.sha256(raw).hexdigest(),"size":len(raw)}
+def dai_task_graph(ctx: Context, project_id: str) -> dict:
+    """Return the task dependency graph."""
+    return _call(_get_bridge().dai_task_graph, ctx, project_id)
+
+
+# ---- decision ----------------------------------------------------------
 
 @mcp.tool()
-def artifact_read(mission_id: str, name: str, ctx: Context) -> dict:
-    """Read a mission text artifact through the mission scope, preserving path and checksum."""
-    authorized(mission_id,ctx)
-    if not name or Path(name).name!=name:raise ValueError("Simple artifact name required")
-    path=authorized_file(str(DATA/"missions"/mission_id/"artifacts"/name),ctx)
-    if path.suffix.lower() not in {".txt",".md",".json",".csv"} or path.stat().st_size>500_000:raise ValueError("Unsupported artifact")
-    return {"path":str(path),"sha256":hashlib.sha256(path.read_bytes()).hexdigest(),"content":path.read_text()}
+def dai_decision_record(ctx: Context, project_id: str, text: str,
+                        meaning: str, authorization_source: str,
+                        affects: list[str] | None = None,
+                        supersedes: str | None = None,
+                        idempotency_key: str | None = None) -> dict:
+    """Record a new decision."""
+    return _call(_get_bridge().dai_decision_record, ctx, project_id, text,
+                 meaning, authorization_source, affects=affects,
+                 supersedes=supersedes, idempotency_key=idempotency_key)
+
 
 @mcp.tool()
-def model_catalog(specialization: str = "") -> dict:
-    """Discover native cloud/free/local model IDs and owner-maintained specialty profiles. Bare downloaded files are not serving models. Profiles are labels, not measured quality."""
-    ids=native.models()
-    profiles=json.loads((PROJECT/"config/model-profiles.json").read_text())
-    local=probe_local()
-    candidates=recommend(profiles["profiles"],ids,specialization,local)
-    return {"catalog_ids":ids,"local_servers":local,"specialization":specialization,"profiles":candidates,"policy":"Owner chooses primary; catalog IDs do not prove connectivity. Worker override requires owner permission; automatic recommendations require a successful benchmark. Specialty quality is separate. No paid fallback or training inference from filename."}
+def dai_decision_list(ctx: Context, project_id: str) -> list[dict]:
+    """List active decisions."""
+    return _call(_get_bridge().dai_decision_list, ctx, project_id)
+
 
 @mcp.tool()
-def delegate_native(target_agent: str, task: str, delegation_id: str, ctx: Context, model: str = "") -> dict:
-    """Queue a bounded task in an actual OpenCode child session, preserving native agent permissions and a durable dispatch receipt. Needs native caller metadata; no model loop here. Uncertain sends are never retried automatically."""
-    sid=caller(ctx)
-    if not sid.startswith("ses_"):raise ValueError("Requires an invoking OpenCode session; local metadata alone is not an authorization credential")
-    if model:
-        profiles=json.loads((PROJECT/"config/model-profiles.json").read_text())
-        approved={p["id"] for p in profiles["profiles"] if p.get("allow_worker",False)}
-        if model not in approved:raise ValueError("Requested model not approved for worker use in owner profiles")
-    return native.reserve_delegation(store,sid,target_agent,task,delegation_id,model)
+def dai_decision_supersede(ctx: Context, project_id: str,
+                           decision_id: str, text: str,
+                           authorization_source: str,
+                           expected_version: int,
+                           idempotency_key: str | None = None) -> dict:
+    """Supersede an active decision with a new record."""
+    return _call(_get_bridge().dai_decision_supersede, ctx, project_id,
+                 decision_id, text, authorization_source,
+                 expected_version, idempotency_key=idempotency_key)
+
 
 @mcp.tool()
-def delegation_read(delegation_id: str, ctx: Context) -> dict:
-    """Read actual OpenCode session and result messages for a previous dispatch. Queued does not mean completed."""
-    actor_agent(ctx)
-    return native.delegation_status(store,delegation_id,caller(ctx))
+def dai_decision_withdraw(ctx: Context, project_id: str,
+                          decision_id: str, reason: str,
+                          expected_version: int) -> dict:
+    """Withdraw an active decision."""
+    return _call(_get_bridge().dai_decision_withdraw, ctx, project_id,
+                 decision_id, reason, expected_version)
 
-if __name__=="__main__":
+
+@mcp.tool()
+def dai_decision_affected(ctx: Context, project_id: str,
+                          unit: str) -> list[dict]:
+    """List active decisions affecting a unit."""
+    return _call(_get_bridge().dai_decision_affected, ctx, project_id, unit)
+
+
+# ---- team --------------------------------------------------------------
+
+@mcp.tool()
+def dai_team_create(ctx: Context, project_id: str, name: str,
+                    roles: list[str] | None = None,
+                    idempotency_key: str | None = None) -> dict:
+    """Create a team."""
+    return _call(_get_bridge().dai_team_create, ctx, project_id, name,
+                 roles=roles, idempotency_key=idempotency_key)
+
+
+@mcp.tool()
+def dai_team_add_agent(ctx: Context, project_id: str, team_id: str,
+                       agent_id: str, role: str,
+                       parent_agent: str | None = None,
+                       model: str | None = None,
+                       budget: str | None = None) -> dict:
+    """Add an agent to a team. budget is a JSON object string."""
+    return _call(_get_bridge().dai_team_add_agent, ctx, project_id, team_id,
+                 agent_id, role, parent_agent=parent_agent, model=model,
+                 budget=_json_object(budget, "team budget") if budget else None)
+
+
+@mcp.tool()
+def dai_team_agents(ctx: Context, project_id: str,
+                    team_id: str) -> list[dict]:
+    """List agents in a team."""
+    return _call(_get_bridge().dai_team_agents, ctx, project_id, team_id)
+
+
+@mcp.tool()
+def dai_team_tree(ctx: Context, project_id: str,
+                  team_id: str) -> dict:
+    """Show the agent tree."""
+    return _call(_get_bridge().dai_team_tree, ctx, project_id, team_id)
+
+
+@mcp.tool()
+def dai_team_assign(ctx: Context, project_id: str, team_id: str,
+                    agent_id: str, task_id: str,
+                    idempotency_key: str | None = None) -> dict:
+    """Assign a task to an agent."""
+    return _call(_get_bridge().dai_team_assign, ctx, project_id, team_id,
+                 agent_id, task_id, idempotency_key=idempotency_key)
+
+
+@mcp.tool()
+def dai_team_message(ctx: Context, project_id: str,
+                     from_agent: str, to_agent: str, body: str,
+                     references: list[str] | None = None,
+                     idempotency_key: str | None = None) -> dict:
+    """Send a message from one agent to another."""
+    return _call(_get_bridge().dai_team_message, ctx, project_id,
+                 from_agent, to_agent, body, references=references,
+                 idempotency_key=idempotency_key)
+
+
+@mcp.tool()
+def dai_team_inbox(ctx: Context, project_id: str, agent_id: str,
+                   status: str | None = None) -> list[dict]:
+    """List an agent's inbox."""
+    return _call(_get_bridge().dai_team_inbox, ctx, project_id, agent_id,
+                 status=status)
+
+
+@mcp.tool()
+def dai_team_acknowledge(ctx: Context, project_id: str,
+                         message_id: str, status: str,
+                         expected_version: int) -> dict:
+    """Acknowledge a SENT message."""
+    return _call(_get_bridge().dai_team_acknowledge, ctx, project_id,
+                 message_id, status, expected_version)
+
+
+# ---- consultation ------------------------------------------------------
+
+@mcp.tool()
+def dai_consultation_open(ctx: Context, project_id: str,
+                          parent_session: str, question: str,
+                          mode: str = "ask") -> dict:
+    """Open a consultation."""
+    return _call(_get_bridge().dai_consultation_open, ctx, project_id,
+                 parent_session, question, mode=mode)
+
+
+@mcp.tool()
+def dai_consultation_reply(ctx: Context, project_id: str,
+                           consultation_id: str, body: str,
+                           references: list[str] | None = None,
+                           idempotency_key: str | None = None) -> dict:
+    """Reply to a consultation."""
+    return _call(_get_bridge().dai_consultation_reply, ctx, project_id,
+                 consultation_id, body, references=references,
+                 idempotency_key=idempotency_key)
+
+
+@mcp.tool()
+def dai_consultation_status(ctx: Context, project_id: str,
+                            consultation_id: str, status: str,
+                            expected_version: int) -> dict:
+    """Advance a consultation status."""
+    return _call(_get_bridge().dai_consultation_status, ctx, project_id,
+                 consultation_id, status, expected_version)
+
+
+@mcp.tool()
+def dai_consultation_list(ctx: Context, project_id: str,
+                          parent_session: str | None = None) -> list[dict]:
+    """List consultations."""
+    return _call(_get_bridge().dai_consultation_list, ctx, project_id,
+                 parent_session=parent_session)
+
+
+# ---- model -------------------------------------------------------------
+
+@mcp.tool()
+def dai_model_register(ctx: Context, project_id: str, model_id: str,
+                       provider: str, capabilities: list[str],
+                       context_window: int | None = None,
+                       cost_input_per_1k: str | None = None,
+                       cost_output_per_1k: str | None = None,
+                       cost_currency: str | None = None,
+                       cost_basis: str = "unknown",
+                       tool_support: list[str] | None = None,
+                       availability: str = "unknown",
+                       notes: str = "") -> dict:
+    """Register a model."""
+    return _call(_get_bridge().dai_model_register, ctx, project_id, model_id,
+                 provider, capabilities, context_window=context_window,
+                 cost_input_per_1k=cost_input_per_1k,
+                 cost_output_per_1k=cost_output_per_1k,
+                 cost_currency=cost_currency, cost_basis=cost_basis,
+                 tool_support=tool_support, availability=availability,
+                 notes=notes)
+
+
+@mcp.tool()
+def dai_model_list(ctx: Context, project_id: str) -> list[dict]:
+    """List registered models."""
+    return _call(_get_bridge().dai_model_list, ctx, project_id)
+
+
+@mcp.tool()
+def dai_model_route(ctx: Context, project_id: str, task_class: str,
+                    required_capabilities: list[str] | None = None,
+                    max_cost_per_1k: str | None = None) -> dict:
+    """Route a task class to a model."""
+    return _call(_get_bridge().dai_model_route, ctx, project_id, task_class,
+                 required_capabilities=required_capabilities,
+                 max_cost_per_1k=max_cost_per_1k)
+
+
+@mcp.tool()
+def dai_model_choose(ctx: Context, project_id: str, model_id: str,
+                     role: str, reason: str, task_class: str,
+                     idempotency_key: str | None = None) -> dict:
+    """Choose a model for a role."""
+    return _call(_get_bridge().dai_model_choose, ctx, project_id, model_id,
+                 role, reason, task_class,
+                 idempotency_key=idempotency_key)
+
+
+@mcp.tool()
+def dai_model_meter(ctx: Context, project_id: str, model_id: str,
+                    task_class: str,
+                    input_tokens: int | None = None,
+                    output_tokens: int | None = None,
+                    cache_tokens: int | None = None,
+                    cost: str | None = None,
+                    cost_basis: str = "unknown",
+                    latency_ms: int | None = None,
+                    status: str = "ok") -> dict:
+    """Meter model usage (append-only ledger)."""
+    return _call(_get_bridge().dai_model_meter, ctx, project_id, model_id,
+                 task_class, input_tokens=input_tokens,
+                 output_tokens=output_tokens, cache_tokens=cache_tokens,
+                 cost=cost, cost_basis=cost_basis, latency_ms=latency_ms,
+                 status=status)
+
+
+@mcp.tool()
+def dai_model_usage(ctx: Context, project_id: str) -> dict:
+    """Return actual, estimated and unknown usage."""
+    return _call(_get_bridge().dai_model_usage, ctx, project_id)
+
+
+# ---- tool --------------------------------------------------------------
+
+@mcp.tool()
+def dai_tool_register(ctx: Context, project_id: str, tool_id: str,
+                      systems: list[str], effect: str,
+                      required_capability: str | None = None,
+                      side_effect: str = "none",
+                      data_classes: list[str] | None = None,
+                      provider: str = "local") -> dict:
+    """Register a tool."""
+    return _call(_get_bridge().dai_tool_register, ctx, project_id, tool_id,
+                 systems, effect, required_capability=required_capability,
+                 side_effect=side_effect, data_classes=data_classes,
+                 provider=provider)
+
+
+@mcp.tool()
+def dai_tool_list(ctx: Context, project_id: str) -> list[dict]:
+    """List registered tools."""
+    return _call(_get_bridge().dai_tool_list, ctx, project_id)
+
+
+@mcp.tool()
+def dai_tool_resolve(ctx: Context, project_id: str, tool_id: str,
+                     system: str, action: str) -> dict:
+    """Resolve whether a tool is authorized."""
+    return _call(_get_bridge().dai_tool_resolve, ctx, project_id, tool_id,
+                 system, action)
+
+
+@mcp.tool()
+def dai_tool_invoke(ctx: Context, project_id: str, tool_id: str,
+                    system: str, action: str,
+                    payload: str | None = None,
+                    idempotency_key: str | None = None) -> dict:
+    """Record an authorized or denied tool attempt."""
+    return _call(_get_bridge().dai_tool_invoke, ctx, project_id, tool_id,
+                 system, action,
+                 payload=_json_object(payload, "tool invocation payload")
+                 if payload else None,
+                 idempotency_key=idempotency_key)
+
+
+# ---- component ---------------------------------------------------------
+
+@mcp.tool()
+def dai_component_propose(ctx: Context, project_id: str, source_url: str,
+                          name: str, patterns: list[str],
+                          license: str = "UNKNOWN",
+                          commit: str | None = None,
+                          requirements: list[str] | None = None,
+                          abstraction: str | None = None,
+                          notes: str = "",
+                          idempotency_key: str | None = None) -> dict:
+    """Propose an external component."""
+    return _call(_get_bridge().dai_component_propose, ctx, project_id,
+                 source_url, name, patterns, license=license, commit=commit,
+                 requirements=requirements, abstraction=abstraction,
+                 notes=notes, idempotency_key=idempotency_key)
+
+
+@mcp.tool()
+def dai_component_decide(ctx: Context, project_id: str,
+                         component_id: str, decision: str,
+                         rationale: str,
+                         expected_version: int) -> dict:
+    """Decide a component (version-fenced, one decision)."""
+    return _call(_get_bridge().dai_component_decide, ctx, project_id,
+                 component_id, decision, rationale, expected_version)
+
+
+@mcp.tool()
+def dai_component_adopt(ctx: Context, project_id: str,
+                        component_id: str, capability_id: str,
+                        bindings: str, files: list[str],
+                        verification: str,
+                        expected_version: int) -> dict:
+    """Adopt a decided component into D_AI-native files. bindings is JSON."""
+    return _call(_get_bridge().dai_component_adopt, ctx, project_id,
+                 component_id, capability_id,
+                 bindings=_json_object(bindings, "component bindings"),
+                 files=files, verification=verification,
+                 expected_version=expected_version)
+
+
+@mcp.tool()
+def dai_component_list(ctx: Context, project_id: str) -> list[dict]:
+    """List proposed and adopted components."""
+    return _call(_get_bridge().dai_component_list, ctx, project_id)
+
+
+@mcp.tool()
+def dai_component_verify(ctx: Context, project_id: str,
+                         component_id: str) -> dict:
+    """Verify adopted files still exist and the capability is reachable."""
+    return _call(_get_bridge().dai_component_verify, ctx, project_id,
+                 component_id)
+
+
+@mcp.tool()
+def dai_component_import(ctx: Context, project_id: str,
+                         manifest: str) -> list[dict]:
+    """Import and propose components from a manifest."""
+    return _call(_get_bridge().dai_component_import, ctx, project_id,
+                 manifest)
+
+
+# ---- update ------------------------------------------------------------
+
+@mcp.tool()
+def dai_update_status(ctx: Context) -> dict:
+    """Show watcher state and whether a check is due."""
+    return _call(_get_bridge().dai_update_status, ctx)
+
+
+@mcp.tool()
+def dai_update_check(ctx: Context, source: str,
+                     channel: str = "default",
+                     ref: str | None = None) -> dict:
+    """Perform a real network check of a source."""
+    return _call(_get_bridge().dai_update_check, ctx, source,
+                 channel=channel, ref=ref)
+
+
+@mcp.tool()
+def dai_update_plan(ctx: Context, project_id: str, source: str,
+                    version: str, commit: str, diff: str,
+                    impact: str, migration: str = "") -> dict:
+    """Plan an update (project-scoped)."""
+    return _call(_get_bridge().dai_update_plan, ctx, project_id, source,
+                 version, commit, diff, impact, migration=migration)
+
+
+@mcp.tool()
+def dai_update_decide(ctx: Context, project_id: str, update_id: str,
+                      decision: str, expected_version: int) -> dict:
+    """Decide a planned update (project-scoped)."""
+    return _call(_get_bridge().dai_update_decide, ctx, project_id, update_id,
+                 decision, expected_version)
+
+
+@mcp.tool()
+def dai_update_apply(ctx: Context, project_id: str, update_id: str,
+                     expected_version: int,
+                     rollback_token: str | None = None) -> dict:
+    """Apply a decided update (project-scoped)."""
+    return _call(_get_bridge().dai_update_apply, ctx, project_id, update_id,
+                 expected_version, rollback_token=rollback_token)
+
+
+@mcp.tool()
+def dai_update_rollback(ctx: Context, project_id: str, update_id: str,
+                        expected_version: int) -> dict:
+    """Roll back an applied update (project-scoped)."""
+    return _call(_get_bridge().dai_update_rollback, ctx, project_id,
+                 update_id, expected_version)
+
+
+# ---- memory ------------------------------------------------------------
+
+@mcp.tool()
+def dai_memory_create(ctx: Context, project_id: str, kind: str,
+                      content: str) -> dict:
+    """Create an encrypted, versioned memory record. content is JSON."""
+    return _call(_get_bridge().dai_memory_create, ctx, project_id, kind,
+                 content=_json_object(content, "memory content"))
+
+
+@mcp.tool()
+def dai_memory_get(ctx: Context, project_id: str,
+                   record_id: str) -> dict:
+    """Read a memory record."""
+    return _call(_get_bridge().dai_memory_get, ctx, project_id, record_id)
+
+
+@mcp.tool()
+def dai_memory_list(ctx: Context, project_id: str,
+                    kind: str | None = None,
+                    limit: int = 50) -> list[dict]:
+    """List memory records (bounded by limit)."""
+    return _call(_get_bridge().dai_memory_list, ctx, project_id,
+                 kind=kind, limit=limit)
+
+
+@mcp.tool()
+def dai_memory_search(ctx: Context, project_id: str, query: str,
+                      limit: int = 20) -> list[dict]:
+    """Search memory records (bounded by limit)."""
+    return _call(_get_bridge().dai_memory_search, ctx, project_id,
+                 query, limit=limit)
+
+
+@mcp.tool()
+def dai_memory_archive(ctx: Context, project_id: str,
+                       record_id: str, expected_version: int) -> dict:
+    """Archive a memory record (version-fenced)."""
+    return _call(_get_bridge().dai_memory_archive, ctx, project_id,
+                 record_id, expected_version)
+
+
+@mcp.tool()
+def dai_memory_restore(ctx: Context, project_id: str,
+                       record_id: str, expected_version: int) -> dict:
+    """Restore an archived memory record (version-fenced)."""
+    return _call(_get_bridge().dai_memory_restore, ctx, project_id,
+                 record_id, expected_version)
+
+
+@mcp.tool()
+def dai_memory_history(ctx: Context, project_id: str,
+                       record_id: str) -> list[dict]:
+    """Explicit historical access to a record's revisions."""
+    return _call(_get_bridge().dai_memory_history, ctx, project_id,
+                 record_id)
+
+
+# ---- backup ------------------------------------------------------------
+
+@mcp.tool()
+def dai_backup_create(ctx: Context, destination: str) -> dict:
+    """Snapshot the live state to a destination outside it."""
+    return _call(_get_bridge().dai_backup_create, ctx, destination)
+
+
+def _json_object(text: str, what: str) -> dict:
+    """Parse a JSON object from a string without leaking record content."""
+    import json
+    try:
+        value = json.loads(text)
+    except ValueError as exc:
+        raise InvalidRequest(f"{what} must be a JSON object") from exc
+    if not isinstance(value, dict):
+        raise InvalidRequest(f"{what} must be a JSON object")
+    return value
+
+
+from dai.errors import InvalidRequest  # noqa: E402  (used by _json_object)
+
+
+if __name__ == "__main__":
     mcp.run(transport="stdio")
