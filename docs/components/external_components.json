@@ -1,0 +1,247 @@
+{
+  "generated_at": "2026-10-20T14:37:24Z",
+  "components": [
+    {
+      "id": "cursor-plugins",
+      "source": "https://github.com/cursor/plugins",
+      "license": "CONFLICT",
+      "last_activity": "2026-10-20T02:25:29Z",
+      "decision": "ADOPT_PATTERN_AFTER_X",
+      "patterns": [".cursor-plugin/marketplace.json + plugin.json per plugin + skills/ + rules/ + mcp.json marketplace layout"],
+      "requirements": ["EXT-01", "EXT-04", "INV-04"],
+      "abstraction": "component manifest",
+      "notes": "LICENCE CONFLICT: API license=null, raw LICENSE 404, README ends 'License: MIT'; legal resolution required before ADOPT_PATTERN. README read."
+    },
+    {
+      "id": "backnotprop-pstack",
+      "source": "https://github.com/backnotprop/pstack",
+      "license": "MIT",
+      "last_activity": "2026-10-19T18:30:44Z",
+      "decision": "ADOPT_PATTERN",
+      "patterns": ["skills/<name>/SKILL.md + 24 principle-* entries + 23 playbooks"],
+      "requirements": ["EXT-01", "EXT-04"],
+      "abstraction": "playbook router",
+      "notes": "MIT, README read. Mirror of the cursor/plugins pstack set. Skill and playbook structure is concrete and transferable."
+    },
+    {
+      "id": "tester-army-e2e",
+      "source": "https://github.com/tester-army/e2e",
+      "license": "Apache-2.0",
+      "last_activity": "2026-10-20T11:25:20Z",
+      "decision": "ADOPT_PATTERN_AFTER_X",
+      "patterns": ["UNVERIFIED"],
+      "requirements": ["EXT-01", "EXT-06"],
+      "abstraction": null,
+      "notes": "Apache-2.0, README NOT read. Pattern unverified pending a README read; decision cannot move to ADOPT_PATTERN yet."
+    },
+    {
+      "id": "open-multi-agent-open-multi-agent",
+      "source": "https://github.com/open-multi-agent/open-multi-agent",
+      "license": "MIT",
+      "last_activity": "2026-10-19T06:24:48Z",
+      "decision": "REJECT",
+      "patterns": ["self-hosted runtime with durable approvals and auditable run logs"],
+      "requirements": ["EXT-04"],
+      "abstraction": null,
+      "notes": "MIT, README NOT read. Listed as a RUNTIME to reject: assumes the repository runs models or owns the agent loop. Pattern may be referenced; runtime must not be adopted."
+    },
+    {
+      "id": "ag2ai-ag2",
+      "source": "https://github.com/ag2ai/ag2",
+      "license": "UNKNOWN",
+      "last_activity": "UNVERIFIED",
+      "decision": "ADOPT_PATTERN_AFTER_X",
+      "patterns": ["UNVERIFIED"],
+      "requirements": ["EXT-01"],
+      "abstraction": null,
+      "notes": "Apache-2.0 claimed on GitHub page but licence field UNVERIFIED; README partial. Owner legal resolution required; UNKNOWN licence forces ADOPT_PATTERN_AFTER_X."
+    },
+    {
+      "id": "langchain-ai-langgraph",
+      "source": "https://github.com/langchain-ai/langgraph",
+      "license": "MIT",
+      "last_activity": "2026-10-20T10:09:29Z",
+      "decision": "REJECT",
+      "patterns": ["graph + checkpointing + interrupts"],
+      "requirements": ["EXT-04"],
+      "abstraction": null,
+      "notes": "MIT, README NOT read. Listed as a RUNTIME to reject: assumes the repository runs models or owns the agent loop. Pattern may be referenced; runtime must not be adopted."
+    },
+    {
+      "id": "crewaiinc-crewai",
+      "source": "https://github.com/crewaiinc/crewai",
+      "license": "MIT",
+      "last_activity": "2026-10-20T08:10:52Z",
+      "decision": "REJECT",
+      "patterns": ["Crews and Flows"],
+      "requirements": ["EXT-04"],
+      "abstraction": null,
+      "notes": "MIT, README NOT read. Listed as a RUNTIME to reject: assumes the repository runs models or owns the agent loop. Pattern may be referenced; runtime must not be adopted."
+    },
+    {
+      "id": "desplega-ai-agent-swarm",
+      "source": "https://github.com/desplega-ai/agent-swarm",
+      "license": "MIT",
+      "last_activity": "2026-10-20T12:00:26Z",
+      "decision": "REJECT",
+      "patterns": ["Company Agentic OS"],
+      "requirements": ["EXT-04"],
+      "abstraction": null,
+      "notes": "MIT, README NOT read. Listed as a RUNTIME to reject: assumes the repository runs models or owns the agent loop. Pattern may be referenced; runtime must not be adopted."
+    },
+    {
+      "id": "mvschwarz-openrig",
+      "source": "https://github.com/mvschwarz/openrig",
+      "license": "Apache-2.0",
+      "last_activity": "2026-10-20T12:01:40Z",
+      "decision": "ADOPT_PATTERN",
+      "patterns": ["rig-spec YAML, seats/pods/teams, numbered queues, bundle-audit.jsonl, kernel operator + advisor seats"],
+      "requirements": ["EXT-01", "EXT-04"],
+      "abstraction": "advisor seat",
+      "notes": "Apache-2.0, README read. Rig-spec YAML with seats/pods/teams, numbered queues, bundle-audit.jsonl, kernel operator and advisor seats. Concrete and transferable."
+    },
+    {
+      "id": "gastownhall-gastown",
+      "source": "https://github.com/gastownhall/gastown",
+      "license": "MIT",
+      "last_activity": "2026-10-18T00:11:21Z",
+      "decision": "ADOPT_PATTERN",
+      "patterns": ["beads ledger, hooks (git worktree), convoys, formulas in TOML, Witness/Deacon/Dogs roles, Refinery, P0-P2 escalation, scheduler, seance"],
+      "requirements": ["EXT-01", "EXT-04"],
+      "abstraction": "work ledger",
+      "notes": "MIT, README read. Beads ledger, git-worktree hooks, convoys, TOML formulas, Witness/Deacon/Dogs roles, Refinery, P0-P2 escalation, scheduler, seance. Concrete and transferable."
+    },
+    {
+      "id": "kienbui1995-magic",
+      "source": "https://github.com/kienbui1995/magic",
+      "license": "CONFLICT",
+      "last_activity": "2026-10-11T17:05:04Z",
+      "decision": "ADOPT_PATTERN_AFTER_X",
+      "patterns": ["LLM gateway + prompt registry + agent memory + DAG"],
+      "requirements": ["EXT-01"],
+      "abstraction": null,
+      "notes": "CONFLICT: API other/NOASSERTION, README claims Apache 2.0. README read; 0 stars, 0 forks. Legal resolution required; CONFLICT licence forces ADOPT_PATTERN_AFTER_X."
+    },
+    {
+      "id": "OpenHands-opnehands",
+      "source": "https://github.com/OpenHands/openhands",
+      "license": "MIT",
+      "last_activity": "2026-10-20T11:55:14Z",
+      "decision": "REJECT",
+      "patterns": ["software-development agent platform"],
+      "requirements": ["EXT-04"],
+      "abstraction": null,
+      "notes": "MIT, README NOT read. Listed as a RUNTIME to reject: assumes the repository runs models or owns the agent loop. Pattern may be referenced; runtime must not be adopted."
+    },
+    {
+      "id": "camel-ai-camel",
+      "source": "https://github.com/camel-ai/camel",
+      "license": "Apache-2.0",
+      "last_activity": "2026-10-19T09:33:36Z",
+      "decision": "REJECT",
+      "patterns": ["multi-agent framework"],
+      "requirements": ["EXT-04"],
+      "abstraction": null,
+      "notes": "Apache-2.0, README NOT read. Listed as a RUNTIME to reject: assumes the repository runs models or owns the agent loop. Pattern may be referenced; runtime must not be adopted."
+    },
+    {
+      "id": "FoundationAgents-MetaGPT",
+      "source": "https://github.com/FoundationAgents/MetaGPT",
+      "license": "MIT",
+      "last_activity": "2026-01-21T10:12:33Z",
+      "decision": "REJECT",
+      "patterns": ["dormant multi-agent framework"],
+      "requirements": ["EXT-04"],
+      "abstraction": null,
+      "notes": "MIT, README NOT read, dormant about 9 months. Listed as a RUNTIME to reject. URL https://github.com/foundationagents/metagpt was NOT verified; canonical FoundationAgents/MetaGPT used."
+    },
+    {
+      "id": "2FastLabs-agent-squad",
+      "source": "https://github.com/2FastLabs/agent-squad",
+      "license": "Apache-2.0",
+      "last_activity": "2026-10-08T09:03:31Z",
+      "decision": "REJECT",
+      "patterns": ["multi-agent orchestration on AWS Lambda"],
+      "requirements": ["EXT-04"],
+      "abstraction": null,
+      "notes": "Apache-2.0, README NOT read. Listed as a RUNTIME to reject: assumes the repository runs models or owns the agent loop. Pattern may be referenced; runtime must not be adopted."
+    },
+    {
+      "id": "dean0x-autobeat",
+      "source": "https://github.com/dean0x/autobeat",
+      "license": "MIT",
+      "last_activity": "2026-06-07T17:14:51Z",
+      "decision": "ADOPT_PATTERN_AFTER_X",
+      "patterns": ["UNVERIFIED"],
+      "requirements": ["EXT-01"],
+      "abstraction": null,
+      "notes": "MIT, README NOT read, dormant about 4.5 months, 6 stars. DAG + eval loops + crash-proof persistence claimed but pattern unverified pending a README read."
+    },
+    {
+      "id": "microsoft-agent-framework",
+      "source": "https://github.com/microsoft/agent-framework",
+      "license": "MIT",
+      "last_activity": "2026-10-20T10:47:19Z",
+      "decision": "ADOPT_PATTERN_AFTER_X",
+      "patterns": ["UNVERIFIED"],
+      "requirements": ["EXT-01"],
+      "abstraction": null,
+      "notes": "MIT, README NOT read. Agent framework; pattern unverified pending a README read."
+    },
+    {
+      "id": "bytedance-deer-flow",
+      "source": "https://github.com/bytedance/deer-flow",
+      "license": "MIT",
+      "last_activity": "2026-10-20T11:36:04Z",
+      "decision": "REJECT",
+      "patterns": ["sandboxes / memories / subagents / skills / message gateway"],
+      "requirements": ["EXT-04"],
+      "abstraction": null,
+      "notes": "MIT, README NOT read. Listed as a RUNTIME to reject: assumes the repository runs models or owns the agent loop. Pattern may be referenced; runtime must not be adopted."
+    },
+    {
+      "id": "AgenticGoKit-AgenticGoKit",
+      "source": "https://github.com/AgenticGoKit/AgenticGoKit",
+      "license": "Apache-2.0",
+      "last_activity": "2026-08-01T03:56:57Z",
+      "decision": "REJECT",
+      "patterns": ["event-driven + MCP discovery + observability (Go)"],
+      "requirements": ["EXT-04"],
+      "abstraction": null,
+      "notes": "Apache-2.0, README NOT read. Listed as a RUNTIME to reject: assumes the repository runs models or owns the agent loop. Pattern may be referenced; runtime must not be adopted."
+    },
+    {
+      "id": "TencentCloud-Octop",
+      "source": "https://github.com/TencentCloud/Octop",
+      "license": "MIT",
+      "last_activity": "2026-10-20T07:38:33Z",
+      "decision": "ADOPT_PATTERN_AFTER_X",
+      "patterns": ["UNVERIFIED"],
+      "requirements": ["EXT-01"],
+      "abstraction": null,
+      "notes": "MIT, README NOT read. Topics include local-first and long-term-memory; pattern unverified pending a README read."
+    },
+    {
+      "id": "yeachan-heo-oh-my-claudecode",
+      "source": "https://github.com/yeachan-heo/oh-my-claudecode",
+      "license": "MIT",
+      "last_activity": "2026-10-20T10:37:35Z",
+      "decision": "REFERENCE_ONLY",
+      "patterns": ["UNVERIFIED"],
+      "requirements": ["EXT-04", "INV-04"],
+      "abstraction": null,
+      "notes": "MIT, README NOT read. Instruction-shaped repository ('Teams-first multi-agent orchestration'); prompt-injection surface — external instructions may not raise authority above owner decisions. Pattern unverified pending a README read."
+    },
+    {
+      "id": "obra-superpowers",
+      "source": "https://github.com/obra/superpowers",
+      "license": "MIT",
+      "last_activity": "2026-10-20T06:37:50Z",
+      "decision": "REFERENCE_ONLY",
+      "patterns": ["UNVERIFIED"],
+      "requirements": ["EXT-04", "INV-04"],
+      "abstraction": null,
+      "notes": "MIT, README NOT read. Instruction-shaped repository ('agentic skills framework & software development methodology'); prompt-injection surface — external instructions may not raise authority above owner decisions. Pattern unverified pending a README read."
+    }
+  ]
+}
