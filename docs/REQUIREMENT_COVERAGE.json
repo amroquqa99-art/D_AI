@@ -1,0 +1,572 @@
+{
+  "objective": "Complete D_AI 1.0; no core-only/beta substitution",
+  "specification": "docs/specifications/PRD_AR.md",
+  "requirements": [
+    {
+      "id": "REL-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "REL-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "REL-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "REL-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "REL-05",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INV-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INV-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INV-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INV-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INV-05",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INV-06",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INV-07",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INV-08",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INV-09",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INV-10",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "ACT-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "ACT-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "ACT-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "ACT-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "ACT-05",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INT-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INT-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INT-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INT-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INT-05",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "INT-06",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "WFL-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "WFL-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "WFL-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "WFL-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "WFL-05",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "WFL-06",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "WFL-07",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "WFL-08",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "AGT-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "AGT-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "AGT-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "AGT-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "AGT-05",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SIDE-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SIDE-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SIDE-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SIDE-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "ENV-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "ENV-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "ENV-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "ENV-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "ENV-05",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "MEM-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "MEM-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "MEM-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "MEM-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "MEM-05",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "MEM-06",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "MEM-07",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "MEM-08",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "MOD-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "MOD-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "MOD-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "MOD-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "RES-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "RES-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "RES-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "RES-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "RES-05",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "DUR-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "DUR-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "DUR-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "DUR-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "UPD-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "UPD-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "UPD-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "UPD-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "UPD-05",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SYS-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SYS-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SYS-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SYS-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SCI-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SCI-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SCI-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SCI-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SCI-05",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SCI-06",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SCI-07",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SCI-08",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SCI-09",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "SCI-10",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "VIS-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "VIS-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "VIS-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "VIS-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "VIS-05",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "VIS-06",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "VIS-07",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "VIS-08",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "VIS-09",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "EXT-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "EXT-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "EXT-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "EXT-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "EXT-05",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "EXT-06",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "DAT-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "DAT-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "DAT-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "DAT-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "DAT-05",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "REP-01",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "REP-02",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "REP-03",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "REP-04",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    },
+    {
+      "id": "REP-05",
+      "implementation_status": "NOT_AUDITED",
+      "evidence": []
+    }
+  ],
+  "note": "A status entry is not proof. Each requirement needs current runtime/acceptance evidence, including appropriate live/domain checks."
+}

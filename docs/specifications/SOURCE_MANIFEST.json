@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-19",
+  "scope": "requirements and license imports; not executable integration evidence",
+  "files": [
+    {
+      "source": "/home/amro/Documents/المشروع الافتراضي/D_AI/docs/PRD_D_AI_V0.1_AR.md",
+      "destination": "docs/specifications/PRD_AR.md",
+      "sha256": "a2dbc03005fc6561fb901db4e414bf674333d8e5b232e1166a2cc011df42533d"
+    },
+    {
+      "source": "/home/amro/Documents/المشروع الافتراضي/D_AI/docs/PRD_DISCOVERY_2026-10-17_AR.md",
+      "destination": "docs/specifications/OWNER_DECISIONS_AR.md",
+      "sha256": "4f300e7e1435728a5d179011cd08cff46e515443760e2e96c953a32721b50c6c"
+    },
+    {
+      "source": "/home/amro/Documents/المشروع الافتراضي/D_AI/docs/VISUAL_REFERENCES_AR.md",
+      "destination": "docs/specifications/VISUAL_REFERENCES_AR.md",
+      "sha256": "2b67c92fee80fdc04b3fbdf383a20b20346b72b3dcc6927a8ffa3ee96631f5ae"
+    },
+    {
+      "source": "/home/amro/Documents/المشروع الافتراضي/D_AI/docs/RESOURCE_REVIEW_2026-10-19_AR.md",
+      "destination": "docs/specifications/RESOURCE_REVIEW_AR.md",
+      "sha256": "a460b60325bb032fc00a9351748d6fbc171f75add7c377644e3c5746889b24f0"
+    },
+    {
+      "source": "/home/amro/Documents/المشروع الافتراضي/D_AI/GLOSSARY.md",
+      "destination": "GLOSSARY.md",
+      "sha256": "8c96046599859ca1002ac0bf0e60c1dfc05785ae0cf33c9f758877d582a8e7bc"
+    },
+    {
+      "source": "/home/amro/Documents/المشروع الافتراضي/D_AI/LICENSE",
+      "destination": "LICENSE",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    }
+  ]
+}
