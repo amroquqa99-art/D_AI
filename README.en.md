@@ -1,6 +1,6 @@
 # D_AI — Local Deep Intelligence
 
-> **Repository status:** version **1.0.0**. The core (memory, charters, tasks,
+> **Repository status:** version **0.1.0** (a publishable foundation, not V1). The core (memory, charters, tasks,
 > decisions, teams, models, tools, components, updates) is implemented and covered
 > by **193 passing unit tests**. All ten domain system specifications are
 > written. **Not yet proven:** professional validation per domain branch, and

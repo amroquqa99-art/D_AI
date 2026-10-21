@@ -1,4 +1,4 @@
-"""MCP server exposing the D_AI 1.0 core as bounded tools over stdio.
+"""MCP server exposing the D_AI core as bounded tools over stdio.
 
 Transport: stdio, via the official MCP SDK (mcp.server.fastmcp.FastMCP).
 One bounded, named tool per core operation, grouped by prefix:

@@ -61,6 +61,12 @@
     "Professional domain validation for specialist branches (SCI, VIS and others) has not been executed end to end",
     "No release archive or publication was made by this audit"
   ],
-  "release_status": "NOT_READY",
-  "release_reason": "Not ready for publication as complete V1 because professional domain validation and the four host-surface verifications are missing, although the core is releasable as a foundation."
+  "release_status": "PUBLISHED_AS_FOUNDATION_0.1",
+  "release_reason": "This is the 0.1 foundation release: the core, the adapters, the ten system specifications and the documentation are implemented, tested and audited. It is NOT a complete V1: professional domain validation and the four host-surface verifications are missing.",
+  "release": {
+    "version": "0.1.0",
+    "published_as": "a foundation release",
+    "v1_gate_status": "NOT_MET",
+    "v1_gate_reason": "professional domain validation and the four host-surface verifications are still missing"
+  }
 }

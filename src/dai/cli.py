@@ -643,7 +643,7 @@ def dispatch(args: argparse.Namespace):
     if args.command in ("init", "status"):
         return {"version": __version__, "data_root": str(store.root), "principal": actor.id,
                 "projects": len(store.projects(actor)), "release_status": "NOT_READY",
-                "note": "Full host/domain acceptance remains in progress; memory checks do not prove D_AI 1.0 complete."}
+                "note": "Full host/domain acceptance remains in progress; memory checks do not prove D_AI complete."}
     if args.command == "project":
         return ([asdict(p) for p in store.projects(actor)] if args.action == "list" else
                 asdict(store.create_project(actor, args.name, project_id=args.id)))

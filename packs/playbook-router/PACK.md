@@ -4,7 +4,7 @@
 |---|---|
 | `id` | `playbook-router` |
 | `source` | `internal` |
-| `version` | `dai-1.0.0` |
+| `version` | `dai-0.1.0` |
 | `licence` | `GPL-3.0-or-later` |
 | `review` | `APPROVED` |
 | `bindings` | `workflow.step`, `charter`, `task` |

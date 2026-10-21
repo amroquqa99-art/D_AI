@@ -1,4 +1,4 @@
-# D_AI 1.0 — module contracts (authoritative interface)
+# D_AI 0.1 — module contracts (authoritative interface)
 
 Status: **binding for all implementation work in this repository.** A module that
 does not match this contract is not accepted, regardless of how it was written.

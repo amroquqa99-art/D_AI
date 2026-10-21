@@ -1,5 +1,5 @@
 {
-  "objective": "Complete D_AI 1.0; no core-only/beta substitution",
+  "objective": "Build D_AI toward the complete V1 target; this release is 0.1 and no core-only/beta substitution is accepted as V1",
   "specification": "docs/specifications/PRD_AR.md",
   "generated_at": "2026-10-21T10:20:05.104199+00:00",
   "status_legend": {

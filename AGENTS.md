@@ -1,6 +1,6 @@
 # D_AI engineering
 
-The owner goal is the complete, usable, publishable D_AI 1.0 in this directory. Do not redefine completion as a scaffold, prompt pack, core-only release, compatibility layer, or passing unit suite. Do not push, publish, purchase, renew subscriptions, or change the owner's global host configuration without applicable authorization.
+The owner goal is the complete, usable, publishable D_AI in this directory. The current release is 0.1: it is a foundation release, not V1. Do not redefine completion as a scaffold, prompt pack, core-only release, compatibility layer, or passing unit suite. Do not push, publish, purchase, renew subscriptions, or change the owner's global host configuration without applicable authorization.
 
 Read `docs/specifications/PRD_AR.md`, `docs/specifications/OWNER_DECISIONS_AR.md`, and `docs/IMPLEMENTATION_STATE.md` before substantive work. The current owner's direct decisions override historical constraints such as OpenCode-only execution or one-level delegation. Preserve the scope and acceptance requirements across turns.
 

@@ -1,4 +1,4 @@
-"""Bridge from the D_AI 1.0 core to the OpenCode MCP layer.
+"""Bridge from the D_AI core to the OpenCode MCP layer.
 
 All core access goes through this module: one MemoryStore over DAI_DATA_ROOT
 (default ~/.d-ai), the project root from DAI_PROJECT_ROOT, and the service
