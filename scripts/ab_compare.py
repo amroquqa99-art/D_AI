@@ -833,7 +833,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     out_dir = args.out if args.out is not None else default_out_dir()
     try:
-        return run_compare(args.task, args.model, out_dir, args.timeout,
+        # The run directory must be absolute: the host resolves its location from
+    # PWD, and a relative sandbox path makes it fail to change directory.
+    out_dir = out_dir.resolve()
+    return run_compare(args.task, args.model, out_dir, args.timeout,
                            args.reverse, args.dry_run, args.keep_sandboxes,
                            args.repeats)
     except (HarnessError, InvalidRequest) as exc:

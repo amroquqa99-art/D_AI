@@ -33,7 +33,10 @@ _SSH = "BEGIN OPENSSH " + "PRIVATE KEY"
 LEAK_PATTERNS = (_HOME, _MEDIA, _RSA, _SSH)
 LEAK_REGEX = (r"\bsk-[A-Za-z0-9]{20,}", r"\bghp_[A-Za-z0-9]{30,}", r"\bAKIA[0-9A-Z]{16}",
               r"\bxox[baprs]-[A-Za-z0-9-]{10,}", r"\bAIza[0-9A-Za-z_-]{30,}")
-SKIPPED_DIRS = {".git", "__pycache__", "node_modules", ".venv"}
+SKIPPED_DIRS = {".git", "__pycache__", "node_modules", ".venv",
+                # Local state, never part of the release: comparison run
+                # artefacts, sandboxes, runtime state and backups.
+                "runs", ".sandboxes", "runtime", "data", "backups"}
 
 
 def check_tree() -> list[dict]:

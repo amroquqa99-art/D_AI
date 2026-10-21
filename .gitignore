@@ -21,3 +21,7 @@ backups/
 *.sqlite*
 *.key
 *.pem
+
+# A/B comparison run artefacts: they carry machine-specific paths and
+# are local evidence, not release content.
+docs/evaluation/runs/

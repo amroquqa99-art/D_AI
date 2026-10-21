@@ -383,5 +383,57 @@ class RepeatHostTests(unittest.TestCase):
             self.assertNotEqual(iso["xdg_data_home"], iso["home"])
 
 
+class HostLocationTests(unittest.TestCase):
+    """The host resolves its location from PWD, not from getcwd().
+
+    A stale PWD inherited from the parent shell makes the host read the agent
+    catalog of the wrong directory and report an agent that exists as missing.
+    The harness must therefore set PWD to the arm's workspace. This test locks
+    that behaviour so a later change cannot break the comparison silently.
+    """
+
+    def test_environment_sets_pwd_to_the_arm_workspace(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paths, _ = ab_compare.build_sandbox(root, "system", 1)
+            env = ab_compare.host_env(paths)
+            self.assertEqual(env["PWD"], str(paths.workspace))
+            self.assertEqual(env["HOME"], str(paths.home))
+            self.assertNotEqual(env["PWD"], str(paths.home))
+
+    def test_the_two_arms_get_different_pwd(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            base_paths, _ = ab_compare.build_sandbox(root, "baseline", 1)
+            sys_paths, _ = ab_compare.build_sandbox(root, "system", 1)
+            self.assertNotEqual(ab_compare.host_env(base_paths)["PWD"],
+                                ab_compare.host_env(sys_paths)["PWD"])
+
+
+class OutputDirectoryTests(unittest.TestCase):
+    """The run directory must be absolute.
+
+    The host resolves its location from PWD, and a relative sandbox path makes
+    it fail with "Failed to change directory to ...", which would be recorded
+    as an arm failure rather than as a harness bug.
+    """
+
+    def test_a_relative_out_dir_is_resolved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            relative = Path("relative-run")
+            try:
+                os.chdir(root)
+                resolved = relative.resolve()
+            finally:
+                os.chdir(ROOT)
+            self.assertTrue(resolved.is_absolute())
+            self.assertTrue(str(resolved).startswith(str(root)))
+
+    def test_the_harness_resolves_the_out_dir_in_main(self):
+        source = (ROOT / "scripts" / "ab_compare.py").read_text(encoding="utf-8")
+        self.assertIn("out_dir.resolve()", source)
+
+
 if __name__ == "__main__":
     unittest.main()

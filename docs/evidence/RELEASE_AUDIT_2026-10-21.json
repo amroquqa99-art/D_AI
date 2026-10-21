@@ -68,5 +68,24 @@
     "published_as": "a foundation release",
     "v1_gate_status": "NOT_MET",
     "v1_gate_reason": "professional domain validation and the four host-surface verifications are still missing"
+  },
+  "publication": {
+    "repository": "https://github.com/amroquqa99-art/D_AI",
+    "branch": "main",
+    "published_commit": "25aba6945d909ecaa5463f5f50bb6ce0c8fbb86a",
+    "version": "0.1.0",
+    "method": "force push of the local main over the previous main (a big reset, as the owner asked for)",
+    "previous_main_preserved_at": "refs/heads/backup/pre-0.1-reset-2026-10-21",
+    "previous_main_commit": "333bf61c3376fe5bf1856c946c4ee172adf850d1",
+    "note": "The old main was pushed to a backup branch BEFORE the reset, so the previous content is still reachable on the remote."
+  },
+  "comparison_harness": {
+    "tool": "scripts/ab_compare.py and scripts/ab_score.py",
+    "document": "docs/evaluation/HARNESS.md",
+    "rubric": "docs/evaluation/RUBRIC.md",
+    "reference_task": "docs/evaluation/REFERENCE_TASK_SCI.md",
+    "isolation": "per-arm isolated HOME, per-arm project-level D_AI definitions, and a free control probe in the baseline arm that proves the D_AI agents are absent there",
+    "host_constraint_found": "the host resolves its location from PWD, not getcwd(); a stale PWD makes an existing agent report as missing",
+    "note": "The harness reports facts only. The quality scores come from an independent blind reviewer, and negative differences are published."
   }
 }
