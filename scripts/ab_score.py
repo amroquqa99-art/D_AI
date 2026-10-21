@@ -147,9 +147,45 @@ def unblind(blind: dict[str, Any], repeat: int) -> dict[str, str]:
 
 
 def _format_tools(tools: list[dict[str, Any]]) -> str:
+    """A bounded summary of the tool calls: name, status and a short preview.
+
+    The full transcript can be hundreds of kilobytes, which does not fit in one
+    command-line argument and is not what the rubric scores.
+    """
     if not tools:
         return "none"
-    return json.dumps(tools, ensure_ascii=False, indent=2)
+    lines: list[str] = []
+    for call in tools[:MAX_TOOL_CALLS]:
+        if not isinstance(call, dict):
+            continue
+        state = call.get("state") if isinstance(call.get("state"), dict) else {}
+        status = state.get("status", "")
+        preview = str(state.get("input", ""))[:MAX_TOOL_FIELD_CHARS]
+        output = str(state.get("output", ""))[:MAX_TOOL_FIELD_CHARS]
+        lines.append(f"- {call.get('tool', '?')} [{status}] in: {preview} | out: {output}")
+    if len(tools) > MAX_TOOL_CALLS:
+        lines.append(f"- ... and {len(tools) - MAX_TOOL_CALLS} more tool calls")
+    return "\n".join(lines)
+
+
+
+# The reviewer prompt travels as one command-line argument, so it must stay
+# inside the operating system's argument limit. The answers are bounded and the
+# tool calls are summarised: the rubric scores the ANSWER, and a full tool
+# transcript is neither necessary nor fair to read.
+MAX_OUTPUT_CHARS = 24000
+MAX_TOOL_CALLS = 40
+MAX_TOOL_FIELD_CHARS = 180
+
+
+def _bound(text: str) -> str:
+    """Keep the answer, and say plainly when it was cut."""
+    value = str(text or "")
+    if len(value) <= MAX_OUTPUT_CHARS:
+        return value
+    kept = value[:MAX_OUTPUT_CHARS]
+    return (kept + "\n\n[the output was truncated for the reviewer after "
+            f"{MAX_OUTPUT_CHARS} characters; the rest is not shown]")
 
 
 def build_reviewer_prompt(rubric: str, output_a: str, tools_a: list[dict[str, Any]],
@@ -167,11 +203,11 @@ def build_reviewer_prompt(rubric: str, output_a: str, tools_a: list[dict[str, An
         + "\n\n---\n\n"
         + "Apply the rubric below to each output and return the JSON object specified.\n\n"
         + "Output A:\n"
-        + output_a
+        + _bound(output_a)
         + "\n\nReported tool calls (Output A):\n"
         + _format_tools(tools_a)
         + "\n\nOutput B:\n"
-        + output_b
+        + _bound(output_b)
         + "\n\nReported tool calls (Output B):\n"
         + _format_tools(tools_b)
         + "\n\nReturn exactly one JSON object with keys \"A\" and \"B\". Each arm:\n"
@@ -220,6 +256,9 @@ def run_reviewer(model: str, prompt: str, timeout: float) -> dict[str, Any]:
     env["XDG_CONFIG_HOME"] = str(config)
     env["XDG_CACHE_HOME"] = str(cache)
     env["OPENCODE_CONFIG_DIR"] = str(opencode_config)
+    # The host resolves its location from PWD, not from getcwd(); without this
+    # the reviewer would read the wrong directory.
+    env["PWD"] = str(workspace)
     cmd = [OPENCODE, "run", "--standalone", "--auto", "--format", "json",
            "--model", model, prompt]
     start = time.monotonic()
@@ -244,7 +283,7 @@ def run_reviewer(model: str, prompt: str, timeout: float) -> dict[str, Any]:
     return {
         "stdout": stdout, "stderr": stderr, "exit_code": exit_code,
         "duration_seconds": round(duration, 3),
-        "config_dir": str(config_dir), "workspace": str(workspace),
+        "config_dir": str(opencode_config), "workspace": str(workspace),
     }
 
 
