@@ -50,9 +50,11 @@ def _cost_text(value: str | None, field: str) -> str | None:
     if not isinstance(value, str) or not value.strip():
         raise InvalidRequest(f"{field} must be a decimal string amount")
     try:
-        Decimal(value)
+        amount = Decimal(value)
     except InvalidOperation as exc:
         raise InvalidRequest(f"{field} must be a decimal string amount") from exc
+    if not amount.is_finite() or amount < 0:
+        raise InvalidRequest(f"{field} must be a non-negative finite decimal string amount")
     return value.strip()
 
 
@@ -304,9 +306,11 @@ class ModelRegistry:
                         return self.store.get(actor, scope, row["record_id"])
                     raise Conflict("Idempotency key was reused with a different model assignment payload")
             already = db.execute(
-                "SELECT 1 FROM model_roles WHERE project=? AND model_id=? AND role=?",
+                "SELECT reason, task_class FROM model_roles WHERE project=? AND model_id=? AND role=?",
                 (scope.project, model_id, role)).fetchone()
             if already is not None:
+                if already["reason"] != reason.strip() or already["task_class"] != task_class:
+                    raise Conflict(f"Model {model_id} is already bound to role {role}")
                 return self.store.get(actor, scope, row["record_id"])
             db.execute("INSERT INTO model_roles VALUES(?,?,?,?,?)",
                        (scope.project, model_id, role, reason.strip(), task_class))
@@ -348,7 +352,18 @@ class ModelRegistry:
                 "VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                 (scope.project, model_id, task_class, input_tokens, output_tokens,
                  cache_tokens, cost_text, cost_basis, latency_ms, status, utc_now()))
-            return self.store.get(actor, scope, row["record_id"])
+            return {
+                "seq": db.execute("SELECT last_insert_rowid()").fetchone()[0],
+                "model_id": model_id,
+                "task_class": task_class,
+                "cost_basis": cost_basis,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "cache_tokens": cache_tokens,
+                "cost": cost_text,
+                "latency_ms": latency_ms,
+                "status": status,
+            }
 
     def usage(self, actor: Principal, scope: Scope) -> dict:
         if scope.namespace != "project":

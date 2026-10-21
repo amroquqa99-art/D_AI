@@ -208,11 +208,20 @@ class ModelRegistryTests(unittest.TestCase):
 
     def test_meter_appends_ledger_row(self):
         before = self._count_everything()
-        record = self.registry.meter(self.owner, self.scope, model_id="model-a",
-                                     task_class="implementation", input_tokens=1000,
-                                     output_tokens=200, cache_tokens=50, cost="0.15",
-                                     cost_basis="measured", latency_ms=420, status="ok")
-        self.assertEqual(record.kind, "model")
+        receipt = self.registry.meter(self.owner, self.scope, model_id="model-a",
+                                      task_class="implementation", input_tokens=1000,
+                                      output_tokens=200, cache_tokens=50, cost="0.15",
+                                      cost_basis="measured", latency_ms=420, status="ok")
+        self.assertEqual(receipt["seq"], 1)
+        self.assertEqual(receipt["model_id"], "model-a")
+        self.assertEqual(receipt["task_class"], "implementation")
+        self.assertEqual(receipt["cost_basis"], "measured")
+        self.assertEqual(receipt["input_tokens"], 1000)
+        self.assertEqual(receipt["output_tokens"], 200)
+        self.assertEqual(receipt["cache_tokens"], 50)
+        self.assertEqual(receipt["cost"], "0.15")
+        self.assertEqual(receipt["latency_ms"], 420)
+        self.assertEqual(receipt["status"], "ok")
         after = self._count_everything()
         self.assertEqual(after, before + 1)  # only the append-only ledger row
         with self.store._db("project") as db:
@@ -277,6 +286,57 @@ class ModelRegistryTests(unittest.TestCase):
         self.assertIn("scope", str(raised.exception))
         with self.assertRaises(AccessDenied):
             self.registry.route(self.other, self.scope, task_class="implementation")
+    def test_cost_rejects_negative_and_non_finite(self):
+        for bad in ("-1", "NaN", "Infinity", "-Infinity", "sNaN"):
+            with self.assertRaises(InvalidRequest):
+                self.registry.register(self.owner, self.scope, model_id="bad-" + bad,
+                                       provider="p", capabilities=["chat"],
+                                       cost_input_per_1k=bad)
+        # Negative output cost is rejected too.
+        with self.assertRaises(InvalidRequest):
+            self.registry.register(self.owner, self.scope, model_id="bad-neg-out",
+                                   provider="p", capabilities=["chat"],
+                                   cost_output_per_1k="-0.5")
+
+    def test_choose_reassignment_with_different_reason_conflicts(self):
+        self.registry.choose(self.owner, self.scope, model_id="model-a", role="coder",
+                             reason="reason one", task_class="implementation")
+        # Identical re-assignment is idempotent and returns the existing record.
+        again = self.registry.choose(self.owner, self.scope, model_id="model-a", role="coder",
+                                     reason="reason one", task_class="implementation")
+        self.assertEqual(again.id, self.model_a.id)
+        with self.store._db("project") as db:
+            row = db.execute("SELECT reason, task_class FROM model_roles WHERE model_id='model-a' AND role='coder'").fetchone()
+            self.assertEqual((row[0], row[1]), ("reason one", "implementation"))
+        # Different reason: Conflict naming the existing binding.
+        with self.assertRaises(Conflict) as raised:
+            self.registry.choose(self.owner, self.scope, model_id="model-a", role="coder",
+                                 reason="reason two", task_class="implementation")
+        self.assertIn("coder", str(raised.exception))
+        # Different task_class: Conflict.
+        with self.assertRaises(Conflict):
+            self.registry.choose(self.owner, self.scope, model_id="model-a", role="coder",
+                                 reason="reason one", task_class="other-class")
+
+    def test_meter_returns_json_serialisable_receipt(self):
+        import json
+        receipt = self.registry.meter(self.owner, self.scope, model_id="model-a",
+                                      task_class="implementation", input_tokens=1000,
+                                      output_tokens=200, cache_tokens=50, cost="0.15",
+                                      cost_basis="measured", latency_ms=420, status="ok")
+        payload = json.dumps(receipt)
+        self.assertIn("seq", payload)
+        self.assertEqual(receipt["model_id"], "model-a")
+        self.assertEqual(receipt["task_class"], "implementation")
+        self.assertEqual(receipt["cost_basis"], "measured")
+        self.assertEqual(receipt["input_tokens"], 1000)
+        self.assertEqual(receipt["output_tokens"], 200)
+        self.assertEqual(receipt["cache_tokens"], 50)
+        self.assertEqual(receipt["cost"], "0.15")
+        self.assertEqual(receipt["latency_ms"], 420)
+        self.assertEqual(receipt["status"], "ok")
+
+
 
 
 if __name__ == "__main__":

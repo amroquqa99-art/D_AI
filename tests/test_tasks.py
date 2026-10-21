@@ -136,6 +136,14 @@ class TaskTests(unittest.TestCase):
                                        expected_version=2)
         self.assertIsNone(updated.content["lease"])
 
+    def _to_verifying(self, task):
+        ready = self.tasks.set_state(self.owner, self.scope, task.id, state="READY",
+                                     expected_version=1)
+        running = self.tasks.set_state(self.owner, self.scope, task.id, state="RUNNING",
+                                       expected_version=ready.version)
+        return self.tasks.set_state(self.owner, self.scope, task.id, state="VERIFYING",
+                                    expected_version=running.version)
+
     def test_completed_only_through_record_attempt(self):
         task = self._task()
         with self.assertRaises(InvalidRequest) as raised:
@@ -143,19 +151,30 @@ class TaskTests(unittest.TestCase):
                                  expected_version=1)
         self.assertEqual(str(raised.exception),
                          "COMPLETED is reachable only through record_attempt")
+        # A DISCOVERING task may not jump straight to COMPLETED: it must reach
+        # VERIFYING or REVIEWING first.
+        with self.assertRaises(Conflict) as raised:
+            self.tasks.record_attempt(self.owner, self.scope, task.id,
+                                      attempt_id="a-1", outcome="SUCCESS",
+                                      receipt="receipt-1")
+        self.assertEqual(str(raised.exception),
+                         "Illegal task transition DISCOVERING -> COMPLETED")
+        verifying = self._to_verifying(task)
+        # COMPLETED still requires a non-empty acceptance list and a receipt.
         empty_acceptance = self.tasks.create_task(self.owner, self.scope, objective="x",
                                                   acceptance=[])
+        empty_verifying = self._to_verifying(empty_acceptance)
         with self.assertRaises(InvalidRequest) as raised:
-            self.tasks.record_attempt(self.owner, self.scope, empty_acceptance.id,
+            self.tasks.record_attempt(self.owner, self.scope, empty_verifying.id,
                                       attempt_id="a-1", outcome="SUCCESS",
                                       receipt="receipt-1")
         self.assertEqual(str(raised.exception),
                          "COMPLETED requires a non-empty acceptance list")
         with self.assertRaises(InvalidRequest) as raised:
-            self.tasks.record_attempt(self.owner, self.scope, task.id, attempt_id="a-1",
-                                      outcome="SUCCESS")
+            self.tasks.record_attempt(self.owner, self.scope, verifying.id,
+                                      attempt_id="a-1", outcome="SUCCESS")
         self.assertEqual(str(raised.exception), "COMPLETED requires a receipt")
-        finished = self.tasks.record_attempt(self.owner, self.scope, task.id,
+        finished = self.tasks.record_attempt(self.owner, self.scope, verifying.id,
                                              attempt_id="a-1", outcome="SUCCESS",
                                              receipt="receipt-1")
         self.assertEqual(finished.content["state"], "COMPLETED")
@@ -163,7 +182,7 @@ class TaskTests(unittest.TestCase):
         self.assertEqual(finished.content["attempts"][0]["receipt"], "receipt-1")
         self.assertEqual(finished.content["state_history"][-1]["to"], "COMPLETED")
         with self.assertRaises(Conflict):
-            self.tasks.record_attempt(self.owner, self.scope, task.id, attempt_id="a-2",
+            self.tasks.record_attempt(self.owner, self.scope, finished.id, attempt_id="a-2",
                                       outcome="SUCCESS")
 
     def test_record_attempt_idempotent_repeat_does_not_double_count(self):
@@ -212,9 +231,15 @@ class TaskTests(unittest.TestCase):
         self.assertEqual(waiting.content["state"], "WAITING_FOR_INPUT")
         self.assertEqual(waiting.content["state_history"][-1]["note"],
                          "awaiting the source dataset")
-        with self.assertRaises(InvalidRequest):
-            self.tasks.set_state(self.owner, self.scope, task.id, state="WAITING_FOR_INPUT",
-                                 expected_version=waiting.version, note="")
+        # Re-setting the same waiting state is a no-op: version, history and
+        # lease are unchanged even with an empty note.
+        again = self.tasks.set_state(self.owner, self.scope, task.id,
+                                     state="WAITING_FOR_INPUT",
+                                     expected_version=waiting.version, note="")
+        self.assertEqual(again.version, waiting.version)
+        self.assertEqual(len(again.content["state_history"]),
+                         len(waiting.content["state_history"]))
+        self.assertIsNone(again.content["lease"])
         resumed = self.tasks.set_state(self.owner, self.scope, task.id, state="RUNNING",
                                        expected_version=waiting.version)
         self.assertEqual(resumed.content["state"], "RUNNING")
@@ -282,6 +307,7 @@ class TaskTests(unittest.TestCase):
 
     def test_terminal_states_reject_further_transitions(self):
         task = self._task()
+        verifying = self._to_verifying(task)
         finished = self.tasks.record_attempt(self.owner, self.scope, task.id,
                                              attempt_id="a-1", outcome="SUCCESS",
                                              receipt="receipt-1")
@@ -289,6 +315,92 @@ class TaskTests(unittest.TestCase):
             with self.assertRaises(Conflict):
                 self.tasks.set_state(self.owner, self.scope, task.id, state=target,
                                      expected_version=finished.version)
+    def test_record_attempt_respects_declared_transitions(self):
+        # DISCOVERING may not jump straight to COMPLETED (not declared).
+        task = self._task()
+        with self.assertRaises(Conflict):
+            self.tasks.record_attempt(self.owner, self.scope, task.id,
+                                      attempt_id="a1", outcome="SUCCESS", receipt="r1")
+        # FAILED is declared by DISCOVERING.
+        failed = self.tasks.record_attempt(self.owner, self.scope, task.id,
+                                           attempt_id="a1", outcome="FAILURE")
+        self.assertEqual(failed.content["state"], "FAILED")
+        # PARTIAL is declared by RUNNING; reachable once running.
+        t2 = self._task()
+        ready = self.tasks.set_state(self.owner, self.scope, t2.id, state="READY",
+                                     expected_version=1)
+        running = self.tasks.set_state(self.owner, self.scope, t2.id, state="RUNNING",
+                                       expected_version=ready.version)
+        partial = self.tasks.record_attempt(self.owner, self.scope, t2.id,
+                                            attempt_id="p1", outcome="PARTIAL")
+        self.assertEqual(partial.content["state"], "PARTIAL")
+        # PARTIAL is not declared by DISCOVERING.
+        t3 = self._task()
+        with self.assertRaises(Conflict):
+            self.tasks.record_attempt(self.owner, self.scope, t3.id,
+                                      attempt_id="p2", outcome="PARTIAL")
+
+    def test_terminal_task_with_bogus_state_reports_conflict(self):
+        task = self._task()
+        verifying = self._to_verifying(task)
+        finished = self.tasks.record_attempt(self.owner, self.scope, task.id,
+                                             attempt_id="a1", outcome="SUCCESS",
+                                             receipt="r1")
+        # A terminal task always reports Conflict, never InvalidRequest.
+        with self.assertRaises(Conflict):
+            self.tasks.set_state(self.owner, self.scope, finished.id,
+                                 state="NO-SUCH-STATE", expected_version=finished.version)
+
+    def test_set_state_same_state_is_no_op(self):
+        task = self._task()
+        leased = self.tasks.lease(self.owner, self.scope, task.id, owner="alice", ttl=300)
+        same = self.tasks.set_state(self.owner, self.scope, task.id,
+                                    state="DISCOVERING", expected_version=leased.version)
+        self.assertEqual(same.version, leased.version)
+        self.assertEqual(len(same.content["state_history"]),
+                         len(leased.content["state_history"]))
+        self.assertIsNotNone(same.content["lease"])
+        self.assertEqual(same.content["lease"]["owner"], "alice")
+
+    def test_graph_includes_all_tasks_beyond_default_limit(self):
+        previous = None
+        for i in range(60):
+            kwargs = dict(objective=f"task-{i}", acceptance=["a"], depends_on=[])
+            if previous is not None:
+                kwargs["depends_on"] = [previous]
+            t = self.tasks.create_task(self.owner, self.scope, **kwargs)
+            previous = t.id
+        graph = self.tasks.graph(self.owner, self.scope)
+        self.assertEqual(len(graph["nodes"]), 60)
+        self.assertEqual(len(graph["edges"]), 59)
+
+    def test_record_attempt_expected_version_fence(self):
+        task = self._task()
+        ready = self.tasks.set_state(self.owner, self.scope, task.id, state="READY",
+                                     expected_version=1)
+        running = self.tasks.set_state(self.owner, self.scope, task.id, state="RUNNING",
+                                       expected_version=ready.version)
+        # Existing signature (no expected_version) still works.
+        first = self.tasks.record_attempt(self.owner, self.scope, task.id,
+                                          attempt_id="a1", outcome="PARTIAL")
+        self.assertEqual(first.content["state"], "PARTIAL")
+        # Matching supplied version: accepted.
+        second = self.tasks.record_attempt(self.owner, self.scope, task.id,
+                                           attempt_id="a2", outcome="PARTIAL",
+                                           expected_version=first.version)
+        self.assertEqual(second.version, first.version + 1)
+        # Stale supplied version: Conflict.
+        with self.assertRaises(Conflict):
+            self.tasks.record_attempt(self.owner, self.scope, task.id,
+                                      attempt_id="a3", outcome="PARTIAL",
+                                      expected_version=first.version)
+        # Invalid expected_version type: InvalidRequest.
+        with self.assertRaises(InvalidRequest):
+            self.tasks.record_attempt(self.owner, self.scope, task.id,
+                                      attempt_id="a4", outcome="PARTIAL",
+                                      expected_version="not-an-int")
+
+
 
 
 if __name__ == "__main__":

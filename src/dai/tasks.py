@@ -204,8 +204,6 @@ class TaskService:
                   state: str, expected_version: int,
                   receipt: str | None = None, note: str = "") -> Record:
         identifier(task_id)
-        if state not in STATES:
-            raise InvalidRequest("Unknown task state")
         if type(expected_version) is not int or expected_version < 1:
             raise InvalidRequest("An expected positive record version is required")
         with self.store._locked(), self.store._db("project") as db:
@@ -219,6 +217,10 @@ class TaskService:
             current = previous.content["state"]
             if current in TERMINAL:
                 raise Conflict(f"Task {task_id} is {current}; no further transitions")
+            if state not in STATES:
+                raise InvalidRequest("Unknown task state")
+            if state == current:
+                return previous
             if state == "COMPLETED":
                 raise InvalidRequest("COMPLETED is reachable only through record_attempt")
             if state != current and not transition_allowed(current, state):
@@ -317,7 +319,8 @@ class TaskService:
                        attempt_id: str, outcome: str,
                        artifacts: list[str] | None = None,
                        receipt: str | None = None,
-                       idempotency_key: str | None = None) -> Record:
+                       idempotency_key: str | None = None,
+                       expected_version: int | None = None) -> Record:
         identifier(task_id)
         identifier(attempt_id)
         if outcome not in OUTCOMES:
@@ -337,6 +340,11 @@ class TaskService:
             previous = self.store._decode(row, scope)
             if previous.kind != "task":
                 raise NotFound("Task not found")
+            if expected_version is not None:
+                if type(expected_version) is not int or expected_version < 1:
+                    raise InvalidRequest("An expected positive record version is required")
+                if previous.version != expected_version:
+                    raise Conflict("Task version changed; reload before attempting")
             if idempotency_key is not None:
                 existing = db.execute(
                     "SELECT * FROM task_idempotency WHERE project=? AND key=?",
@@ -348,11 +356,7 @@ class TaskService:
             current = previous.content["state"]
             if current in TERMINAL:
                 raise Conflict(f"Task {task_id} is {current}; no further attempts")
-            if (
-                target != current
-                and target not in LEGAL_TRANSITIONS.get(current, set())
-                and target not in TERMINAL
-            ):
+            if target != current and not transition_allowed(current, target):
                 raise Conflict(f"Illegal task transition {current} -> {target}")
             if outcome == "SUCCESS":
                 acceptance = previous.content.get("acceptance") or []
@@ -392,7 +396,12 @@ class TaskService:
         return [dict(entry) for entry in (record.content.get("attempts") or [])]
 
     def graph(self, actor: Principal, scope: Scope) -> dict:
-        records = self.store.list(actor, scope, kind="task")
+        self.store._authorize(actor, scope, "read")
+        with self.store._locked(), self.store._db("project") as db:
+            task_ids = [row[0] for row in db.execute(
+                "SELECT task_id FROM task_index WHERE project=? ORDER BY task_id",
+                (scope.project,)).fetchall()]
+        records = [self.get(actor, scope, task_id) for task_id in task_ids]
         by_id = {record.id: record for record in records}
         nodes = [{"id": record.id, "state": record.content["state"],
                   "objective": record.content["objective"], "version": record.version}

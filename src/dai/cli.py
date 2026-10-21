@@ -203,6 +203,8 @@ def _add_task(commands) -> None:
     attempt.add_argument("--artifacts", action="append", help="Attempt artifact (repeatable)")
     attempt.add_argument("--receipt", help="Attempt receipt")
     attempt.add_argument("--idempotency-key", help="Idempotency key for repeat-safe attempt")
+    attempt.add_argument("--expected-version", type=int,
+                         help="Expected task version before the attempt (optional fence)")
     t_actions.add_parser("graph", help="Return the task dependency graph")
 
 
@@ -471,6 +473,7 @@ def _dispatch_new(args: argparse.Namespace, store: MemoryStore, actor: Principal
                                              outcome=args.outcome,
                                              artifacts=_string_list(args.artifacts),
                                              receipt=args.receipt,
+                                             expected_version=args.expected_version,
                                              idempotency_key=args.idempotency_key))
         if args.action == "graph":
             return svc.graph(actor, scope)
@@ -560,11 +563,11 @@ def _dispatch_new(args: argparse.Namespace, store: MemoryStore, actor: Principal
                                      reason=args.reason, task_class=args.task_class,
                                      idempotency_key=args.idempotency_key))
         if args.action == "meter":
-            return asdict(svc.meter(actor, scope, model_id=args.model_id, task_class=args.task_class,
-                                    input_tokens=args.input_tokens, output_tokens=args.output_tokens,
-                                    cache_tokens=args.cache_tokens, cost=args.cost,
-                                    cost_basis=args.cost_basis, latency_ms=args.latency_ms,
-                                    status=args.status))
+            return svc.meter(actor, scope, model_id=args.model_id, task_class=args.task_class,
+                             input_tokens=args.input_tokens, output_tokens=args.output_tokens,
+                             cache_tokens=args.cache_tokens, cost=args.cost,
+                             cost_basis=args.cost_basis, latency_ms=args.latency_ms,
+                             status=args.status)
         if args.action == "usage":
             return svc.usage(actor, scope)
     if args.command == "tool":

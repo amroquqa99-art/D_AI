@@ -108,9 +108,16 @@ class CommandTests(unittest.TestCase):
             released = self.run_cli(root, "task", "--project", project, "release", task["id"],
                                     "--owner", "alice")
             self.assertIsNone(released["content"]["lease"])
+            # COMPLETED is reachable only through a recorded successful attempt,
+            # and only from a state whose declared transition map allows it.
+            running = self.run_cli(root, "task", "--project", project, "state", task["id"],
+                                   "--state", "RUNNING", "--expected-version", str(released["version"]))
+            verifying = self.run_cli(root, "task", "--project", project, "state", task["id"],
+                                     "--state", "VERIFYING", "--expected-version", str(running["version"]))
             attempted = self.run_cli(root, "task", "--project", project, "attempt", task["id"],
                                      "--attempt-id", "a1", "--outcome", "SUCCESS",
-                                     "--receipt", "r1")
+                                     "--receipt", "r1",
+                                     "--expected-version", str(verifying["version"]))
             self.assertEqual(attempted["content"]["state"], "COMPLETED")
             graph = self.run_cli(root, "task", "--project", project, "graph")
             self.assertIn("nodes", graph)
@@ -229,7 +236,10 @@ class CommandTests(unittest.TestCase):
                                    "--input-tokens", "100", "--output-tokens", "20",
                                    "--cache-tokens", "0",
                                    "--cost", "0.05", "--cost-basis", "measured")
-            self.assertEqual(metered["kind"], "model")
+            self.assertEqual(metered["model_id"], "opencode/nemotron-3.5-super-vl-free")
+            self.assertEqual(metered["cost_basis"], "measured")
+            self.assertEqual(metered["input_tokens"], 100)
+            self.assertIsNotNone(metered["seq"])
             usage = self.run_cli(root, "model", "--project", project, "usage")
             self.assertIn("actual", usage)
             self.assertIn("estimated", usage)
