@@ -1,572 +1,883 @@
 {
   "objective": "Complete D_AI 1.0; no core-only/beta substitution",
   "specification": "docs/specifications/PRD_AR.md",
+  "generated_at": "2026-10-21T10:20:05.104199+00:00",
+  "status_legend": {
+    "IMPLEMENTED": "the behaviour exists in code and a named test or receipt shows it",
+    "PARTIAL": "part of the requirement exists; the rest is named",
+    "NOT_IMPLEMENTED": "no implementation exists",
+    "NOT_VERIFIED": "an implementation or definition exists but no check proves the requirement",
+    "OUT_OF_SCOPE": "the requirement is explicitly deferred by the spec"
+  },
   "requirements": [
     {
       "id": "REL-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "src/dai/ core modules covered by tests/ (184 tests OK); systems/ specifications exist for ten systems"
+      ],
+      "gap": "Full V1 with every specialist system declared, skilled, tested and release-ready is not proven; core-only is not complete V1 per REL-01."
     },
     {
       "id": "REL-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "adapters/opencode/mcp/ MCP surface exists and imports/register tools (tests/test_adapters.py::test_mcp_server_imports_and_registers_expected_tools); OpenCode CLI-level code exists"
+      ],
+      "gap": "OpenCode Desktop, pi CLI and PI-Desktop are not installed/verified; none of the four surfaces has a run-and-test receipt on an installed registered copy."
     },
     {
       "id": "REL-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/memory.py stores locally in three planes (person.db/project.db/global.db); MODULE_CONTRACTS.md forbids network/subprocess in unit tests"
+      ],
+      "gap": "No installed-copy runtime proof of local-only operation, remote-inference exceptions, or that cloud sync is truly deferred."
     },
     {
       "id": "REL-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/memory.py ROLES (owner/coordinator/contributor/reviewer/reader), project owner, memberships; tests/test_memory.py grant/revoke/outsider tests"
+      ],
+      "gap": "Team/install-level role verification on an installed copy and the 'not a multi-tenant service' boundary are not runtime-checked."
     },
     {
       "id": "REL-05",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "scripts/install_opencode.py exists; scripts/verify_install.py exists and ran (ok=false: missing 'cryptography' module in venv)"
+      ],
+      "gap": "No single-command bootstrap that detects what is missing and completes installation without re-download or overwriting user customizations."
     },
     {
       "id": "INV-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "src/dai/charters.py active charter persists; src/dai/decisions.py versioned decisions"
+      ],
+      "gap": "No test proving a model/environment switch leaves the goal/decisions intact and avoids re-asking settled items."
     },
     {
       "id": "INV-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "systems/ specifications exist for all ten systems"
+      ],
+      "gap": "No end-to-end check that general and specialist inputs meet the same task quality and that cross-system collaboration is declared."
     },
     {
       "id": "INV-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "src/dai/tools.py invoke records an attempt, not an effect (tests/test_tools.py::test_invoke_performs_no_external_effect_and_records_attempt)"
+      ],
+      "gap": "No check proving a hypothesis/proposal/summary can never be mistaken for a fact or an owner decision."
     },
     {
       "id": "INV-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/contracts.py identity assigned by trusted local adapter; src/dai/memory.py scope authorization; tests/test_memory.py::test_project_membership_does_not_grant_personal_or_other_project_memory; tests/test_decisions.py::test_record_decision_requires_authorization_source; tests/test_models.py::test_outsider_cannot_register_or_route"
+      ],
+      "gap": ""
     },
     {
       "id": "INV-05",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "src/dai/charters.py budgets (money/tokens/time modes) and approval fence"
+      ],
+      "gap": "No check proving goal change, major idea development, or spending requires an authorized decision at runtime."
     },
     {
       "id": "INV-06",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/tools.py invoke returns AUTHORIZED/DENIED only, no external effect; tests/test_tools.py::test_invoke_performs_no_external_effect_and_records_attempt; src/dai/tasks.py COMPLETED requires attempt+acceptance+receipt; tests/test_tasks.py::test_completed_only_through_record_attempt"
+      ],
+      "gap": ""
     },
     {
       "id": "INV-07",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "src/dai/memory.py revisions and audit preserve history; src/dai/decisions.py supersede never edits the old record in place"
+      ],
+      "gap": "No explicit conflict-preservation/examination feature or test; version conflicts raise Conflict but opposing opinions are not formally retained."
     },
     {
       "id": "INV-08",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/memory.py update() expected_version fence raises Conflict; tests/test_memory.py::test_version_fencing_prevents_lost_update_between_store_instances; tests/test_tasks.py::test_legal_transition_chain_and_version_fencing"
+      ],
+      "gap": "Git worktree isolation and merge coordination (ENV-03/ENV-04) are NOT_IMPLEMENTED; only record-level version fencing exists."
     },
     {
       "id": "INV-09",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/memory.py archive()/restore_record(); tests/test_memory.py::test_text_forgetting_archives_and_is_explicitly_recoverable"
+      ],
+      "gap": ""
     },
     {
       "id": "INV-10",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/tasks.py STATES include WAITING_FOR_* and PARTIAL requires a note; tests/test_tasks.py::test_waiting_transition_records_what_it_awaits; test_partial_requires_note_and_records_attempt; src/dai/models.py unknown cost never zero; tests/test_models.py::test_route_unknown_cost_not_treated_as_zero"
+      ],
+      "gap": ""
     },
     {
       "id": "ACT-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/memory.py ROLES and memberships with project owner; tests/test_memory.py::test_project_membership_does_not_grant_personal_or_other_project_memory; tests/test_teams.py::test_create_team_records_team_and_index_row"
+      ],
+      "gap": ""
     },
     {
       "id": "ACT-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai memory scope/capability enforcement; tests/test_memory.py outsider denial tests"
+      ],
+      "gap": "Live revocation mid-flight and its effect on in-flight authorized work not tested."
     },
     {
       "id": "ACT-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/charters.py autonomy (plan_once/per_stage/manual) and budgets validated in gaps(); tests/test_charters.py gaps/approval tests"
+      ],
+      "gap": "Per-task chosen intervention level and runtime adherence (plan once, then execute) not exercised."
     },
     {
       "id": "ACT-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "No decision-presentation UI or wait-for-answer loop exists in src/dai."
+      ],
+      "gap": "Requirement has no implementation and no check."
     },
     {
       "id": "ACT-05",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/tools.py resolve() returns allowed/reason/source; system identity alone never bans a tool class; provider refusal named; tests/test_tools.py::test_system_identity_alone_never_bans_a_tool_class; test_resolve_names_its_source_on_denial; test_provider_refusal_is_named_as_source"
+      ],
+      "gap": ""
     },
     {
       "id": "INT-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "systems/ specifications define the ten systems"
+      ],
+      "gap": "No orchestration implementation or test for leader/specialty selection with justification."
     },
     {
       "id": "INT-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No implementation or check for pre-question inspection of files/state/sources and gap-driven questioning."
     },
     {
       "id": "INT-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No implementation or check for contradiction revelation, focused non-repeating questions, or execution waiting on gap closure."
     },
     {
       "id": "INT-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/charters.py gaps() and approve() fence drafts; tests/test_charters.py::test_incomplete_request_is_preserved_and_blocks_approval_without_inventing_answers; test_stale_preview_cannot_approve_a_changed_goal; test_approval_is_idempotent_and_reopening_keeps_the_same_charter"
+      ],
+      "gap": ""
     },
     {
       "id": "INT-05",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No 'short contract using adopted preferences' shortcut; size-based waiver of validity checks not implemented."
     },
     {
       "id": "INT-06",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/decisions.py record/supersede/withdraw/affected; tests/test_decisions.py::test_supersede_creates_a_new_record_and_never_edits_the_old_one; test_active_excludes_superseded_and_withdrawn; test_affected_returns_active_decisions_touching_the_unit"
+      ],
+      "gap": ""
     },
     {
       "id": "WFL-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No workflow-description engine keyed on domain/branch/goal maturity; charter method_status exists but is not a full WFL-01 description."
     },
     {
       "id": "WFL-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No methodology/capability register linking work types to conditions, source, version, tools, quality standards."
     },
     {
       "id": "WFL-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/tasks.py graph() built from depends_on with cycle rejection; tests/test_tasks.py::test_graph_nodes_and_edges"
+      ],
+      "gap": "End-to-end plan rendering and essential-change diff/reason/impact/approval presentation not tested."
     },
     {
       "id": "WFL-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/tasks.py create_task fields, lease/release, record_attempt; tests/test_tasks.py::test_create_task_records_content_and_index_row; test_lease_is_exclusive_and_expired_lease_can_be_taken_over; test_completed_only_through_record_attempt"
+      ],
+      "gap": ""
     },
     {
       "id": "WFL-05",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/charters.py workflow.method_status candidate/verified with method_evidence gating; tests/test_charters.py::test_verified_method_claim_needs_real_referenced_evidence_record"
+      ],
+      "gap": "Search/compare alternatives and present-a-pilot-for-adoption not implemented or tested."
     },
     {
       "id": "WFL-06",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No productivity measurement, unproductive-cycle detection, or method/tool/model change loop."
     },
     {
       "id": "WFL-07",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No domain-appropriate verification means or comparison against original material and acceptance criteria."
     },
     {
       "id": "WFL-08",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "Illustrative example in the spec; no implementation or check (a closed list is not required, but nothing is verified)."
     },
     {
       "id": "AGT-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/teams.py agents/tree/assign/inbox with parent_agent depth; tests/test_teams.py::test_agents_and_tree_shape; test_message_leader_is_sent_not_applied"
+      ],
+      "gap": "Persistent team across the project and 'no busy model/GPU when idle' not runtime-tested."
     },
     {
       "id": "AGT-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/teams.py MAX_DEPTH=3 with depth enforcement; tests/test_teams.py::test_add_agent_root_and_child_depths"
+      ],
+      "gap": ""
     },
     {
       "id": "AGT-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/tasks.py create_task content fields and attempts with idempotency; tests/test_tasks.py::test_create_task_records_content_and_index_row; test_record_attempt_idempotent_repeat_does_not_double_count; test_terminal_states_reject_further_transitions"
+      ],
+      "gap": ""
     },
     {
       "id": "AGT-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/teams.py assign/message_leader; tests/test_teams.py::test_assign_records_ownership_and_is_idempotent; test_message_leader_is_sent_not_applied"
+      ],
+      "gap": "Direction-to-plan/decision update loop per authorization not tested."
     },
     {
       "id": "AGT-05",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/teams.py consultation OPEN->RECEIVED->MERGING->APPLIED/NEEDS_DECISION; tests/test_teams.py::test_open_consultation_ask_changes_nothing_but_the_consultation; test_consult_consultation_transition_rules"
+      ],
+      "gap": ""
     },
     {
       "id": "SIDE-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/teams.py consultation bound to parent_session; tests/test_teams.py::test_consultation_is_invisible_to_another_session; test_open_consultation_ask_changes_nothing_but_the_consultation"
+      ],
+      "gap": ""
     },
     {
       "id": "SIDE-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/teams.py consultation context_version; ask/analyse read-only; tests/test_teams.py::test_open_consultation_ask_changes_nothing_but_the_consultation"
+      ],
+      "gap": "Non-blocking of the leader and no writer-resource reservation not runtime-tested."
     },
     {
       "id": "SIDE-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/teams.py message_leader status SENT not applied; proposal stays proposal until user sends; idempotency_key dedup; tests/test_teams.py::test_message_leader_is_sent_not_applied; test_open_consultation_suggest_proposal_stays_a_proposal"
+      ],
+      "gap": ""
     },
     {
       "id": "SIDE-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/teams.py consult_consultation transitions; acknowledge is version-fenced; tests/test_teams.py::test_consult_consultation_transition_rules; test_acknowledge_is_version_fenced"
+      ],
+      "gap": ""
     },
     {
       "id": "ENV-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/memory.py single local store with audit trail; adapters/opencode/mcp/server.py exists and imports/registers tools (tests/test_adapters.py::test_mcp_server_imports_and_registers_expected_tools)"
+      ],
+      "gap": "Host-session identity linking and 'MCP sharing alone is not decision continuity' not tested."
     },
     {
       "id": "ENV-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No second-environment behavior implementation or test."
     },
     {
       "id": "ENV-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_IMPLEMENTED",
+      "evidence": [],
+      "gap": "Git worktree isolation with declared output ownership is not implemented in the core."
     },
     {
       "id": "ENV-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_IMPLEMENTED",
+      "evidence": [],
+      "gap": "Verified merge with base/versions, assignment agreement, and result checks is not implemented in the core."
     },
     {
       "id": "ENV-05",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "adapters/opencode/mcp/server.py registers expected tools; tests/test_adapters.py::test_mcp_server_imports_and_registers_expected_tools"
+      ],
+      "gap": "Per-link documented capability map and verification on an installed surface copy are not done."
     },
     {
       "id": "MEM-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/memory.py PLANES person/project/global with scope keys and encryption; tests/test_memory.py::test_project_membership_does_not_grant_personal_or_other_project_memory; test_private_content_survives_reopen_without_plaintext_on_disk"
+      ],
+      "gap": ""
     },
     {
       "id": "MEM-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/memory.py update() with expected_version and history(); tests/test_memory.py::test_version_fencing_prevents_lost_update_between_store_instances; test_revocation_is_seen_by_an_already_open_store"
+      ],
+      "gap": "Explicit remember/display/rollback and inference-gating for personal preferences not tested."
     },
     {
       "id": "MEM-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No de-identification, transfer pipeline, or sharing controls for generalizable lessons."
     },
     {
       "id": "MEM-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/memory.py search()/list()/history() with versions and sources; tests/test_memory.py search/list/history tests"
+      ],
+      "gap": "Role/task-directed retrieval, compression keeping goals/decisions/pauses/evidence, and pre-decision active-version check not specifically tested."
     },
     {
       "id": "MEM-05",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/memory.py archive()/restore_record(); tests/test_memory.py::test_text_forgetting_archives_and_is_explicitly_recoverable"
+      ],
+      "gap": "Ordinary-text 'forget' vs confirmed-purge distinction and ambiguous-request clarification not implemented."
     },
     {
       "id": "MEM-06",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/memory.py request_purge/confirm_purge (owner-only, version-bound, expiring confirmation); tests/test_memory.py::test_stale_purge_confirmation_cannot_delete_new_content; test_purge_confirmation_is_bound_to_actor_record_and_expiry"
+      ],
+      "gap": ""
     },
     {
       "id": "MEM-07",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/memory.py _finish_purge destroys key, sets PURGED, deletes revisions/search terms, audit without content; tests/test_memory.py::test_purge_destroys_revisions_and_cannot_be_restored_from_database_snapshot; test_process_restart_finishes_purge_after_key_destruction_boundary"
+      ],
+      "gap": ""
     },
     {
       "id": "MEM-08",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/memory.py WAL journal, key destruction, snapshot without keys (contains_keys: false); tests/test_memory.py snapshot/recovery tests"
+      ],
+      "gap": "External managed copies (user exports, provider-sent context) limits and restore-not-reintroduce not tested."
     },
     {
       "id": "MOD-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/models.py choose() binding with role/reason/task_class; register/catalog; tests/test_models.py::test_choose_records_model_role_assignment; test_route_prefers_known_cost_over_unknown"
+      ],
+      "gap": "Session-level base-model choice flow and per-size model asks not implemented or tested."
     },
     {
       "id": "MOD-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/models.py route() prefers known cost; usage() splits actual/estimated/unknown; tests/test_models.py::test_route_unknown_cost_not_treated_as_zero; test_usage_splits_actual_estimated_and_unknown; test_route_excludes_unavailable_and_unknown_availability"
+      ],
+      "gap": ""
     },
     {
       "id": "MOD-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/models.py route() returns model null + needs_decision=true when no eligible model; tests/test_models.py::test_route_no_eligible_model_returns_none_and_needs_decision; test_route_never_selects_unknown_cost_when_max_cost_given"
+      ],
+      "gap": ""
     },
     {
       "id": "MOD-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No runtime model/work-distribution/constraint direction with affected-unit identification and safe-point rescheduling."
     },
     {
       "id": "RES-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/charters.py budgets (money/tokens/time modes) validated in gaps(); tests/test_charters.py::test_money_is_explicit_and_nan_or_unknown_budget_does_not_mean_free"
+      ],
+      "gap": "Runtime limit enforcement and resource-distribution modes not tested."
     },
     {
       "id": "RES-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/models.py usage() returns actual/estimated/unknown buckets never merged; tests/test_models.py::test_usage_splits_actual_estimated_and_unknown; test_usage_keeps_none_tokens_out_of_totals"
+      ],
+      "gap": ""
     },
     {
       "id": "RES-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/models.py route() needs_decision=true when no eligible model; tests/test_models.py::test_route_no_eligible_model_returns_none_and_needs_decision"
+      ],
+      "gap": "Pre-limit warning with alternatives (cheaper/free/wait/scope reduction/extend/stop) not implemented."
     },
     {
       "id": "RES-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No consumption optimizer, baseline measurement, or unproductive-iteration stop."
     },
     {
       "id": "RES-05",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No RAM/VRAM-based adaptation or measurement on the 16GB/6GB reference device."
     },
     {
       "id": "DUR-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai tasks/decisions/teams/memory versioned records in the project database; tests/test_memory.py::test_private_content_survives_reopen_without_plaintext_on_disk; tests/test_tasks.py::test_terminal_states_reject_further_transitions"
+      ],
+      "gap": ""
     },
     {
       "id": "DUR-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No automatic authorized resumption after verifying last state, permissions, and resources."
     },
     {
       "id": "DUR-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai tasks/models/tools idempotency keys; tests/test_tasks.py::test_record_attempt_idempotent_repeat_does_not_double_count; tests/test_tools.py::test_invoke_idempotency_key_allows_one_attempt_only"
+      ],
+      "gap": ""
     },
     {
       "id": "DUR-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/tasks.py STATES and transition map; COMPLETED requires attempt+acceptance+receipt; PARTIAL requires a note; tests/test_tasks.py::test_completed_only_through_record_attempt; test_partial_requires_note_and_records_attempt; test_illegal_transition_conflict_names_both_states"
+      ],
+      "gap": ""
     },
     {
       "id": "UPD-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/updates.py check(source, channel, ref) and plan(version, commit, diff); tests/test_updates.py::test_check_validates_source_and_uses_injected_now"
+      ],
+      "gap": "Default-source-D_AI-only policy and proven release settings not verified."
     },
     {
       "id": "UPD-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/updates.py due() = now >= last_success + 7 days; no catch-up accumulation; tests/test_updates.py::test_due_is_false_before_seven_days_and_true_at_seven_days; test_ten_idle_days_still_produce_exactly_one_due_check"
+      ],
+      "gap": ""
     },
     {
       "id": "UPD-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/updates.py record_check success/failure; single local updates.json state; tests/test_updates.py::test_failed_check_does_not_become_last_success; test_check_records_success_and_failure_honestly"
+      ],
+      "gap": ""
     },
     {
       "id": "UPD-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/updates.py plan()/decide(update/defer/ignore) version-fenced; tests/test_updates.py::test_plan_records_pending_update; test_decide_accepts_update_defer_and_ignore"
+      ],
+      "gap": "Impact display, no-repeat-notice, and per-environment channel not tested."
     },
     {
       "id": "UPD-05",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/updates.py apply() requires prior owner decision + rollback token; rollback(); tests/test_updates.py::test_apply_requires_a_prior_owner_decision; test_rollback_reverses_an_applied_update"
+      ],
+      "gap": "Pre-adoption compatibility check, data migration, and suitable tests not implemented."
     },
     {
       "id": "SYS-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "systems/*/specification.md specifications exist"
+      ],
+      "gap": "System capability registers exist only as specifications; professional domain validation not executed (CONFIGURED != professionally tested per SYS-02)."
     },
     {
       "id": "SYS-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "systems/*/specification.md specifications exist"
+      ],
+      "gap": "System capability registers exist only as specifications; professional domain validation not executed (CONFIGURED != professionally tested per SYS-02)."
     },
     {
       "id": "SYS-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "systems/*/specification.md specifications exist"
+      ],
+      "gap": "System capability registers exist only as specifications; professional domain validation not executed (CONFIGURED != professionally tested per SYS-02)."
     },
     {
       "id": "SYS-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "systems/*/specification.md specifications exist"
+      ],
+      "gap": "System capability registers exist only as specifications; professional domain validation not executed (CONFIGURED != professionally tested per SYS-02)."
     },
     {
       "id": "SCI-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 12 defines the SCI acceptance path; systems/research/specification.md exists"
+      ],
+      "gap": "SCI research acceptance path specified but not executed end to end; no professional domain validation run."
     },
     {
       "id": "SCI-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 12 defines the SCI acceptance path; systems/research/specification.md exists"
+      ],
+      "gap": "SCI research acceptance path specified but not executed end to end; no professional domain validation run."
     },
     {
       "id": "SCI-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 12 defines the SCI acceptance path; systems/research/specification.md exists"
+      ],
+      "gap": "SCI research acceptance path specified but not executed end to end; no professional domain validation run."
     },
     {
       "id": "SCI-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 12 defines the SCI acceptance path; systems/research/specification.md exists"
+      ],
+      "gap": "SCI research acceptance path specified but not executed end to end; no professional domain validation run."
     },
     {
       "id": "SCI-05",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 12 defines the SCI acceptance path; systems/research/specification.md exists"
+      ],
+      "gap": "SCI research acceptance path specified but not executed end to end; no professional domain validation run."
     },
     {
       "id": "SCI-06",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 12 defines the SCI acceptance path; systems/research/specification.md exists"
+      ],
+      "gap": "SCI research acceptance path specified but not executed end to end; no professional domain validation run."
     },
     {
       "id": "SCI-07",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 12 defines the SCI acceptance path; systems/research/specification.md exists"
+      ],
+      "gap": "SCI research acceptance path specified but not executed end to end; no professional domain validation run."
     },
     {
       "id": "SCI-08",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 12 defines the SCI acceptance path; systems/research/specification.md exists"
+      ],
+      "gap": "SCI research acceptance path specified but not executed end to end; no professional domain validation run."
     },
     {
       "id": "SCI-09",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 12 defines the SCI acceptance path; systems/research/specification.md exists"
+      ],
+      "gap": "SCI research acceptance path specified but not executed end to end; no professional domain validation run."
     },
     {
       "id": "SCI-10",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 12 defines the SCI acceptance path; systems/research/specification.md exists"
+      ],
+      "gap": "SCI research acceptance path specified but not executed end to end; no professional domain validation run."
     },
     {
       "id": "VIS-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 13 defines the VIS path; VISUAL_REFERENCES_AR.md exists; check harness at most"
+      ],
+      "gap": "VIS Remotion production path specified but not executed; no visual production runtime check."
     },
     {
       "id": "VIS-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 13 defines the VIS path; VISUAL_REFERENCES_AR.md exists; check harness at most"
+      ],
+      "gap": "VIS Remotion production path specified but not executed; no visual production runtime check."
     },
     {
       "id": "VIS-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 13 defines the VIS path; VISUAL_REFERENCES_AR.md exists; check harness at most"
+      ],
+      "gap": "VIS Remotion production path specified but not executed; no visual production runtime check."
     },
     {
       "id": "VIS-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 13 defines the VIS path; VISUAL_REFERENCES_AR.md exists; check harness at most"
+      ],
+      "gap": "VIS Remotion production path specified but not executed; no visual production runtime check."
     },
     {
       "id": "VIS-05",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 13 defines the VIS path; VISUAL_REFERENCES_AR.md exists; check harness at most"
+      ],
+      "gap": "VIS Remotion production path specified but not executed; no visual production runtime check."
     },
     {
       "id": "VIS-06",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 13 defines the VIS path; VISUAL_REFERENCES_AR.md exists; check harness at most"
+      ],
+      "gap": "VIS Remotion production path specified but not executed; no visual production runtime check."
     },
     {
       "id": "VIS-07",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 13 defines the VIS path; VISUAL_REFERENCES_AR.md exists; check harness at most"
+      ],
+      "gap": "VIS Remotion production path specified but not executed; no visual production runtime check."
     },
     {
       "id": "VIS-08",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 13 defines the VIS path; VISUAL_REFERENCES_AR.md exists; check harness at most"
+      ],
+      "gap": "VIS Remotion production path specified but not executed; no visual production runtime check."
     },
     {
       "id": "VIS-09",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "docs/specifications/PRD_AR.md section 13 defines the VIS path; VISUAL_REFERENCES_AR.md exists; check harness at most"
+      ],
+      "gap": "VIS Remotion production path specified but not executed; no visual production runtime check."
     },
     {
       "id": "EXT-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/components.py propose/decide/catalog with ADOPT_PATTERN/ADOPT_PATTERN_AFTER_X/REFERENCE_ONLY/REJECT; tests/test_components.py::test_propose_records_component_and_index_row; test_unknown_licence_refuses_adopt_pattern; test_adopt_rejects_file_escaping_dai_tree"
+      ],
+      "gap": ""
     },
     {
       "id": "EXT-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/components.py propose() stores source_url, license, commit, patterns, requirements; decide() rationale; tests/test_components.py::test_source_url_must_be_github_owner_repo; test_patterns_must_be_concrete_and_at_least_12_characters"
+      ],
+      "gap": "Full candidate assessment (comparison, fingerprint, maintenance, data classes, failure modes, acceptance tests) not enforced."
     },
     {
       "id": "EXT-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/components.py decide-before-adopt gate with expected_version fence; tests/test_components.py::test_decision_is_version_fenced_and_one_per_component"
+      ],
+      "gap": "Isolated examination before active load and owner-approval activation flow not implemented."
     },
     {
       "id": "EXT-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/tools.py resolve/invoke effect policy; tests/test_tools.py::test_system_identity_alone_never_bans_a_tool_class; test_invoke_performs_no_external_effect_and_records_attempt; test_resolve_names_its_source_on_denial"
+      ],
+      "gap": ""
     },
     {
       "id": "EXT-05",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No on-demand loading, single-origin environment definitions, or skill not-called/not-fabricated-success tests."
     },
     {
       "id": "EXT-06",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No before/after usefulness proof, regression recording, or rollback for unproven components."
     },
     {
       "id": "DAT-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai record model (kind/scope/version/content/audit) applied across modules; tests/test_memory.py::test_private_content_survives_reopen_without_plaintext_on_disk"
+      ],
+      "gap": ""
     },
     {
       "id": "DAT-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "src/dai/teams.py tree (parent_agent); src/dai/tasks.py graph (depends_on); src/dai/teams.py consultations (parent_session); tests/test_teams.py::test_agents_and_tree_shape; tests/test_tasks.py::test_graph_nodes_and_edges"
+      ],
+      "gap": "No anti-inference test (progress not inferred from agent-tree child; evidence origin not from summary text)."
     },
     {
       "id": "DAT-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "IMPLEMENTED",
+      "evidence": [
+        "src/dai/cli.py plus module contracts; tests/test_cli_commands.py CLI end-to-end flows (charter/task/decision/team/model/tool/component/update/consultation)"
+      ],
+      "gap": ""
     },
     {
       "id": "DAT-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No display layer distinguishing state/outcome/reason with completion evidence."
     },
     {
       "id": "DAT-05",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No V1 surface check for Arabic/English/mixed/RTL readability."
     },
     {
       "id": "REP-01",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "Repository layout src/dai/, adapters/, systems/, packs/, config/, scripts/, tests/, docs/ with consistent names between code and contracts; tests/test_components.py::test_adopt_rejects_unknown_binding"
+      ],
+      "gap": "Proposed tree (src/core, src/memory, ...) not executed; src/dai is flat."
     },
     {
       "id": "REP-02",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "scripts/verify_install.py data_root check; src/dai MemoryStore root parameter; INSTALL.md ~/.d-ai proposal"
+      ],
+      "gap": "No code preventing automatic user-data migration; configurable data root not runtime-verified."
     },
     {
       "id": "REP-03",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [],
+      "gap": "No archive-outside-repo with index/restore source; no reversible batch move with path/link/run checks."
     },
     {
       "id": "REP-04",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "PARTIAL",
+      "evidence": [
+        "scripts/install_opencode.py and scripts/verify_install.py exist; verifier ran (ok=false: missing 'cryptography')"
+      ],
+      "gap": "Cold install/upgrade/rollback per surface not tested; setup --env not supported before those tests."
     },
     {
       "id": "REP-05",
-      "implementation_status": "NOT_AUDITED",
-      "evidence": []
+      "implementation_status": "NOT_VERIFIED",
+      "evidence": [
+        "Policy documented: LICENSE is GPL-3.0-or-later; THIRD_PARTY.md component attribution"
+      ],
+      "gap": "Not code-enforced or tested; no separate D_AI GitHub repo publication after V1."
     }
   ],
-  "note": "A status entry is not proof. Each requirement needs current runtime/acceptance evidence, including appropriate live/domain checks."
+  "counts": {
+    "NOT_VERIFIED": 52,
+    "PARTIAL": 29,
+    "IMPLEMENTED": 30,
+    "NOT_IMPLEMENTED": 2
+  },
+  "note": "A status entry is not proof. Each requirement needs current runtime/acceptance evidence, including appropriate live/domain checks. Honest gaps are recorded per requirement; nothing is asserted as verified without an observed receipt."
 }

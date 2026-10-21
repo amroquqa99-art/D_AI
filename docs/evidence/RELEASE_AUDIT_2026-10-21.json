@@ -1,0 +1,49 @@
+{
+  "generated_at": "2026-10-21T10:20:31.564937+00:00",
+  "repository": "/run/media/amro/18D1-F040/01 Projects/D_AI",
+  "commit": "e3d65ac02468c9f07eecdbac8b40dea8326e4799",
+  "checks": [
+    {
+      "name": "python-core-suite",
+      "command": "cd \"/run/media/amro/18D1-F040/01 Projects/D_AI\" && PYTHONPATH=src /home/amro/.local/share/d-ai-opencode/venv/bin/python -m unittest discover -s tests",
+      "result": "Ran 184 tests in 47.507s\nOK"
+    },
+    {
+      "name": "router-suite",
+      "command": "node --test tests/router.test.mjs",
+      "result": "# tests 32\n# pass 32\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 1480.469817"
+    },
+    {
+      "name": "install-verifier",
+      "command": "cd \"/run/media/amro/18D1-F040/01 Projects/D_AI\" && PYTHONPATH=src /home/amro/.local/share/d-ai-opencode/venv/bin/python scripts/verify_install.py --skip-data-root",
+      "result": {
+        "ok": true,
+        "failures": [],
+        "note": "run with the interpreter that has the declared dependency installed; a bare interpreter without cryptography cannot import the encrypted core modules"
+      }
+    }
+  ],
+  "independent_reviews": [
+    {
+      "scope": "core modules (memory, charters, tasks, decisions, teams, models)",
+      "findings": 17,
+      "fixed": 17,
+      "note": "Independent review of core modules found 17 findings across version fencing, idempotency, scope authorization, purge key destruction, snapshot recovery and routing cost-honesty; all 17 were fixed before this audit and the full suite passes with zero failures."
+    },
+    {
+      "scope": "fix verification round",
+      "findings": 5,
+      "fixed": 5,
+      "note": "Re-check of the fixed areas found 5 remaining issues; all 5 fixed and re-verified by re-running PYTHONPATH=src python -m unittest discover -s tests (184 tests, OK)."
+    }
+  ],
+  "known_defects_open": [],
+  "limits": [
+    "The four host surfaces are not verified on installed registered copies: only OpenCode CLI-level code and the MCP surface exist; OpenCode Desktop, pi CLI and PI-Desktop are NOT_VERIFIED",
+    "Tests deliberately use no network, subprocess, or wall-clock assertions; they prove module contracts, not live host behavior",
+    "Professional domain validation for specialist branches (SCI, VIS and others) has not been executed end to end",
+    "No release archive, publication, or git commit was made by this audit"
+  ],
+  "release_status": "NOT_READY",
+  "release_reason": "Not ready for publication as complete V1 because professional domain validation and the four host-surface verifications are missing, although the core is releasable as a foundation."
+}

@@ -1,27 +1,42 @@
-# D_AI 1.0 — execution checkpoint
+# D_AI 1.0 — نقطة تفتيش التنفيذ
 
-Goal: build the complete D_AI 1.0 in `/run/media/amro/18D1-F040/01 Projects/D_AI`, ready for owner publication to GitHub after full acceptance. No reduced core/beta/alpha outcome is accepted.
+التاريخ: 2026-10-21. هذا المستند نقطة تفتيش تنفيذية تصف ما هو حقيقي في المستودع، وليس ما هو مخطط له فقط. دقة الحالة أهم من الاكتمال الظاهري، وحالة التغطية ليست إثباتًا.
 
-## Current evidence — 2026-10-19
+## 1. الهدف
+هذا المستودع يحاول أن يكون D_AI 1.0 — نظام محلي واحد يستعمله فرد أو فريق من بيئات ونماذج متعددة، يحتفظ بمعرفة العمل وقراراته، ويقود استكمال طلب المستخدم، وينسق التخصصات والأدوات والمهارات المناسبة لإنتاج مخرجات عميقة قابلة للفحص وباستهلاك مناسب للمهمة. الهدف المنشور: V1 كاملة جاهزة للنشر على GitHub بعد القبول الكامل؛ لا نتيجة نواة أو تجريبية مختصرة مقبولة باسم V1 الكاملة.
 
-- Requested destination was empty at inspection.
-- Imported the current owner PRD, decisions, visual/resource references, glossary and existing GPL license, with SHA256 source manifest. No old runtime, private data, credentials or Git history was copied.
-- Existing implementation at `/home/amro/Documents/المشروع الافتراضي/D_AI` has reusable OpenCode tools/skills but is not the requested multi-host system. It cannot be treated as complete.
-- Installed hosts: OpenCode CLI present; PI-Desktop 0.18.0 at `/opt/PI-Desktop`; standalone `pi` is not on PATH. Node v22.23.1.
-- Existing Python tool environment `/home/amro/.local/share/d-ai-opencode/venv/bin/python` has cryptography, MCP, httpx and pydantic. It can verify development code; the new installer must create an independent supported environment.
-- Model execution must use owner-authorized host credentials/models. No new OpenAI API key is required for host-native integrations, and no live request or paid fallback has been sent in this goal turn.
+## 2. ما هو مُثبت الآن
+- الوحدات المثبتة والمختبرة في src/dai/: الذاكرة المشفرة ثلاثية النطاقات مع الأرشفة والمحو المؤكد (memory.py, vault.py)، عقود التأسيس وسياج الموافقة (charters.py)، رسم المهام الدائم وآلة الحالات السبع عشرة (tasks.py)، القرارات المعلنة والتجاوز والإلغاء (decisions.py)، الفرق والوكلاء بثلاث طبقات والاستشارات داخل الجلسة (teams.py)، سجل النماذج والتوجيه الصادق للتكلفة والقياس (models.py)، بوابة الأدوات وآثار الأذونات (tools.py)، سجل المكونات الخارجية وقاعدة الترخيص (components.py)، مراقب التحديث الأسبوعي (updates.py)، واجهة الأوامر (cli.py) والعقود والأخطاء (contracts.py, errors.py).
+- إيصال الاختبار الفعلي: PYTHONPATH=src /home/amro/.local/share/d-ai-opencode/venv/bin/python -m unittest discover -s tests → "Ran 184 tests in 47.507s" ثم "OK". مسار الراوتر: node --test tests/router.test.mjs → "# tests 32 # pass 32 # fail 0". التحقق من التثبيت: scripts/verify_install.py --skip-data-root أدى إلى "ok": false لأن وحدة "cryptography" غير موجودة في البيئة الافتراضية (لا يمكن استيراد الوحدات المشفرة هناك)، بينما فحوص البنية والصلاحيات التي لا تحتاج التشفير نجحت.
+- مراجعة مستقلة: مراجعة الوحدات الأساسية (الذاكرة، الميثاق، المهام، القرارات، الفرق، النماذج) وجدت 17 مشكلة وأُصلحت 17؛ وجولة التحقق من الإصلاح وجدت 5 مشاكل وأُصلحت 5، ثم أعيد تشغيل الحزمة الكاملة ونجحت بصفر إخفاقات.
+- عيب وُجد وأُصلح خلال هذا العمل: الراوتر في adapters/opencode/router/index.js كان يحتفظ بقفل كاتب مساحة العمل للوظيفة المنفذة ويُطلقه فقط عند فشل المراجعة، تاركًا القفل بعد الوظيفة الناجحة معطلًا للوظيفة التالية. الإصلاح موجود في الملف حاليًا: الإطلاق في كتلة finally بعد المراجعة المستقلة (السطور 274–278)، وإطلاق القفل عند إلغاء الطفل المقاطع (السطور 243–249)، والإطلاق عند فشل العامل (السطر 254). تم التأكد من وجود الإصلاح في الالتزام الحالي e3d65ac02468c9f07eecdbac8b40dea8326e4799 (الشجرة نظيفة، لا تعديلات غير ملتزمة).
 
-## Full work remaining
+## 3. ما لم يُثبت
+- التحقق المهني من فروع المعارف (البحث SCI، الإنتاج البصري VIS، وغيرها من الأنظمة العشر): المواصفات موجودة، التشغيل المهني من طرف إلى طرف غير منفذ.
+- الأسطح المضيفة الأربعة (REL-02): فقط كود OpenCode CLI وسطح MCP موجودان؛ OpenCode Desktop و pi CLI و PI-Desktop غير مثبتة ولم تُحقق على نسخ مثبتة مسجلة.
+- مسارات القبول الخاصة بالمجال (SCI-xx، VIS-xx): مواصفات وموازين قبول موجودة فقط؛ لا اختبار إنتاجي فعلي.
+- عزل مساحات العمل في Git والدمج المُتحقق (ENV-03، ENV-04): غير منفذتان في النواة.
+- المزامنة السحابية بين الأجهزة: مؤجلة عن V1، وغير مثبتة كحد.
+- استئناف العمل المرخص تلقائيًا بعد العودة (DUR-02): غير منفذ.
 
-1. Shared local identity, project decisions, three-scope memory, archival, confirmed irreversible deletion, provenance, backup and recovery.
-2. Charters, explicit permissions/budgets, durable task graph, adaptive teams and three layers, claims/leases, actual execution and review.
-3. OpenCode and pi adapters on both desktop/CLI, native `/` consultation, messages to leader, host-session and context synchronization.
-4. Git workspaces, division of ownership, verified merge, nonduplicate side effects and automatic authorized continuation.
-5. Model capability evaluation, explicit routing, live authorized inference, usage metering, context efficiency and runtime quality gates.
-6. All ten domain systems and their complete declared tools/skills/workflow branches; research and creative production user acceptance cases and domain-specific evaluation.
-7. Vetted external resources with functional integration, pinned origins/licenses and activation approval, weekly-on-start update checks and reversible update flow.
-8. Relocatable one-command setup, documentation, repository organization, CI, packaging, clean install/upgrade/restore and full requirement-by-requirement release audit.
+## 4. خريطة المتطلبات
+يشير هذا القسم إلى docs/REQUIREMENT_COVERAGE.json الذي يغطي 113 متطلبًا (من REL-01 إلى REP-05):
 
-Next action: implement and exercise the shared encrypted scoped record/decision store with authorization, version fencing, archival, confirmed purge and snapshot recovery; then build charters/tasks and host adapters on its actual contract. These are progress steps toward the complete goal, not a smaller completion target.
+| الحالة | العدد |
+|---|---:|
+| IMPLEMENTED — السلوك موجود في الكود ومُختبر باسم اختبار أو إيصال | 30 |
+| PARTIAL — جزء موجود والباقي مسمى | 29 |
+| NOT_IMPLEMENTED — لا تنفيذ موجود | 2 (ENV-03، ENV-04) |
+| NOT_VERIFIED — تعريف أو تنفيذ موجود لكن لا اختبار يثبت المتطلب | 52 |
 
-Release status: NOT_READY. Product acceptance and live/domain tests have not run. No release archive or publication exists.
+ملاحظة: حالة التغطية ليست إثباتًا؛ كل متطلب يحتاج إيصال تشغيل/قبول حالي.
+
+## 5. العمل المتبقي (بالترتيب، مع الإثبات المطلوب لكل خطوة)
+1. تشغيل مسار القبول المهني لنظام تخصصي واحد على الأقل (مثل SCI-01..10 وفق PRD_AR.md القسم 12) مع مراجع أصلية وحسابات قابلة للإعادة — الإثبات: تقرير قبول مكتمل وإيصالات تشغيل.
+2. التحقق من الأسطح المضيفة الأربعة على نسخ مثبتة مسجلة (OpenCode CLI، OpenCode Desktop، pi CLI، PI-Desktop) — الإثبات: إيصال تشغيل واختبار لكل سطح على حدة.
+3. تنفيذ ENV-03/ENV-04 (عزل Git/worktree والدمج المتحقق) — الإثبات: اختبارات تُنجز وتُنجح.
+4. إتمام REL-05: أمر تثبيت واحد يكشف الناقص ويكمله دون إعادة تنزيل أو سحق تخصيصات المستخدم — الإثبات: تثبيت بارد ناجح من بيئة نظيفة.
+5. عند إثبات أي متطلب، تحديث REQUIREMENT_COVERAGE.json مع الإيصال — الإثبات: انتقال الحالة إلى IMPLEMENTED مع مسمى الاختبار أو الإيصال.
+
+## 6. حالة الإصدار
+NOT_READY — السبب: النشر العام كـ V1 كاملة غير جاهز لأن التحقق المهني للمجالات والتحقق من الأسطح المضيفة مفقودان، رغم أن النواة قابلة للإ_release كأساس للنظام.
