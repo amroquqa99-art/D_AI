@@ -193,10 +193,12 @@ def dai_task_attempt(ctx: Context, project_id: str, task_id: str,
                      attempt_id: str, outcome: str,
                      artifacts: list[str] | None = None,
                      receipt: str | None = None,
+                     expected_version: int | None = None,
                      idempotency_key: str | None = None) -> dict:
     """Record a task attempt (the only path to COMPLETED)."""
     return _call(_get_bridge().dai_task_attempt, ctx, project_id, task_id,
                  attempt_id, outcome, artifacts=artifacts, receipt=receipt,
+                 expected_version=expected_version,
                  idempotency_key=idempotency_key)
 
 
@@ -343,10 +345,12 @@ def dai_consultation_open(ctx: Context, project_id: str,
 def dai_consultation_reply(ctx: Context, project_id: str,
                            consultation_id: str, body: str,
                            references: list[str] | None = None,
+                           expected_version: int | None = None,
                            idempotency_key: str | None = None) -> dict:
     """Reply to a consultation."""
     return _call(_get_bridge().dai_consultation_reply, ctx, project_id,
                  consultation_id, body, references=references,
+                 expected_version=expected_version,
                  idempotency_key=idempotency_key)
 
 
@@ -361,8 +365,8 @@ def dai_consultation_status(ctx: Context, project_id: str,
 
 @mcp.tool()
 def dai_consultation_list(ctx: Context, project_id: str,
-                          parent_session: str | None = None) -> list[dict]:
-    """List consultations."""
+                          parent_session: str) -> list[dict]:
+    """List the consultations of one parent session."""
     return _call(_get_bridge().dai_consultation_list, ctx, project_id,
                  parent_session=parent_session)
 

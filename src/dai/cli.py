@@ -287,13 +287,15 @@ def _add_consultation(commands) -> None:
     reply.add_argument("--body", required=True, help="Bounded reply body")
     reply.add_argument("--references", action="append", help="Reply reference (repeatable)")
     reply.add_argument("--idempotency-key", help="Idempotency key for repeat-safe reply")
+    reply.add_argument("--expected-version", type=int,
+                       help="Expected consultation version before the reply (optional fence)")
     status_consult = co_actions.add_parser("status", help="Advance a consultation status")
     status_consult.add_argument("consultation_id", help="Consultation record id")
     status_consult.add_argument("--status", required=True, help="Next consultation status")
     status_consult.add_argument("--expected-version", type=int, required=True,
                                 help="Expected consultation version")
     list_consult = co_actions.add_parser("list", help="List consultations")
-    list_consult.add_argument("--parent-session",
+    list_consult.add_argument("--parent-session", required=True,
                               help="Only consultations bound to this parent session")
 
 
@@ -533,6 +535,7 @@ def _dispatch_new(args: argparse.Namespace, store: MemoryStore, actor: Principal
                                                 question=args.question, mode=args.mode))
         if args.action == "reply":
             return asdict(svc.consultation_reply(actor, scope, args.consultation_id, body=args.body,
+                                                 expected_version=args.expected_version,
                                                  references=_string_list(args.references),
                                                  idempotency_key=args.idempotency_key))
         if args.action == "status":

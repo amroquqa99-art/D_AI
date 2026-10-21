@@ -226,12 +226,14 @@ class DaiCoreBridge:
                          task_id: str, attempt_id: str, outcome: str,
                          artifacts: list[str] | None = None,
                          receipt: str | None = None,
+                         expected_version: int | None = None,
                          idempotency_key: str | None = None
                          ) -> dict[str, Any]:
         scope = self.project_scope(actor, project_id)
         return _json_safe(asdict(self.tasks.record_attempt(
             actor, scope, task_id, attempt_id=attempt_id, outcome=outcome,
             artifacts=artifacts, receipt=receipt,
+            expected_version=expected_version,
             idempotency_key=idempotency_key)))
 
     def dai_task_graph(self, actor: Principal,
@@ -366,11 +368,13 @@ class DaiCoreBridge:
     def dai_consultation_reply(self, actor: Principal, project_id: str,
                                consultation_id: str, body: str,
                                references: list[str] | None = None,
+                               expected_version: int | None = None,
                                idempotency_key: str | None = None
                                ) -> dict[str, Any]:
         scope = self.project_scope(actor, project_id)
         return _json_safe(asdict(self.teams.consultation_reply(
             actor, scope, consultation_id, body=body, references=references,
+            expected_version=expected_version,
             idempotency_key=idempotency_key)))
 
     def dai_consultation_status(self, actor: Principal, project_id: str,
@@ -382,7 +386,7 @@ class DaiCoreBridge:
             expected_version=expected_version)))
 
     def dai_consultation_list(self, actor: Principal, project_id: str,
-                              parent_session: str | None = None
+                              parent_session: str
                               ) -> list[dict[str, Any]]:
         scope = self.project_scope(actor, project_id)
         return _json_safe([asdict(r) for r in self.teams.list_consultations(
@@ -447,11 +451,11 @@ class DaiCoreBridge:
                         latency_ms: int | None = None,
                         status: str = "ok") -> dict[str, Any]:
         scope = self.project_scope(actor, project_id)
-        return _json_safe(asdict(self.models.meter(
+        return _json_safe(self.models.meter(
             actor, scope, model_id=model_id, task_class=task_class,
             input_tokens=input_tokens, output_tokens=output_tokens,
             cache_tokens=cache_tokens, cost=cost, cost_basis=cost_basis,
-            latency_ms=latency_ms, status=status)))
+            latency_ms=latency_ms, status=status))
 
     def dai_model_usage(self, actor: Principal,
                         project_id: str) -> dict[str, Any]:

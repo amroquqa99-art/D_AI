@@ -340,11 +340,9 @@ class TaskService:
             previous = self.store._decode(row, scope)
             if previous.kind != "task":
                 raise NotFound("Task not found")
-            if expected_version is not None:
-                if type(expected_version) is not int or expected_version < 1:
-                    raise InvalidRequest("An expected positive record version is required")
-                if previous.version != expected_version:
-                    raise Conflict("Task version changed; reload before attempting")
+            # The idempotency key is resolved before the version fence: a retry of
+            # a request that already succeeded must return the original result,
+            # not a stale-version conflict.
             if idempotency_key is not None:
                 existing = db.execute(
                     "SELECT * FROM task_idempotency WHERE project=? AND key=?",
@@ -353,6 +351,11 @@ class TaskService:
                     if existing["payload_hash"] == payload_hash:
                         return self.store.get(actor, scope, existing["task_id"])
                     raise Conflict("Idempotency key was reused with a different attempt payload")
+            if expected_version is not None:
+                if type(expected_version) is not int or expected_version < 1:
+                    raise InvalidRequest("An expected positive record version is required")
+                if previous.version != expected_version:
+                    raise Conflict("Task version changed; reload before attempting")
             current = previous.content["state"]
             if current in TERMINAL:
                 raise Conflict(f"Task {task_id} is {current}; no further attempts")

@@ -45,8 +45,8 @@ class DecisionService:
                     decision_id TEXT NOT NULL, decision_version INTEGER NOT NULL,
                     PRIMARY KEY(project, key));
                 CREATE TABLE IF NOT EXISTS decision_withdrawals(
-                    decision_id TEXT PRIMARY KEY, reason TEXT NOT NULL, actor TEXT NOT NULL,
-                    withdrawn_at TEXT NOT NULL);
+                    decision_id TEXT PRIMARY KEY, actor TEXT NOT NULL,
+                    withdrawn_at TEXT NOT NULL, record_id TEXT NOT NULL);
             """)
             db.execute("INSERT OR IGNORE INTO component_versions VALUES('decisions', 1)")
 
@@ -221,10 +221,16 @@ class DecisionService:
                 "INSERT INTO decision_index VALUES(?,?,?,?) "
                 "ON CONFLICT(project, decision_id) DO UPDATE SET state=excluded.state, version=excluded.version",
                 (scope.project, decision_id, "WITHDRAWN", updated.version))
+            # The reason is private text: it goes into its own encrypted record,
+            # outside the decision's own content, and never into a plain column.
+            withdrawal = self.store._insert(db, actor, scope, "decision_withdrawal", {
+                "decision_id": decision_id, "reason": reason, "actor": actor.id,
+                "withdrawn_at": utc_now()})
             db.execute(
                 "INSERT INTO decision_withdrawals VALUES(?,?,?,?) "
-                "ON CONFLICT(decision_id) DO UPDATE SET reason=excluded.reason, actor=excluded.actor, withdrawn_at=excluded.withdrawn_at",
-                (decision_id, reason, actor.id, utc_now()))
+                "ON CONFLICT(decision_id) DO UPDATE SET actor=excluded.actor, "
+                "withdrawn_at=excluded.withdrawn_at, record_id=excluded.record_id",
+                (decision_id, actor.id, utc_now(), withdrawal.id))
             return updated
 
     def affected(self, actor: Principal, scope: Scope, unit: str) -> list[Record]:

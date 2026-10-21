@@ -227,15 +227,18 @@ class TeamService:
             if team.kind != "team":
                 raise NotFound("Team not found")
             rows = db.execute(
-                "SELECT agent_id, role, parent_agent, depth, model, budget "
+                "SELECT agent_id, role, parent_agent, depth, model "
                 "FROM team_agents WHERE project=? AND team=? ORDER BY depth, agent_id",
                 (scope.project, team_id)).fetchall()
+            # The budget lives in the encrypted team record, never in a plain column.
+            budgets = {entry.get("agent_id"): entry.get("budget")
+                       for entry in (team.content.get("agents") or [])}
             result: list[dict[str, Any]] = []
             for r in rows:
                 result.append({"agent_id": r["agent_id"], "role": r["role"],
                                "parent_agent": r["parent_agent"], "depth": r["depth"],
                                "model": r["model"],
-                               "budget": _budget_obj(r["budget"])})
+                               "budget": budgets.get(r["agent_id"])})
             return result
 
     def tree(self, actor: Principal, scope: Scope, team_id: str) -> dict:

@@ -115,10 +115,16 @@ class DecisionTests(unittest.TestCase):
         self.assertEqual(withdrawn.content["text"], "Original text")
         self.assertNotIn(withdrawn, self.decisions.active(self.owner, self.scope))
         with self.store._db("project") as db:
-            row = db.execute("SELECT reason, actor FROM decision_withdrawals WHERE decision_id=?",
+            row = db.execute("SELECT record_id, actor FROM decision_withdrawals WHERE decision_id=?",
                              (decision.id,)).fetchone()
-            self.assertEqual(row["reason"], "superseded by owner policy")
             self.assertEqual(row["actor"], self.owner.id)
+            # The reason is private text: the plain table holds only the index,
+            # never the reason itself.
+            columns = [c[1] for c in db.execute("PRAGMA table_info(decision_withdrawals)")]
+            self.assertNotIn("reason", columns)
+        withdrawal = self.store.get(self.owner, self.scope, row["record_id"])
+        self.assertEqual(withdrawal.kind, "decision_withdrawal")
+        self.assertEqual(withdrawal.content["reason"], "superseded by owner policy")
         with self.assertRaises(Conflict):
             self.decisions.withdraw(self.owner, self.scope, decision.id, reason="again",
                                     expected_version=decision.version)

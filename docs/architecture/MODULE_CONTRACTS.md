@@ -107,7 +107,12 @@ Rules:
   `state_history`. A lease is released automatically by `set_state`.
 - `record_attempt` is the only way a task can reach `COMPLETED`; `outcome` is
   one of `SUCCESS` | `FAILURE` | `PARTIAL` | `CANCELLED`. A repeated
-  `idempotency_key` never double-counts an attempt.
+  `idempotency_key` never double-counts an attempt. The idempotency key is
+  resolved **before** the version fence, so a retry of an already-accepted
+  request returns the original result instead of a stale-version conflict.
+  `record_attempt` accepts an optional `expected_version` fence.
+- A transition to the **current** state is a no-op: no version bump, no
+  history entry, and it never clears another actor's live lease.
 - `graph()` returns `{"nodes":[{"id","state","objective","version"}],
   "edges":[{"from","to"}]}` built from `depends_on`. `depends_on` must reference
   existing tasks or raise `InvalidRequest`; cycles are rejected.
@@ -165,12 +170,12 @@ class TeamService:
                   agent_id: str, role: str,
                   parent_agent: str | None = None,
                   model: str | None = None,
-                  budget: dict | None = None) -> Record: ...
+                  budget: dict | None = None) -> dict: ...
     def agents(self, actor: Principal, scope: Scope, team_id: str) -> list[dict]: ...
     def tree(self, actor: Principal, scope: Scope, team_id: str) -> dict: ...
     def assign(self, actor: Principal, scope: Scope, team_id: str, *,
                agent_id: str, task_id: str,
-               idempotency_key: str | None = None) -> Record: ...
+               idempotency_key: str | None = None) -> dict: ...
     def message_leader(self, actor: Principal, scope: Scope, *,
                        from_agent: str, to_agent: str, body: str,
                        references: list[str] | None = None,
@@ -213,8 +218,10 @@ Rules:
   `OPEN -> RECEIVED -> MERGING -> APPLIED` or `NEEDS_DECISION`; it never
   applies anything by itself and never bypasses `dai.charters`.
 - A consultation is bound to one `parent_session`; a consultation from another
-  session is not visible in a new session (it is simply not returned by
-  `list_consultations` for a different session).
+  session is not visible in a new session. `list_consultations` therefore
+  **requires** `parent_session` and raises `InvalidRequest` without it, rather
+  than returning consultations the caller cannot attribute to its own session.
+- `consultation_reply` accepts an optional `expected_version` fence.
 
 ## 4. `dai/models.py` — model registry, routing, metering (MOD-01..04, RES-01..05)
 
@@ -244,7 +251,8 @@ class ModelRegistry:
               output_tokens: int | None = None, cache_tokens: int | None = None,
               cost: str | None = None, cost_basis: str = "unknown",
               latency_ms: int | None = None,
-              status: str = "ok") -> Record: ...
+              status: str = "ok",
+              idempotency_key: str | None = None) -> dict: ...
     def usage(self, actor: Principal, scope: Scope) -> dict: ...
 ```
 
@@ -258,6 +266,12 @@ Rules:
   waits for the owner; it never silently escalates or assumes a paid model.
 - `availability` is `available` | `limited` | `unavailable` | `unknown`. Only
   `available`/`limited` may be routed to automatically.
+- `meter()` returns a **ledger receipt** (`seq`, `model_id`, `task_class`,
+  `cost_basis`, token counts, `cost`, `latency_ms`, `status`) so the caller can
+  confirm what was appended. It accepts an optional `idempotency_key`: a repeat
+  with the same payload returns the original receipt and never double counts.
+- `choose()` returns the encrypted binding record. The binding's `reason` is
+  private text and lives in the encrypted record, never in a plain column.
 - `meter()` appends to an append-only usage ledger; `usage()` returns
   `{"actual": {...}, "estimated": {...}, "unknown": {...}}` and never merges
   subscription limits with cash cost (`RES-02`).
@@ -337,6 +351,8 @@ Rules:
   Prose with no pattern raises `InvalidRequest`.
 - `decide()` is version-fenced and may only move forward through the recorded
   decision, never silently overwrite a previous decision.
+- A component whose licence is `UNKNOWN` or `CONFLICT` may never reach
+  `ADOPT_PATTERN`; only `ADOPT_PATTERN_AFTER_X`, `REFERENCE_ONLY` or `REJECT`.
 - `adopt()` records what was internalized: `capability_id` (a D_AI-native
   capability), `bindings` (which D_AI contract each pattern binds to),
   `files` (the D_AI files that now carry it) and `verification` (how it is

@@ -166,11 +166,19 @@ class ModelRegistryTests(unittest.TestCase):
                                       reason="owner picked the cheap known-cost model",
                                       task_class="implementation",
                                       idempotency_key="choose-1")
-        self.assertEqual(chosen.kind, "model")
-        self.assertEqual(chosen.id, self.model_a.id)
+        self.assertEqual(chosen.kind, "model_binding")
+        self.assertEqual(chosen.content["model_id"], "model-a")
+        self.assertEqual(chosen.content["role"], "coder")
+        self.assertEqual(chosen.content["task_class"], "implementation")
         with self.store._db("project") as db:
-            row = db.execute("SELECT role, reason, task_class FROM model_roles WHERE model_id='model-a' AND role='coder'").fetchone()
-            self.assertEqual((row[0], row[2]), ("coder", "implementation"))
+            row = db.execute("SELECT role, task_class, record_id FROM model_roles "
+                             "WHERE model_id='model-a' AND role='coder'").fetchone()
+            self.assertEqual((row[0], row[1]), ("coder", "implementation"))
+            # The reason is private text: the plain table holds only the index.
+            columns = [c[1] for c in db.execute("PRAGMA table_info(model_roles)")]
+            self.assertNotIn("reason", columns)
+        bound = self.store.get(self.owner, self.scope, row["record_id"])
+        self.assertEqual(bound.content["reason"], "owner picked the cheap known-cost model")
 
     def test_choose_is_idempotent_through_key(self):
         first = self.registry.choose(self.owner, self.scope, model_id="model-a", role="coder",
@@ -299,15 +307,19 @@ class ModelRegistryTests(unittest.TestCase):
                                    cost_output_per_1k="-0.5")
 
     def test_choose_reassignment_with_different_reason_conflicts(self):
-        self.registry.choose(self.owner, self.scope, model_id="model-a", role="coder",
-                             reason="reason one", task_class="implementation")
+        first = self.registry.choose(self.owner, self.scope, model_id="model-a", role="coder",
+                                     reason="reason one", task_class="implementation")
         # Identical re-assignment is idempotent and returns the existing record.
         again = self.registry.choose(self.owner, self.scope, model_id="model-a", role="coder",
                                      reason="reason one", task_class="implementation")
-        self.assertEqual(again.id, self.model_a.id)
+        self.assertEqual(again.id, first.id)
+        self.assertEqual(again.kind, "model_binding")
         with self.store._db("project") as db:
-            row = db.execute("SELECT reason, task_class FROM model_roles WHERE model_id='model-a' AND role='coder'").fetchone()
-            self.assertEqual((row[0], row[1]), ("reason one", "implementation"))
+            row = db.execute("SELECT record_id, task_class FROM model_roles "
+                             "WHERE model_id='model-a' AND role='coder'").fetchone()
+            self.assertEqual(row["task_class"], "implementation")
+            bound = self.store.get(self.owner, self.scope, row["record_id"])
+            self.assertEqual(bound.content["reason"], "reason one")
         # Different reason: Conflict naming the existing binding.
         with self.assertRaises(Conflict) as raised:
             self.registry.choose(self.owner, self.scope, model_id="model-a", role="coder",

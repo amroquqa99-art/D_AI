@@ -232,7 +232,8 @@ class CommandTests(unittest.TestCase):
                                   "--model-id", "opencode/nemotron-3.5-super-vl-free",
                                   "--role", "chat", "--reason", "owner selected",
                                   "--task-class", "chat")
-            self.assertEqual(chosen["kind"], "model")
+            self.assertEqual(chosen["kind"], "model_binding")
+            self.assertEqual(chosen["content"]["model_id"], "opencode/nemotron-3.5-super-vl-free")
             metered = self.run_cli(root, "model", "--project", project, "meter",
                                    "--model-id", "opencode/nemotron-3.5-super-vl-free",
                                    "--task-class", "chat",

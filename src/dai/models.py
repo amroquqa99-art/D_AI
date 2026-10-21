@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import sqlite3
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -88,7 +89,7 @@ class ModelRegistry:
                     PRIMARY KEY(project, model_id));
                 CREATE TABLE IF NOT EXISTS model_roles(
                     project TEXT NOT NULL, model_id TEXT NOT NULL, role TEXT NOT NULL,
-                    reason TEXT NOT NULL, task_class TEXT NOT NULL,
+                    task_class TEXT NOT NULL, record_id TEXT NOT NULL,
                     PRIMARY KEY(project, model_id, role));
                 CREATE TABLE IF NOT EXISTS model_idempotency(
                     project TEXT NOT NULL, key TEXT NOT NULL, payload_hash TEXT NOT NULL,
@@ -303,28 +304,43 @@ class ModelRegistry:
                     (scope.project, idempotency_key)).fetchone()
                 if existing is not None:
                     if existing["payload_hash"] == payload_hash:
-                        return self.store.get(actor, scope, row["record_id"])
+                        bound = db.execute(
+                            "SELECT record_id FROM model_roles WHERE project=? AND model_id=? AND role=?",
+                            (scope.project, model_id, role)).fetchone()
+                        if bound is not None:
+                            return self.store.get(actor, scope, bound["record_id"])
                     raise Conflict("Idempotency key was reused with a different model assignment payload")
             already = db.execute(
-                "SELECT reason, task_class FROM model_roles WHERE project=? AND model_id=? AND role=?",
+                "SELECT record_id FROM model_roles WHERE project=? AND model_id=? AND role=?",
                 (scope.project, model_id, role)).fetchone()
             if already is not None:
-                if already["reason"] != reason.strip() or already["task_class"] != task_class:
-                    raise Conflict(f"Model {model_id} is already bound to role {role}")
-                return self.store.get(actor, scope, row["record_id"])
+                bound = self.store.get(actor, scope, already["record_id"])
+                if (bound.content.get("reason") != reason.strip()
+                        or bound.content.get("task_class") != task_class):
+                    raise Conflict(
+                        f"Model {model_id} is already bound to role {role} in this scope "
+                        "with a different reason; a binding is never silently replaced")
+                return bound
+            # The reason is private text: it lives in the encrypted record, not
+            # in a plain column.
+            binding = {"model_id": model_id, "role": role, "reason": reason.strip(),
+                       "task_class": task_class, "chosen_at": utc_now(),
+                       "chosen_by": actor.id}
+            bound = self.store._insert(db, actor, scope, "model_binding", binding)
             db.execute("INSERT INTO model_roles VALUES(?,?,?,?,?)",
-                       (scope.project, model_id, role, reason.strip(), task_class))
+                       (scope.project, model_id, role, task_class, bound.id))
             if idempotency_key is not None:
                 db.execute("INSERT INTO model_idempotency VALUES(?,?,?,?,?)",
                            (scope.project, idempotency_key, payload_hash, "model_role",
                             model_id + "\u2029" + role))
-            return self.store.get(actor, scope, row["record_id"])
+            return bound
 
     def meter(self, actor: Principal, scope: Scope, *, model_id: str,
               task_class: str, input_tokens: int | None = None,
               output_tokens: int | None = None, cache_tokens: int | None = None,
               cost: str | None = None, cost_basis: str = "unknown",
-              latency_ms: int | None = None, status: str = "ok") -> Record:
+              latency_ms: int | None = None, status: str = "ok",
+              idempotency_key: str | None = None) -> dict[str, Any]:
         if scope.namespace != "project":
             raise InvalidRequest("Metering belongs to a project")
         _model_id(model_id)
@@ -339,6 +355,11 @@ class ModelRegistry:
         cost_text = _cost_text(cost, "cost") if cost is not None else None
         if not isinstance(status, str) or not status.strip():
             raise InvalidRequest("A bounded status is required")
+        if idempotency_key is not None:
+            identifier(idempotency_key)
+        payload_hash = hashlib.sha256(json_bytes([
+            model_id, task_class, input_tokens, output_tokens, cache_tokens,
+            cost_text, cost_basis, latency_ms, status])).hexdigest()
         with self.store._locked(), self.store._db("project") as db:
             self.store._authorize(actor, scope, "write", kind="model")
             row = db.execute(
@@ -346,24 +367,38 @@ class ModelRegistry:
                 (scope.project, model_id)).fetchone()
             if row is None:
                 raise NotFound(f"Model {model_id} is not registered in this scope")
+            if idempotency_key is not None:
+                existing = db.execute(
+                    "SELECT * FROM model_idempotency WHERE project=? AND key=?",
+                    (scope.project, idempotency_key)).fetchone()
+                if existing is not None:
+                    if existing["payload_hash"] != payload_hash:
+                        raise Conflict("Idempotency key was reused with a different usage payload")
+                    return self._usage_receipt(db, scope, existing["target_id"])
             db.execute(
                 "INSERT INTO usage_ledger(project, model_id, task_class, input_tokens, "
                 "output_tokens, cache_tokens, cost, cost_basis, latency_ms, status, created_at) "
                 "VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                 (scope.project, model_id, task_class, input_tokens, output_tokens,
                  cache_tokens, cost_text, cost_basis, latency_ms, status, utc_now()))
-            return {
-                "seq": db.execute("SELECT last_insert_rowid()").fetchone()[0],
-                "model_id": model_id,
-                "task_class": task_class,
-                "cost_basis": cost_basis,
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens,
-                "cache_tokens": cache_tokens,
-                "cost": cost_text,
-                "latency_ms": latency_ms,
-                "status": status,
-            }
+            seq = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+            if idempotency_key is not None:
+                db.execute("INSERT INTO model_idempotency VALUES(?,?,?,?,?)",
+                           (scope.project, idempotency_key, payload_hash, "usage", str(seq)))
+            return self._usage_receipt(db, scope, seq)
+
+    @staticmethod
+    def _usage_receipt(db: sqlite3.Connection, scope: Scope, seq: int) -> dict[str, Any]:
+        row = db.execute("SELECT * FROM usage_ledger WHERE project=? AND seq=?",
+                         (scope.project, seq)).fetchone()
+        if row is None:
+            raise NotFound("Usage ledger row not found")
+        return {
+            "seq": row["seq"], "model_id": row["model_id"], "task_class": row["task_class"],
+            "cost_basis": row["cost_basis"], "input_tokens": row["input_tokens"],
+            "output_tokens": row["output_tokens"], "cache_tokens": row["cache_tokens"],
+            "cost": row["cost"], "latency_ms": row["latency_ms"], "status": row["status"],
+        }
 
     def usage(self, actor: Principal, scope: Scope) -> dict:
         if scope.namespace != "project":
