@@ -5,7 +5,7 @@ description: "Strategic analysis: economic, political, and organizational driver
 
 # dai-strategy
 
-Read the domain contract on demand: /home/amro/Documents/المشروع الافتراضي/D_AI/docs/systems/strategic-analysis.md. Scope goals/inputs, compare existing solutions, plan phases, delegate appropriate specialized roles, perform actual tools/checks, independent review and checkpoint. Preserve dated source lineage, limitations and human waits. Initial roles are not a ceiling. No action beyond authorized scope. Specialist responsibilities:
+Read the domain contract on demand: systems/strategy/specification.md. Scope goals/inputs, compare existing solutions, plan phases, delegate appropriate specialized roles, perform actual tools/checks, independent review and checkpoint. Preserve dated source lineage, limitations and human waits. Initial roles are not a ceiling. No action beyond authorized scope. Specialist responsibilities:
 - geopolitical: Analyze geopolitical actors and source reliability with competing explanations, dates and unknowns.
 - economic: Analyze strategic economic drivers, infrastructure, supply chains and sensitivities with dated primary data.
 - history-doctrine: Research historical/doctrinal/organizational context with original evidence; separate historical facts from current capability estimates.

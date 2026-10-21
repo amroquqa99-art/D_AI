@@ -2,7 +2,7 @@
 
 > **Repository status:** version **1.0.0**. The core (memory, charters, tasks,
 > decisions, teams, models, tools, components, updates) is implemented and covered
-> by **184 passing unit tests**. All ten domain system specifications are
+> by **193 passing unit tests**. All ten domain system specifications are
 > written. **Not yet proven:** professional validation per domain branch, and
 > verification on the four host surfaces (OpenCode CLI / OpenCode Desktop /
 > pi CLI / PI-Desktop) against installed copies. Read

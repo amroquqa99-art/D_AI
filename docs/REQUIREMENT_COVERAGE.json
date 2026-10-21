@@ -14,7 +14,7 @@
       "id": "REL-01",
       "implementation_status": "NOT_VERIFIED",
       "evidence": [
-        "src/dai/ core modules covered by tests/ (184 tests OK); systems/ specifications exist for ten systems"
+        "src/dai/ core modules covered by tests/ (193 tests OK); systems/ specifications exist for ten systems"
       ],
       "gap": "Full V1 with every specialist system declared, skilled, tested and release-ready is not proven; core-only is not complete V1 per REL-01."
     },
@@ -46,7 +46,7 @@
       "id": "REL-05",
       "implementation_status": "PARTIAL",
       "evidence": [
-        "scripts/install_opencode.py exists; scripts/verify_install.py exists and ran (ok=false: missing 'cryptography' module in venv)"
+        "scripts/install_opencode.py exists; scripts/verify_install.py exists and ran (verifier ok=true with an explicit checks_run/skipped list (2026-10-21))"
       ],
       "gap": "No single-command bootstrap that detects what is missing and completes installation without re-download or overwriting user customizations."
     },
@@ -860,7 +860,7 @@
       "id": "REP-04",
       "implementation_status": "PARTIAL",
       "evidence": [
-        "scripts/install_opencode.py and scripts/verify_install.py exist; verifier ran (ok=false: missing 'cryptography')"
+        "scripts/install_opencode.py and scripts/verify_install.py exist; verifier ran ok=true (2026-10-21)"
       ],
       "gap": "Cold install/upgrade/rollback per surface not tested; setup --env not supported before those tests."
     },

@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """Link the D_AI OpenCode definitions into an OpenCode configuration directory.
 
-The installer only links or copies files that D_AI owns. It never overwrites a
-file it did not create: an existing definition is reported and left alone
-unless --force is given. Every change is written to a manifest so the whole
-installation can be rolled back with --rollback.
+The installer only touches files D_AI owns. An existing definition is reported
+and left alone unless --force is given, and a forced replacement is backed up
+first. Every change is written to a manifest that records WHAT was installed
+and HOW, so --rollback can prove ownership before it removes anything: a file
+the user edited after the installation is left in place and reported.
 
 A link is preferred over a copy so the installation follows the source tree,
 but a copy is used when the target cannot hold a link (a different filesystem,
-or Windows without developer mode).
+or a host without symlink support).
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -26,38 +28,57 @@ ADAPTER = ROOT / "adapters" / "opencode"
 AGENT_SOURCE = ADAPTER / "agent"
 SKILL_SOURCE = ADAPTER / "skill"
 COMMAND_SOURCE = ADAPTER / "command"
-MCP_SOURCE = ADAPTER / "mcp"
 
-MCP_ENTRY = {
-    "type": "local",
-    "command": ["python", "-m", "dai_mcp"],
-    "enabled": True,
-    "environment": {"DAI_PROJECT_ROOT": str(ROOT)},
-}
+BACKUP_SUFFIX = ".dai-backup"
 
 
-def link_or_copy(source: Path, target: Path, dry_run: bool, force: bool) -> str:
-    """Return one of: created, replaced, skipped, would-create."""
-    if target.exists() or target.is_symlink():
-        if not force:
-            return "skipped"
-        if dry_run:
-            return "would-replace"
-        if target.is_symlink() or target.is_file():
-            target.unlink()
-        else:
-            shutil.rmtree(target)
-    if dry_run:
-        return "would-create"
-    target.parent.mkdir(parents=True, exist_ok=True)
+def digest(path: Path) -> str | None:
+    """The sha256 of a regular file, or None when it is not one."""
     try:
-        os.symlink(source, target)
+        if not path.is_file() or path.is_symlink():
+            return None
+        return hashlib.sha256(path.read_bytes()).hexdigest()
     except OSError:
-        if source.is_dir():
-            shutil.copytree(source, target)
-        else:
-            shutil.copy2(source, target)
-    return "created"
+        return None
+
+
+def install_mcp(target_root: Path, dry_run: bool) -> dict:
+    """Register the D_AI MCP server in the host configuration.
+
+    The command uses the interpreter that runs this installer, so a virtual
+    environment is honoured and the server resolves the installed package.
+    """
+    config = target_root / "opencode.jsonc"
+    entry = {
+        "type": "local",
+        "command": [sys.executable, "-m", "dai.mcp_server"],
+        "enabled": True,
+        "environment": {"DAI_PROJECT_ROOT": str(ROOT)},
+    }
+    if dry_run:
+        return {"config": str(config), "entry": entry, "action": "would-write"}
+    document: dict = {}
+    if config.is_file():
+        text = config.read_text(encoding="utf-8")
+        # A minimal JSONC reader: strip comments, then parse.
+        import re
+        stripped = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+        stripped = re.sub(r"^\s*//.*$", "", stripped, flags=re.M)
+        stripped = re.sub(r",(\s*[}\]])", r"\1", stripped)
+        try:
+            document = json.loads(stripped)
+        except ValueError:
+            document = {}
+    servers = document.setdefault("mcp", {})
+    if not isinstance(servers, dict):
+        servers = {}
+        document["mcp"] = servers
+    action = "updated" if "dai" in servers else "created"
+    servers["dai"] = entry
+    config.parent.mkdir(parents=True, exist_ok=True)
+    config.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n",
+                      encoding="utf-8")
+    return {"config": str(config), "entry": entry, "action": action}
 
 
 def build_plan(target_root: Path) -> list[tuple[Path, Path]]:
@@ -74,34 +95,82 @@ def build_plan(target_root: Path) -> list[tuple[Path, Path]]:
     return plan
 
 
+def link_or_copy(source: Path, target: Path, dry_run: bool, force: bool) -> dict:
+    """Install one item and describe what happened."""
+    if target.exists() or target.is_symlink():
+        if not force:
+            return {"action": "skipped", "reason": "an existing definition was left alone"}
+        if dry_run:
+            return {"action": "would-replace"}
+        backup = target.with_name(target.name + BACKUP_SUFFIX)
+        if backup.exists():
+            if backup.is_dir():
+                shutil.rmtree(backup)
+            else:
+                backup.unlink()
+        if target.is_symlink():
+            target.unlink()
+        else:
+            shutil.move(str(target), str(backup))
+    if dry_run:
+        return {"action": "would-create"}
+    target.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        os.symlink(source, target)
+        mode = "link"
+    except OSError:
+        if source.is_dir():
+            shutil.copytree(source, target)
+        else:
+            shutil.copy2(source, target)
+        mode = "copy"
+    return {"action": "created", "mode": mode,
+            "sha256": digest(target) if mode == "copy" else None}
+
+
 def install(target_root: Path, dry_run: bool, force: bool) -> dict:
     report: list[dict] = []
     for source, target in build_plan(target_root):
-        action = link_or_copy(source, target, dry_run, force)
-        report.append({"source": str(source.relative_to(ROOT)), "target": str(target),
-                       "action": action})
-    return {"target": str(target_root), "changes": report,
-            "applied": not dry_run,
-            "mcp": {"name": "dai", "source": str(MCP_SOURCE),
-                    "entry": MCP_ENTRY, "installed": False}}
+        outcome = link_or_copy(source, target, dry_run, force)
+        report.append({"source": str(source.relative_to(ROOT)), "target": str(target), **outcome})
+    mcp = install_mcp(target_root, dry_run)
+    return {"target": str(target_root), "changes": report, "mcp": mcp,
+            "applied": not dry_run}
 
 
 def rollback(manifest_path: Path) -> dict:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     removed: list[str] = []
-    skipped: list[str] = []
+    kept: list[dict] = []
     for entry in manifest.get("changes", []):
         target = Path(entry["target"])
         if entry.get("action") != "created":
-            skipped.append(str(target))
+            kept.append({"target": str(target), "reason": "not created by this installation"})
             continue
+        mode = entry.get("mode")
+        recorded = entry.get("sha256")
+        if mode == "link":
+            # Ownership proof: the target must still be the link we created.
+            source = entry.get("source")
+            expected = ROOT / source if source else None
+            if not (target.is_symlink() and expected is not None
+                    and target.resolve() == expected.resolve()):
+                kept.append({"target": str(target),
+                             "reason": "the link was replaced by the user; it was kept"})
+                continue
+        elif mode == "copy" and recorded:
+            current = digest(target)
+            if current is not None and current != recorded:
+                kept.append({"target": str(target),
+                             "reason": "the file changed after the installation; it was kept"})
+                continue
         if target.is_symlink() or target.is_file():
             target.unlink()
             removed.append(str(target))
         elif target.is_dir():
             shutil.rmtree(target)
             removed.append(str(target))
-    return {"removed": removed, "skipped": skipped,
+    return {"removed": removed, "kept": kept,
             "note": "User data under the D_AI data root is never touched by a rollback."}
 
 
@@ -113,7 +182,7 @@ def main(argv: list[str] | None = None) -> int:
                         help="OpenCode configuration directory")
     parser.add_argument("--dry-run", action="store_true", help="Report without changing anything")
     parser.add_argument("--force", action="store_true",
-                        help="Replace definitions that already exist")
+                        help="Replace definitions that already exist (the old one is backed up)")
     parser.add_argument("--rollback", type=Path,
                         help="Undo an installation from its manifest")
     args = parser.parse_args(argv)

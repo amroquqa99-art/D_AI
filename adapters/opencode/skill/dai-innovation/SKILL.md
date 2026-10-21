@@ -5,7 +5,7 @@ description: "Hard scientific, engineering, mathematical, algorithmic, and inven
 
 # dai-innovation
 
-Read the domain contract on demand: /home/amro/Documents/المشروع الافتراضي/D_AI/docs/systems/innovation.md. Scope goals/inputs, compare existing solutions, plan phases, delegate appropriate specialized roles, perform actual tools/checks, independent review and checkpoint. Preserve dated source lineage, limitations and human waits. Initial roles are not a ceiling. No action beyond authorized scope. Specialist responsibilities:
+Read the domain contract on demand: systems/innovation/specification.md. Scope goals/inputs, compare existing solutions, plan phases, delegate appropriate specialized roles, perform actual tools/checks, independent review and checkpoint. Preserve dated source lineage, limitations and human waits. Initial roles are not a ceiling. No action beyond authorized scope. Specialist responsibilities:
 - hypotheses: Decompose the hard problem into testable hypotheses and competing mechanisms. Preserve rejected branches and specify discriminating experiments.
 - mathematics: Analyze mathematical correctness, formalization assumptions and counterexamples. Use a real proof/checker only when available; never call a sketch a proof.
 - algorithms: Design algorithm variants, complexity analysis and fair baseline experiments; identify falsifying inputs and reproducibility conditions.

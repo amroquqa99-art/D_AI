@@ -153,7 +153,7 @@ DESIGNED → CONFIGURED → LIVE_SLICE مسألة واحدة معلومة oracle
 
 التحقق: احفظ القطعة أعلاه في `/tmp/x_innovation.json` ثم شغّل:
 
-`cd "/run/media/amro/18D1-F040/01 Projects/D_AI" && PYTHONPATH=src /home/amro/.local/share/d-ai-opencode/venv/bin/python -c "import json,sys;sys.path.insert(0,'src');from dai.charters import gaps;print(gaps(json.load(open('/tmp/x_innovation.json'))))"`
+`cd "<D_AI_ROOT>" && PYTHONPATH=src <VENV>/bin/python -c "import json,sys;sys.path.insert(0,'src');from dai.charters import gaps;print(gaps(json.load(open('/tmp/x_innovation.json'))))"`
 
 النتيجة المتوقعة: `[]`.
 

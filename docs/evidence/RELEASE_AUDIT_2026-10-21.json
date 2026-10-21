@@ -1,25 +1,35 @@
 {
   "generated_at": "2026-10-21T10:20:31.564937+00:00",
-  "repository": "/run/media/amro/18D1-F040/01 Projects/D_AI",
-  "commit": "e3d65ac02468c9f07eecdbac8b40dea8326e4799",
+  "repository": "<D_AI_ROOT>",
+  "commit": "a622932afea62f0d35d5f3d6571a08b8f466059b",
   "checks": [
     {
       "name": "python-core-suite",
-      "command": "cd \"/run/media/amro/18D1-F040/01 Projects/D_AI\" && PYTHONPATH=src /home/amro/.local/share/d-ai-opencode/venv/bin/python -m unittest discover -s tests",
-      "result": "Ran 184 tests in 47.507s\nOK"
+      "command": "cd \"<D_AI_ROOT>\" && PYTHONPATH=src <VENV>/bin/python -m unittest discover -s tests",
+      "result": "Ran 193 tests in 24.129s\n\nOK"
     },
     {
       "name": "router-suite",
       "command": "node --test tests/router.test.mjs",
-      "result": "# tests 32\n# pass 32\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 1480.469817"
+      "result": "# tests 32\n# pass 32\n# fail 0"
     },
     {
       "name": "install-verifier",
-      "command": "cd \"/run/media/amro/18D1-F040/01 Projects/D_AI\" && PYTHONPATH=src /home/amro/.local/share/d-ai-opencode/venv/bin/python scripts/verify_install.py --skip-data-root",
+      "command": "cd \"<D_AI_ROOT>\" && PYTHONPATH=src <VENV>/bin/python scripts/verify_install.py --skip-data-root",
       "result": {
         "ok": true,
         "failures": [],
-        "note": "run with the interpreter that has the declared dependency installed; a bare interpreter without cryptography cannot import the encrypted core modules"
+        "checks_run": [
+          "required_file",
+          "required_folder",
+          "core_import",
+          "no_secret_files",
+          "no_database_files",
+          "no_leaked_paths_or_secrets"
+        ],
+        "skipped": [
+          "the data-root checks (use without --skip-data-root to run them)"
+        ]
       }
     }
   ],
@@ -35,14 +45,21 @@
       "findings": 5,
       "fixed": 5,
       "note": "Re-check of the fixed areas found 5 remaining issues; all 5 fixed and re-verified by re-running PYTHONPATH=src python -m unittest discover -s tests (184 tests, OK)."
+    },
+    {
+      "scope": "release artefacts (README, INSTALL, STATE, coverage, audit, CI, scripts)",
+      "findings": 10,
+      "fixed": 10,
+      "note": "The release review found a contradictory verifier receipt, a checks_run list that named skipped checks, an MCP entry pointing at a module that did not exist and was never written into the host config, a rollback that could delete a user file, a README that overstated the scripts folder, a filename-only secret scan, a CI leak rule that exempted the file that leaked, and two corrupted README sentences. All were fixed and re-verified."
     }
   ],
   "known_defects_open": [],
   "limits": [
+    "The verifier's leak scan matches known path fragments and credential shapes; it is a guard against accidents, not a proof that no secret exists.",
     "The four host surfaces are not verified on installed registered copies: only OpenCode CLI-level code and the MCP surface exist; OpenCode Desktop, pi CLI and PI-Desktop are NOT_VERIFIED",
     "Tests deliberately use no network, subprocess, or wall-clock assertions; they prove module contracts, not live host behavior",
     "Professional domain validation for specialist branches (SCI, VIS and others) has not been executed end to end",
-    "No release archive, publication, or git commit was made by this audit"
+    "No release archive or publication was made by this audit"
   ],
   "release_status": "NOT_READY",
   "release_reason": "Not ready for publication as complete V1 because professional domain validation and the four host-surface verifications are missing, although the core is releasable as a foundation."

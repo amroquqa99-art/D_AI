@@ -81,7 +81,7 @@ DESIGNED → CONFIGURED → LIVE_SLICE مراجعة/مختبر محدد → VERI
 | team.message | نعم | رسائل التعاون بين وكلاء السيبراني وحالتها (مرسل/مستلم/مطبق) |
 | consultation | نعم | الاستشارات الجانبية بأمر `/` داخل الجلسة للأطراف في الاستجابة السيبرانية |
 | model.routing | نعم | توجيه نموذج لكل دور سيبراني حسب جودة المهمة والتكلفة والإتاحة |
-| tool.gateway | نعم | سياسة أدوات الفحص والجنائي مع إذن صريح، اختبارات نشطة禁止 خارج الأصل المخول |
+| tool.gateway | نعم | سياسة أدوات الفحص والجنائي مع إذن صريح، اختبارات نشطة ممنوعة خارج النطاق المخوَّل |
 | update.check | نعم | فحوص تحديث أسبوعي لأدوات السيبرانية والمعلومات المهددة |
 | component.registry | نعم | تبني مكونات أمنية خارجية بعد قرار المالك |
 | adapter.opencode | نعم | واجهة الجلسة الأساسية OpenCode لهذا النظام |
@@ -183,7 +183,7 @@ DESIGNED → CONFIGURED → LIVE_SLICE مراجعة/مختبر محدد → VERI
 
 التحقق: احفظ القطعة أعلاه في `/tmp/x_cyber.json` ثم شغّل:
 
-`cd "/run/media/amro/18D1-F040/01 Projects/D_AI" && PYTHONPATH=src /home/amro/.local/share/d-ai-opencode/venv/bin/python -c "import json,sys;sys.path.insert(0,'src');from dai.charters import gaps;print(gaps(json.load(open('/tmp/x_cyber.json'))))"`
+`cd "<D_AI_ROOT>" && PYTHONPATH=src <VENV>/bin/python -c "import json,sys;sys.path.insert(0,'src');from dai.charters import gaps;print(gaps(json.load(open('/tmp/x_cyber.json'))))"`
 
 النتيجة المتوقعة: `[]`. أي مخرج غير فارغ يشير إلى حقل ناقص يجب إصلاحه قبل الاعتماد.
 

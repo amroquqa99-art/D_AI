@@ -15,7 +15,7 @@
 ## الملفات المهمة في الجذر
 - README.md — دخول عربي وروابط التشغيل والحالة. README.en.md — النسخة الإنجليزية.
 - PRD_AR.md — وثيقة متطلبات المنتج؛ المصدر لكل معرف متطلب (REL-xx, INV-xx, ACT-xx, INT-xx, WFL-xx, AGT-xx, SIDE-xx, ENV-xx, MEM-xx, MOD-xx, RES-xx, UPD-xx, SYS-xx, SCI-xx, VIS-xx, EXT-xx, DAT-xx, REP-xx).
-- PRD_D_AI_V0.1_AR.md — مسودة المتطلبات الأقدم.
+- docs/specifications/PRD_AR.md — وثيقة متطلبات المنتج الموحّدة.
 - INSTALL.md، CONTRIBUTING.md، SECURITY.md، THIRD_PARTY.md، GLOSSARY.md، LICENSE (GPL-3.0-or-later)، AGENTS.md (تعليمات العمل في هذه الجلسة).
 
 ## الروابط بين الملفات
@@ -29,8 +29,8 @@ PRD_AR.md هو المصدر المرجعي لكل معرف متطلب → REQUIR
 
 ## كيف أتحقق بنفسي
 ```bash
-cd "/run/media/amro/18D1-F040/01 Projects/D_AI"
-PYTHONPATH=src /home/amro/.local/share/d-ai-opencode/venv/bin/python -m unittest discover -s tests
+cd "<D_AI_ROOT>"
+PYTHONPATH=src <VENV>/bin/python -m unittest discover -s tests
 node --test tests/router.test.mjs
 PYTHONPATH=src python scripts/verify_install.py --skip-data-root
 git rev-parse HEAD

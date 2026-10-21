@@ -61,7 +61,11 @@ jobs:
       - name: The release tree carries no absolute local path
         run: |
           set -e
-          if git grep -nI -e '/home/amro/' -e '/run/media/' -- ':!docs/evidence' ':!docs/specifications/SOURCE_MANIFEST.json'; then
+          # The fragments are assembled so that this rule does not itself
+          # contain the literal path it forbids.
+          HOME_FRAGMENT="/ho""me/"
+          MEDIA_FRAGMENT="/run/me""dia/"
+          if git grep -nI -e "$HOME_FRAGMENT" -e "$MEDIA_FRAGMENT" -- .; then
             echo "an absolute local path leaked into the release tree"; exit 1
           fi
 

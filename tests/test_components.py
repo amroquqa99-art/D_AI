@@ -250,7 +250,7 @@ class ComponentRegistryTests(unittest.TestCase):
         bad = [
             str(root / "src" / "dai" / ".." / ".." / "etc" / "hostname"),
             "/etc/hostname",
-            "/run/media/amro/18D1-F040/01 Projects/D_AI/src/dai/components.py",
+            "../../../../etc/passwd",
             "../outside.txt",
             "src/../../outside.txt",
         ]

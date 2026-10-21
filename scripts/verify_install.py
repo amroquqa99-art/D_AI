@@ -13,6 +13,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import stat
 import sys
 
@@ -23,6 +24,16 @@ REQUIRED_FILES = ("README.md", "README.en.md", "INSTALL.md", "CONTRIBUTING.md",
                   "SECURITY.md", "THIRD_PARTY.md", "LICENSE", "GLOSSARY.md",
                   "pyproject.toml")
 SECRET_PATTERNS = (".env", ".key", ".pem", "id_rsa", "credentials")
+# Content patterns that must never appear in the release tree. The credential
+# shapes are precise so that an ordinary word ending in "-sk" is not a finding.
+_HOME = "/" + "home/"
+_MEDIA = "/" + "run/" + "media/"
+_RSA = "BEGIN RSA " + "PRIVATE KEY"
+_SSH = "BEGIN OPENSSH " + "PRIVATE KEY"
+LEAK_PATTERNS = (_HOME, _MEDIA, _RSA, _SSH)
+LEAK_REGEX = (r"\bsk-[A-Za-z0-9]{20,}", r"\bghp_[A-Za-z0-9]{30,}", r"\bAKIA[0-9A-Z]{16}",
+              r"\bxox[baprs]-[A-Za-z0-9-]{10,}", r"\bAIza[0-9A-Za-z_-]{30,}")
+SKIPPED_DIRS = {".git", "__pycache__", "node_modules", ".venv"}
 
 
 def check_tree() -> list[dict]:
@@ -52,9 +63,10 @@ def check_core_imports() -> list[dict]:
 
 
 def check_no_secrets() -> list[dict]:
+    """Filename patterns AND a content scan for leaked paths and credentials."""
     findings = []
     for path in ROOT.rglob("*"):
-        if not path.is_file() or ".git" in path.parts or "__pycache__" in path.parts:
+        if not path.is_file() or SKIPPED_DIRS.intersection(path.parts):
             continue
         name = path.name.lower()
         if any(token in name for token in SECRET_PATTERNS):
@@ -63,6 +75,27 @@ def check_no_secrets() -> list[dict]:
         if path.suffix in (".db", ".sqlite", ".sqlite3"):
             findings.append({"check": "no_database_files", "target": str(path.relative_to(ROOT)),
                              "ok": False, "detail": "a database file is present in the tree"})
+            continue
+        if path.suffix.lower() not in (".md", ".json", ".py", ".js", ".mjs", ".yml", ".yaml",
+                                      ".txt", ".toml", ".cfg", ".ini"):
+            continue
+        try:
+            content = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for pattern in LEAK_PATTERNS:
+            if pattern in content:
+                findings.append({"check": "no_leaked_paths_or_secrets",
+                                 "target": str(path.relative_to(ROOT)), "ok": False,
+                                 "detail": f"the file contains the local path fragment {pattern!r}"})
+                break
+        else:
+            for expression in LEAK_REGEX:
+                if re.search(expression, content):
+                    findings.append({"check": "no_leaked_paths_or_secrets",
+                                     "target": str(path.relative_to(ROOT)), "ok": False,
+                                     "detail": "the file contains a credential-shaped string"})
+                    break
     return findings
 
 
@@ -94,22 +127,30 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     findings: list[dict] = []
+    checks_run = ["required_file", "required_folder", "core_import",
+                  "no_secret_files", "no_database_files", "no_leaked_paths_or_secrets"]
+    skipped: list[str] = []
     findings += check_tree()
     findings += check_core_imports()
     findings += check_no_secrets()
     if not args.skip_data_root:
         findings += check_data_root(args.data_root)
+        checks_run += ["data_root", "data_root_permissions", "data_root_not_symlink",
+                       "memory_plane"]
+    else:
+        skipped.append("the data-root checks (use without --skip-data-root to run them)")
 
     failures = [finding for finding in findings if not finding["ok"]]
     report = {
         "repository": str(ROOT),
         "data_root": str(args.data_root),
-        "checks_run": ["required_file", "required_folder", "core_import",
-                       "no_secret_files", "no_database_files", "data_root",
-                       "data_root_permissions", "data_root_not_symlink", "memory_plane"],
+        "checks_run": checks_run,
+        "skipped": skipped,
         "failures": failures,
         "ok": not failures,
         "limits": [
+            "The leak scan matches known path and credential patterns in text files; it is "
+            "a guard against accidents, not a proof that no secret exists.",
             "This check proves structure, permissions and imports only.",
             "It does not prove professional domain validation or host compatibility.",
             "The four host surfaces need their own installed-copy verification.",

@@ -5,7 +5,7 @@ description: "Authorized open-source investigation: preserve sources with dates 
 
 # dai-investigation
 
-Read the domain contract on demand: /home/amro/Documents/المشروع الافتراضي/D_AI/docs/systems/investigation.md. Scope goals/inputs, compare existing solutions, plan phases, delegate appropriate specialized roles, perform actual tools/checks, independent review and checkpoint. Preserve dated source lineage, limitations and human waits. Initial roles are not a ceiling. No action beyond authorized scope. Specialist responsibilities:
+Read the domain contract on demand: systems/investigation/specification.md. Scope goals/inputs, compare existing solutions, plan phases, delegate appropriate specialized roles, perform actual tools/checks, independent review and checkpoint. Preserve dated source lineage, limitations and human waits. Initial roles are not a ceiling. No action beyond authorized scope. Specialist responsibilities:
 - sources: Collect authorized primary/public/archival evidence with immutable originals, capture dates, licensing and gaps.
 - entities: Resolve entities carefully; preserve uncertainty and do not merge two people/organizations based on a shared name alone.
 - chronology: Build a source-linked timeline, distinguish event date from publication/capture, and expose conflicting dates.
