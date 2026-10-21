@@ -40,6 +40,7 @@ Infer what would prove success, do the work, check the result, and deliver it in
 
 Read only the references whose triggers apply:
 
+- Any work that another worker may resume, or whose claims may be checked: [the core is the spine](references/core-spine.md) — read this one first for substantive work.
 - Tools, external content, or side effects: [tool protocol](references/tool-protocol.md).
 - Current information, research, or conflicting factual claims: [research protocol](references/research-protocol.md).
 - Deliverable verification or consequential completion claims: [completion](references/completion.md).
