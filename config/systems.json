@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "note": "maturity is CONFIGURED for structure and NOT_COMPLETE for professional validation. A system becomes a capability ceiling only when a task needs it.",
+  "systems": {
+    "research": {
+      "folder": "research",
+      "primary": "dai-research",
+      "agent": "dai-scientific-research",
+      "roles": [
+        "literature",
+        "methods",
+        "statistics",
+        "domain-specialist",
+        "verifier",
+        "reporter"
+      ],
+      "specification": "systems/research/specification.md",
+      "maturity": "CONFIGURED",
+      "native_definition_validation": "PASSED",
+      "professional_validation": "NOT_COMPLETE"
+    },
+    "innovation": {
+      "folder": "innovation",
+      "primary": "dai-innovation",
+      "agent": "dai-innovation",
+      "roles": [
+        "hypotheses",
+        "mathematics",
+        "algorithms",
+        "engineering",
+        "experiments",
+        "falsifier"
+      ],
+      "specification": "systems/innovation/specification.md",
+      "maturity": "CONFIGURED",
+      "native_definition_validation": "PASSED",
+      "professional_validation": "NOT_COMPLETE"
+    },
+    "teacher": {
+      "folder": "teacher",
+      "primary": "dai-teacher",
+      "agent": "dai-teacher",
+      "roles": [
+        "diagnoser",
+        "curriculum",
+        "tutor",
+        "project-coach",
+        "assessor"
+      ],
+      "specification": "systems/teacher/specification.md",
+      "maturity": "CONFIGURED",
+      "native_definition_validation": "PASSED",
+      "professional_validation": "NOT_COMPLETE"
+    },
+    "investor": {
+      "folder": "investor",
+      "primary": "dai-investor",
+      "agent": "dai-investor",
+      "roles": [
+        "filings",
+        "market",
+        "macro-sector",
+        "scenarios",
+        "risk-review"
+      ],
+      "specification": "systems/investor/specification.md",
+      "maturity": "CONFIGURED",
+      "native_definition_validation": "PASSED",
+      "professional_validation": "NOT_COMPLETE"
+    },
+    "assistant": {
+      "folder": "assistant",
+      "primary": "dai-assistant",
+      "agent": "dai-assistant",
+      "roles": [
+        "planner",
+        "followup",
+        "knowledge",
+        "project-coordinator",
+        "correspondence"
+      ],
+      "specification": "systems/assistant/specification.md",
+      "maturity": "CONFIGURED",
+      "native_definition_validation": "PASSED",
+      "professional_validation": "NOT_COMPLETE"
+    },
+    "investigation": {
+      "folder": "investigation",
+      "primary": "dai-investigation",
+      "agent": "dai-investigation",
+      "roles": [
+        "sources",
+        "entities",
+        "chronology",
+        "geospatial",
+        "verifier"
+      ],
+      "specification": "systems/investigation/specification.md",
+      "maturity": "CONFIGURED",
+      "native_definition_validation": "PASSED",
+      "professional_validation": "NOT_COMPLETE"
+    },
+    "cyber": {
+      "folder": "cyber",
+      "primary": "dai-cyber",
+      "agent": "dai-cyber",
+      "roles": [
+        "assets-threat",
+        "code-audit",
+        "domain-specialist",
+        "forensics",
+        "response",
+        "verifier"
+      ],
+      "specification": "systems/cyber/specification.md",
+      "maturity": "CONFIGURED",
+      "native_definition_validation": "PASSED",
+      "professional_validation": "NOT_COMPLETE"
+    },
+    "strategy": {
+      "folder": "strategy",
+      "primary": "dai-strategy",
+      "agent": "dai-strategy",
+      "roles": [
+        "geopolitical",
+        "economic",
+        "history-doctrine",
+        "logistics",
+        "scenarios",
+        "challenge"
+      ],
+      "specification": "systems/strategy/specification.md",
+      "maturity": "CONFIGURED",
+      "native_definition_validation": "PASSED",
+      "professional_validation": "NOT_COMPLETE"
+    },
+    "advisors": {
+      "folder": "advisors",
+      "primary": "dai-advisors",
+      "agent": "dai-advisors",
+      "roles": [
+        "financial",
+        "legal",
+        "administration",
+        "accounting",
+        "career",
+        "product-marketing",
+        "decision-review"
+      ],
+      "specification": "systems/advisors/specification.md",
+      "maturity": "CONFIGURED",
+      "native_definition_validation": "PASSED",
+      "professional_validation": "NOT_COMPLETE"
+    },
+    "engineer": {
+      "folder": "engineer",
+      "primary": "dai-engineer",
+      "agent": "dai-engineer",
+      "roles": [
+        "architect",
+        "implementer",
+        "reviewer",
+        "tester",
+        "documenter"
+      ],
+      "specification": "systems/engineer/specification.md",
+      "maturity": "CONFIGURED",
+      "native_definition_validation": "PASSED",
+      "professional_validation": "NOT_COMPLETE"
+    }
+  }
+}

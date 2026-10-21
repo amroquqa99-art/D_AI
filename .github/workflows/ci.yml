@@ -1,0 +1,77 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    name: core tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[mcp]"
+      - name: Run the core suite
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -v
+      - name: Check the package builds
+        run: python -m pip install build && python -m build --wheel
+
+  layout:
+    name: release layout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every published file must exist
+        run: |
+          for file in README.md README.en.md INSTALL.md CONTRIBUTING.md SECURITY.md \
+                      THIRD_PARTY.md LICENSE GLOSSARY.md pyproject.toml; do
+            test -f "$file" || { echo "missing: $file"; exit 1; }
+          done
+      - name: No secrets or user data in the release tree
+        run: |
+          set -e
+          # No private key material, no live credentials, no database files.
+          if git ls-files | grep -Ei '(^|/)(\.env|.*\.key|.*\.pem|id_rsa|.*credentials.*)$'; then
+            echo "a credential-like file is tracked"; exit 1
+          fi
+          if git ls-files | grep -Ei '\.(db|sqlite3?)$'; then
+            echo "a database file is tracked"; exit 1
+          fi
+          if git ls-files | grep -Ei '(^|/)runtime/|(^|/)(archives?|backups?)/'; then
+            echo "runtime or archive state is tracked"; exit 1
+          fi
+      - name: The release tree carries no absolute local path
+        run: |
+          set -e
+          if git grep -nI -e '/home/amro/' -e '/run/media/' -- ':!docs/evidence' ':!docs/specifications/SOURCE_MANIFEST.json'; then
+            echo "an absolute local path leaked into the release tree"; exit 1
+          fi
+
+  router:
+    name: router tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Router contract tests
+        run: node --test tests/router.test.mjs

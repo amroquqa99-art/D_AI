@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "note": "The owner's per-class model choices live here. They start empty on purpose: no model is imposed. The native router opens a form for a missing choice.",
+  "global": {},
+  "projects": {}
+}
