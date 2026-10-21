@@ -163,7 +163,8 @@ class CommandTests(unittest.TestCase):
             self.assertEqual(team["kind"], "team")
             agent = self.run_cli(root, "team", "--project", project, "add-agent", "--team", team["id"],
                                  "--agent-id", "a1", "--role", "dev", "--model", "demo-model")
-            self.assertEqual(agent["kind"], "team")
+            self.assertEqual(agent["agent_id"], "a1")
+            self.assertEqual(agent["role"], "dev")
             agents = self.run_cli(root, "team", "--project", project, "agents", "--team", team["id"])
             self.assertEqual(len(agents), 1)
             self.assertEqual(agents[0]["agent_id"], "a1")
@@ -171,7 +172,8 @@ class CommandTests(unittest.TestCase):
             self.assertEqual(tree["team"], team["id"])
             assigned = self.run_cli(root, "team", "--project", project, "assign", "--team", team["id"],
                                     "--agent-id", "a1", "--task-id", "t-1")
-            self.assertEqual(assigned["kind"], "team")
+            self.assertEqual(assigned["agent_id"], "a1")
+            self.assertEqual(assigned["task_id"], "t-1")
             message = self.run_cli(root, "team", "--project", project, "message",
                                    "--from-agent", "a1", "--to-agent", "a1", "--body", "ping")
             self.assertEqual(message["content"]["status"], "SENT")
@@ -203,7 +205,8 @@ class CommandTests(unittest.TestCase):
             stale = self.run_cli(root, "consultation", "--project", project, "status", consultation["id"],
                                  "--status", "MERGING", "--expected-version", "1", ok=False)
             self.assertEqual(stale["error"], "Conflict")
-            listed = self.run_cli(root, "consultation", "--project", project, "list")
+            listed = self.run_cli(root, "consultation", "--project", project, "list",
+                                  "--parent-session", "sess-1")
             self.assertGreaterEqual(len(listed), 1)
 
     # ---- model ----

@@ -80,14 +80,15 @@ class TeamTests(unittest.TestCase):
     def test_add_agent_root_and_child_depths(self):
         root = self.teams.add_agent(self.owner, self.scope, self.team.id,
                                     agent_id="root", role="lead")
-        self.assertEqual(root.content["agents"][-1]["depth"], 1)
+        self.assertEqual(root["depth"], 1)
+        self.assertEqual(root["agent_id"], "root")
         child = self.teams.add_agent(self.owner, self.scope, self.team.id,
                                      agent_id="child", role="researcher", parent_agent="root")
-        self.assertEqual(child.content["agents"][-1]["depth"], 2)
+        self.assertEqual(child["depth"], 2)
         grandchild = self.teams.add_agent(self.owner, self.scope, self.team.id,
                                           agent_id="grandchild", role="researcher",
                                           parent_agent="child")
-        self.assertEqual(grandchild.content["agents"][-1]["depth"], 3)
+        self.assertEqual(grandchild["depth"], 3)
         with self.assertRaises(InvalidRequest) as raised:
             self.teams.add_agent(self.owner, self.scope, self.team.id,
                                  agent_id="too-deep", role="researcher",
@@ -115,8 +116,7 @@ class TeamTests(unittest.TestCase):
                                      agent_id="alice", role="lead")
         second = self.teams.add_agent(self.owner, self.scope, self.team.id,
                                       agent_id="alice", role="lead")
-        self.assertEqual(first.id, second.id)
-        self.assertEqual(first.version, second.version)
+        self.assertEqual(first, second)
         with self.store._db("project") as db:
             row = db.execute("SELECT COUNT(*) FROM team_agents WHERE agent_id='alice'").fetchone()
             self.assertEqual(row[0], 1)
@@ -150,15 +150,14 @@ class TeamTests(unittest.TestCase):
         second = self.teams.assign(self.owner, self.scope, self.team.id,
                                    agent_id="alice", task_id="task-1",
                                    idempotency_key="assign-1")
-        self.assertEqual(first.id, second.id)
-        self.assertEqual(first.version, second.version)
+        self.assertEqual(first, second)
         with self.store._db("project") as db:
             row = db.execute("SELECT COUNT(*) FROM team_assignments WHERE task_id='task-1'").fetchone()
             self.assertEqual(row[0], 1)
         # Repeating the same assignment without a key is a no-op too.
         again = self.teams.assign(self.owner, self.scope, self.team.id,
                                   agent_id="alice", task_id="task-1")
-        self.assertEqual(again.id, first.id)
+        self.assertEqual(again, first)
 
     def test_assign_same_task_to_different_agent_conflicts(self):
         self.teams.assign(self.owner, self.scope, self.team.id,
@@ -336,8 +335,12 @@ class TeamTests(unittest.TestCase):
         self.assertEqual(session_a[0].content["question"], "q-a")
         self.assertEqual(len(session_b), 1)
         self.assertEqual(session_b[0].content["question"], "q-b")
-        all_consultations = self.teams.list_consultations(self.owner, self.scope)
-        self.assertEqual(len(all_consultations), 2)
+        # Without a session the caller cannot tell which consultations are its
+        # own, so none are returned rather than another session's.
+        with self.assertRaises(InvalidRequest):
+            self.teams.list_consultations(self.owner, self.scope)
+        self.assertEqual(len(self.teams.list_consultations(self.owner, self.scope,
+                                                           parent_session="session-a")), 1)
 
     def test_project_state_fingerprint_is_stable_and_changes(self):
         first = project_state_fingerprint(self.store, self.scope)

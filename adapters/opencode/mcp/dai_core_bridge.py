@@ -304,9 +304,9 @@ class DaiCoreBridge:
                            budget: dict[str, Any] | None = None
                            ) -> dict[str, Any]:
         scope = self.project_scope(actor, project_id)
-        return _json_safe(asdict(self.teams.add_agent(
+        return _json_safe(self.teams.add_agent(
             actor, scope, team_id, agent_id=agent_id, role=role,
-            parent_agent=parent_agent, model=model, budget=budget)))
+            parent_agent=parent_agent, model=model, budget=budget))
 
     def dai_team_agents(self, actor: Principal, project_id: str,
                         team_id: str) -> list[dict[str, Any]]:
@@ -323,9 +323,9 @@ class DaiCoreBridge:
                         idempotency_key: str | None = None
                         ) -> dict[str, Any]:
         scope = self.project_scope(actor, project_id)
-        return _json_safe(asdict(self.teams.assign(
+        return _json_safe(self.teams.assign(
             actor, scope, team_id, agent_id=agent_id, task_id=task_id,
-            idempotency_key=idempotency_key)))
+            idempotency_key=idempotency_key))
 
     def dai_team_message(self, actor: Principal, project_id: str,
                          from_agent: str, to_agent: str, body: str,

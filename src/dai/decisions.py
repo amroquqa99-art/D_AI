@@ -54,7 +54,7 @@ class DecisionService:
         row = self.store._row(db, scope, decision_id)
         previous = self.store._decode(row, scope)
         if previous.content["state"] != "ACTIVE":
-            return
+            raise InvalidRequest(f"Decision {decision_id} is not active; cannot supersede")
         content = dict(previous.content)
         content["state"] = "SUPERSEDED"
         meta = dict(row)

@@ -506,16 +506,16 @@ def _dispatch_new(args: argparse.Namespace, store: MemoryStore, actor: Principal
                                           roles=_string_list(args.roles),
                                           idempotency_key=args.idempotency_key))
         if args.action == "add-agent":
-            return asdict(svc.add_agent(actor, scope, args.team, agent_id=args.agent_id, role=args.role,
-                                        parent_agent=args.parent_agent, model=args.model,
-                                        budget=_json_object(args.budget, "team budget") if args.budget else None))
+            return svc.add_agent(actor, scope, args.team, agent_id=args.agent_id, role=args.role,
+                                 parent_agent=args.parent_agent, model=args.model,
+                                 budget=_json_object(args.budget, "team budget") if args.budget else None)
         if args.action == "agents":
             return svc.agents(actor, scope, args.team)
         if args.action == "tree":
             return svc.tree(actor, scope, args.team)
         if args.action == "assign":
-            return asdict(svc.assign(actor, scope, args.team, agent_id=args.agent_id, task_id=args.task_id,
-                                     idempotency_key=args.idempotency_key))
+            return svc.assign(actor, scope, args.team, agent_id=args.agent_id, task_id=args.task_id,
+                              idempotency_key=args.idempotency_key)
         if args.action == "message":
             return asdict(svc.message_leader(actor, scope, from_agent=args.from_agent, to_agent=args.to_agent,
                                              body=args.body, references=_string_list(args.references),

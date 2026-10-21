@@ -82,11 +82,20 @@ def _budget_obj(value: str | None) -> Any:
 
 
 def _same_agent_definition(existing: dict[str, Any], role: str, parent_agent: str | None,
-                           model: str | None, budget: Any) -> bool:
+                           model: str | None, budget: Any,
+                           stored_budget: Any = None) -> bool:
+    """Compare an agent definition. The budget is read from the encrypted record."""
     return (existing["role"] == role
             and existing["parent_agent"] == parent_agent
             and existing["model"] == model
-            and _budget_obj(existing["budget"]) == budget)
+            and stored_budget == budget)
+
+
+def _agent_view(row: dict[str, Any]) -> dict[str, Any]:
+    """The observable agent: no private content, only the agent's definition."""
+    return {"agent_id": row["agent_id"], "role": row["role"],
+            "parent_agent": row["parent_agent"], "depth": row["depth"],
+            "model": row["model"]}
 
 
 class TeamService:
@@ -170,9 +179,14 @@ class TeamService:
             existing = db.execute(
                 "SELECT * FROM team_agents WHERE project=? AND team=? AND agent_id=?",
                 (scope.project, team_id, agent_id)).fetchone()
+            stored_budget = None
+            for entry in (team.content.get("agents") or []):
+                if entry.get("agent_id") == agent_id:
+                    stored_budget = entry.get("budget")
+                    break
             if existing is not None:
-                if _same_agent_definition(existing, role, parent_agent, model, budget):
-                    return self.store.get(actor, scope, team_id)
+                if _same_agent_definition(existing, role, parent_agent, model, budget, stored_budget):
+                    return _agent_view(dict(existing))
                 raise Conflict(f"Agent {agent_id} already exists in team {team_id} "
                                "with a different definition")
             if parent_agent is None:
@@ -186,9 +200,11 @@ class TeamService:
                 depth = parent["depth"] + 1
                 if depth > MAX_DEPTH:
                     raise InvalidRequest(f"Agent depth {depth} exceeds MAX_DEPTH {MAX_DEPTH}")
-            db.execute("INSERT INTO team_agents VALUES(?,?,?,?,?,?,?,?)",
-                       (scope.project, team_id, agent_id, role, parent_agent, depth,
-                        model, budget_text))
+            # The budget stays in the encrypted team record. The plain table keeps
+            # only indexes, counters and foreign keys.
+            db.execute("INSERT INTO team_agents(project,team,agent_id,role,parent_agent,depth,model) "
+                       "VALUES(?,?,?,?,?,?,?)",
+                       (scope.project, team_id, agent_id, role, parent_agent, depth, model))
             content = dict(team.content)
             agents = list(content.get("agents") or [])
             agents.append({"agent_id": agent_id, "role": role, "parent_agent": parent_agent,
@@ -196,7 +212,9 @@ class TeamService:
             content["agents"] = agents
             meta = dict(row)
             meta.update(version=team.version + 1, updated_at=utc_now())
-            return self.store._save(db, meta, scope, content, actor, "ADD_AGENT")
+            self.store._save(db, meta, scope, content, actor, "ADD_AGENT")
+            return {"agent_id": agent_id, "role": role, "parent_agent": parent_agent,
+                    "depth": depth, "model": model}
 
     def agents(self, actor: Principal, scope: Scope, team_id: str) -> list[dict]:
         if scope.namespace != "project":
@@ -242,7 +260,7 @@ class TeamService:
 
     def assign(self, actor: Principal, scope: Scope, team_id: str, *,
                agent_id: str, task_id: str,
-               idempotency_key: str | None = None) -> Record:
+               idempotency_key: str | None = None) -> dict[str, Any]:
         if scope.namespace != "project":
             raise InvalidRequest("An assignment belongs to a project")
         identifier(team_id)
@@ -269,13 +287,15 @@ class TeamService:
                 if existing is not None:
                     if existing["payload_hash"] != payload_hash:
                         raise Conflict("Idempotency key was reused with a different assignment payload")
-                    return self.store.get(actor, scope, team_id)
+                    return {"team": team_id, "agent_id": agent_id, "task_id": task_id,
+                            "state": _ASSIGNMENT_STATE}
             current = db.execute(
                 "SELECT * FROM team_assignments WHERE project=? AND team=? AND task_id=?",
                 (scope.project, team_id, task_id)).fetchone()
             if current is not None:
                 if current["agent_id"] == agent_id:
-                    return self.store.get(actor, scope, team_id)
+                    return {"team": team_id, "agent_id": agent_id, "task_id": task_id,
+                            "state": current["state"]}
                 raise Conflict(f"Task {task_id} is already assigned to agent {current['agent_id']} "
                                f"in team {team_id}; two writers on one work are not allowed")
             db.execute("INSERT INTO team_assignments VALUES(?,?,?,?,?)",
@@ -284,7 +304,8 @@ class TeamService:
                 db.execute("INSERT INTO team_idempotency VALUES(?,?,?,?,?)",
                            (scope.project, idempotency_key, payload_hash, "assignment",
                             f"{agent_id}\u2029{task_id}"))
-            return self.store.get(actor, scope, team_id)
+            return {"team": team_id, "agent_id": agent_id, "task_id": task_id,
+                    "state": _ASSIGNMENT_STATE}
 
     def message_leader(self, actor: Principal, scope: Scope, *,
                        from_agent: str, to_agent: str, body: str,
@@ -309,6 +330,14 @@ class TeamService:
             if team is None:
                 raise InvalidRequest(f"From agent {from_agent} is not in any team of this project")
             team_id = team[0]
+            self._require_may_act_for(actor, scope, from_agent)
+            receiver = db.execute(
+                "SELECT 1 FROM team_agents WHERE project=? AND team=? AND agent_id=?",
+                (scope.project, team_id, to_agent)).fetchone()
+            if receiver is None:
+                raise InvalidRequest(
+                    f"Agent {to_agent} is not a member of team {team_id}; "
+                    "a message never crosses a team boundary")
             if idempotency_key is not None:
                 existing = db.execute(
                     "SELECT * FROM team_idempotency WHERE project=? AND key=?",
@@ -337,6 +366,7 @@ class TeamService:
             raise InvalidRequest("Unknown message status")
         with self.store._locked(), self.store._db("project") as db:
             self.store._authorize(actor, scope, "read")
+            self._require_may_act_for(actor, scope, agent_id)
             query = "SELECT message_id FROM team_messages WHERE project=? AND to_agent=?"
             args: list[Any] = [scope.project, agent_id]
             if status is not None:
@@ -376,6 +406,21 @@ class TeamService:
                        (status, scope.project, message_id))
             return updated
 
+    def _require_may_act_for(self, actor: Principal, scope: Scope, agent_id: str) -> None:
+        """An actor may act for an agent only as that agent or with delegation.
+
+        Authority to speak as another agent is a scoped capability, never an
+        accident of the caller's position.
+        """
+        if actor.id == agent_id:
+            return
+        try:
+            self.store._authorize(actor, scope, "delegate")
+        except AccessDenied:
+            raise AccessDenied(
+                f"Principal {actor.id} may not act for agent {agent_id} in project {scope.project}"
+            ) from None
+
     def open_consultation(self, actor: Principal, scope: Scope, *,
                           parent_session: str, question: str,
                           mode: str = "ask") -> Record:
@@ -386,24 +431,29 @@ class TeamService:
             raise InvalidRequest("A bounded question is required")
         if mode not in _CONSULTATION_MODES:
             raise InvalidRequest("Mode must be one of ask, analyse, suggest")
-        context_version = project_state_fingerprint(self.store, scope)
-        content = {"parent_session": parent_session, "question": question, "mode": mode,
-                   "context_version": context_version, "status": "OPEN", "answer": None,
-                   "proposal": None}
         with self.store._locked(), self.store._db("project") as db:
             self.store._authorize(actor, scope, "write", kind="consultation")
+            # The fingerprint reads project records, so it is taken only after
+            # the actor is authorised for this scope.
+            context_version = project_state_fingerprint(self.store, scope)
+            content = {"parent_session": parent_session, "question": question, "mode": mode,
+                       "context_version": context_version, "status": "OPEN", "answer": None,
+                       "proposal": None}
             record = self.store._insert(db, actor, scope, "consultation", content)
             return record
 
     def consultation_reply(self, actor: Principal, scope: Scope,
                            consultation_id: str, *, body: str,
                            references: list[str] | None = None,
+                           expected_version: int | None = None,
                            idempotency_key: str | None = None) -> Record:
         if scope.namespace != "project":
             raise InvalidRequest("A consultation belongs to a project")
         identifier(consultation_id)
         if not isinstance(body, str) or not body.strip():
             raise InvalidRequest("A bounded reply body is required")
+        if expected_version is not None and (type(expected_version) is not int or expected_version < 1):
+            raise InvalidRequest("An expected positive record version is required")
         references = _require_strings(references, "references") if references is not None else []
         if idempotency_key is not None:
             identifier(idempotency_key)
@@ -415,6 +465,8 @@ class TeamService:
             previous = self.store._decode(row, scope)
             if previous.kind != "consultation":
                 raise NotFound("Consultation not found")
+            if expected_version is not None and previous.version != expected_version:
+                raise Conflict("Consultation version changed; reload before replying")
             if idempotency_key is not None:
                 existing = db.execute(
                     "SELECT * FROM team_idempotency WHERE project=? AND key=?",
@@ -475,8 +527,14 @@ class TeamService:
                            parent_session: str | None = None) -> list[Record]:
         if scope.namespace != "project":
             raise InvalidRequest("Consultations belong to a project")
-        if parent_session is not None:
-            identifier(parent_session)
+        if parent_session is None:
+            # A consultation is bound to one session. Without that session the
+            # caller cannot know which consultations are its own, so none are
+            # returned rather than another session's.
+            raise InvalidRequest(
+                "A parent session is required to list consultations; "
+                "consultations never cross a session boundary")
+        identifier(parent_session)
         with self.store._locked(), self.store._db("project") as db:
             self.store._authorize(actor, scope, "read")
             rows = db.execute(
@@ -485,6 +543,6 @@ class TeamService:
             result: list[Record] = []
             for row in rows:
                 record = self.store.get(actor, scope, row[0])
-                if parent_session is None or record.content["parent_session"] == parent_session:
+                if record.content["parent_session"] == parent_session:
                     result.append(record)
             return result
