@@ -1,0 +1,8 @@
+{
+  "id": "B05-contract-json",
+  "name": "Produce data.json satisfying a JSON contract",
+  "metric": "contract checks passed / total",
+  "unit": "checks",
+  "threshold": 1.0,
+  "why": "Measures whether the agent can read a contract, produce a conforming JSON record, and validate a computed constraint and an ISO date."
+}

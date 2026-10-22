@@ -1,0 +1,8 @@
+{
+  "id": "B09-multi-deliverable",
+  "name": "Five checkable deliverables from a sales bundle",
+  "metric": "deliverables passed / total",
+  "unit": "deliverables",
+  "threshold": 1.0,
+  "why": "Measures whether the agent completes all five independently checkable deliverables; partial completion scores partially, never zero and never full unless all five pass."
+}

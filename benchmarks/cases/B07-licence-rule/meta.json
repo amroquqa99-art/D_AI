@@ -1,0 +1,8 @@
+{
+  "id": "B07-licence-rule",
+  "name": "Apply D_AI licence adoption rule to packages",
+  "metric": "policy-driven licence decisions",
+  "unit": "score",
+  "threshold": 1.0,
+  "why": "Measures whether the agent applies D_AI's own licence rule: unknown or self-contradictory licences are never adopted directly, only referred pending a licence decision."
+}

@@ -1,0 +1,8 @@
+{
+  "id": "B06-merge-conflict",
+  "name": "Merge two conflicting service configs",
+  "metric": "rules passed / total",
+  "unit": "rules",
+  "threshold": 1.0,
+  "why": "Measures whether the agent can merge two branch configs into one file satisfying every stated rule: no duplicate keys, no dropped keys, sorted duplicate-free list unions, the port rule, and required keys."
+}

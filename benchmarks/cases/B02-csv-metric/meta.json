@@ -1,0 +1,8 @@
+{
+  "id": "B02-csv-metric",
+  "name": "Median per-building kWh from a real CSV",
+  "metric": "value match within tolerance + method present",
+  "unit": "score",
+  "threshold": 1.0,
+  "why": "Measures whether the agent reads a real file, handles missing values and mixed numeric formats, and produces a correct number it did not invent."
+}

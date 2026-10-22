@@ -1,0 +1,17 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "dai-lead",
+  "mcp": {
+    "servers": {
+      "dai": {
+        "type": "local",
+        "command": ["dai-mcp"],
+        "enabled": true,
+        "environment": {
+          "DAI_PROJECT_ROOT": "."
+        }
+      }
+    }
+  },
+  "note": "The leader is the default primary: it receives any request, routes it to the systems, agents, skills and models that fit, and owns the merged result. A domain system can still be selected directly with /research, /cyber, and the rest. The MCP server is the D_AI core; 'dai-mcp' is the console script that pip installs, so the path works wherever the package is installed."
+}

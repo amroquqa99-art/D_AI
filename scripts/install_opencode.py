@@ -55,6 +55,10 @@ def install_mcp(target_root: Path, dry_run: bool) -> dict:
         "enabled": True,
         "environment": {"DAI_PROJECT_ROOT": str(ROOT)},
     }
+    # The leader is the default primary: it receives any request and routes it
+    # to the systems, agents and skills that fit. A domain system can still be
+    # chosen directly with its own slash command.
+    default_agent = "dai-lead"
     if dry_run:
         return {"config": str(config), "entry": entry, "action": "would-write"}
     document: dict = {}
@@ -75,6 +79,10 @@ def install_mcp(target_root: Path, dry_run: bool) -> dict:
         document["mcp"] = servers
     action = "updated" if "dai" in servers else "created"
     servers["dai"] = entry
+    previous_agent = document.get("default_agent")
+    document["default_agent"] = default_agent
+    if previous_agent and previous_agent != default_agent:
+        action = f"{action} (default_agent {previous_agent} -> {default_agent})"
     config.parent.mkdir(parents=True, exist_ok=True)
     config.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n",
                       encoding="utf-8")

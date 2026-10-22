@@ -1,0 +1,8 @@
+{
+  "id": "B08-idempotent-script",
+  "name": "Make a data script idempotent",
+  "metric": "idempotency + stability + uniqueness",
+  "unit": "score",
+  "threshold": 1.0,
+  "why": "Measures whether the agent fixes the script so re-running produces identical output with each record exactly once and no duplicated log lines."
+}

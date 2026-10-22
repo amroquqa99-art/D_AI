@@ -1,0 +1,8 @@
+{
+  "id": "B10-unit-conversion",
+  "name": "Silent unit error in a clinical result",
+  "metric": "value correct + unit correct + conversion documented",
+  "unit": "checks",
+  "threshold": 1.0,
+  "why": "Measures: does the agent read the unit in the file, apply the stated conversion, and state it - or does it report the raw number?"
+}

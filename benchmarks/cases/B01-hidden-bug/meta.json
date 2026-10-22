@@ -1,0 +1,8 @@
+{
+  "id": "B01-hidden-bug",
+  "name": "Off-by-one in sliding-window sum",
+  "metric": "tests passed / total",
+  "unit": "tests",
+  "threshold": 1.0,
+  "why": "Measures whether the agent reads the code, finds the real off-by-one boundary defect, fixes it, and verifies without changing other functions."
+}

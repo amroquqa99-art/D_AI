@@ -1,0 +1,8 @@
+2024-03-10 01:58:00 INFO ingest_orders starting batch=2024-03-09 worker=3
+2024-03-10 01:59:00 WARNING upstream latency high (p95=2.1s)
+2024-03-10 02:00:01 DEBUG opening per-record handle for rec-0001 (fd #1001)
+2024-03-10 02:00:01 DEBUG opening per-record handle for rec-0002 (fd #1002)
+2024-03-10 02:10:00 DEBUG opening per-record handle for rec-1234 (fd #2217)
+2024-03-10 02:14:59 WARN open file descriptors near limit: 987/1024
+2024-03-10 02:15:00 ERROR OSError: [Errno 24] Too many open files
+2024-03-10 02:15:00 FATAL ingest_orders batch failed after 15m

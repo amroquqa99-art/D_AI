@@ -1,0 +1,8 @@
+job: ingest_orders
+schedule: "0 2 * * *"
+source_table: orders
+target_table: orders_staging
+batch_key: order_id
+lookback_days: 7
+db_host: db.internal
+max_fds: 1024
