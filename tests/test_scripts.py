@@ -72,6 +72,7 @@ class InstallerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             install_opencode.install(self.target, dry_run=False, force=False)
         self.assertEqual(config_file.read_text(), "{ not valid JSONC")
+        self.assertFalse((self.target / "agent").exists())
 
     def test_existing_definition_is_left_alone_without_force(self):
         self.target.mkdir(parents=True)
