@@ -81,6 +81,21 @@ def _call(tool, ctx: Context, *args, **kwargs):
         return DaiCoreBridge.error_payload(exc)
 
 
+@mcp.tool()
+def dai_search_files(ctx: Context, query: str, limit: int = 30) -> dict:
+    """Search bounded text in the caller's verified native workspace; omit secrets."""
+    try:
+        actor = _actor(ctx)
+        session_id = _session_id(ctx)
+        native = _get_bridge().native_client.session(session_id)
+        workspace = native["location"]["directory"]
+        return _get_bridge().dai_search_files(actor, workspace, query, limit)
+    except DaiError as exc:
+        return DaiCoreBridge.error_payload(exc)
+    except (KeyError, TypeError, OSError, ValueError):
+        return {"error": "AccessDenied", "message": "Native workspace is unavailable"}
+
+
 # ---- encrypted mission/evidence/claim tools ----------------------------
 
 @mcp.tool()
