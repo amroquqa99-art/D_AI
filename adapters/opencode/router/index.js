@@ -119,7 +119,10 @@ export function makeRouter(ctx, options = {}) {
         return;
       }
     }
-    const kind = classify(event.prompt.text ?? '');
+    // The D_AI OS primary must decide specialist selection itself.
+    // Keep the explicit no-delegation instruction enforced for all primary agents.
+    const classified = classify(event.prompt.text ?? '');
+    const kind = s.agent === 'dai-os' && classified !== 'disabled' ? null : classified;
     const plan = {
       id: hash([event.sessionID, event.messageID]), session_id: event.sessionID,
       message_id: event.messageID, directory: s.location.directory,
