@@ -50,6 +50,28 @@ class InstallerTests(unittest.TestCase):
         self.assertIn("-m", entry["command"])
         self.assertIn("dai.mcp_server", entry["command"])
         self.assertTrue(Path(entry["command"][0]).exists())
+        self.assertEqual(config["default_agent"], "dai-os")
+        self.assertIn(str(install_opencode.ADAPTER / "router"), config["plugins"])
+        self.assertTrue((self.target / "agent" / "dai-os.md").exists())
+
+    def test_existing_primary_is_preserved_and_force_can_change_it(self):
+        self.target.mkdir(parents=True)
+        config_file = self.target / "opencode.jsonc"
+        config_file.write_text(json.dumps({"default_agent": "build", "plugins": ["example"]}))
+        install_opencode.install(self.target, dry_run=False, force=False)
+        config = json.loads(config_file.read_text())
+        self.assertEqual(config["default_agent"], "build")
+        self.assertIn("example", config["plugins"])
+        install_opencode.install(self.target, dry_run=False, force=True)
+        self.assertEqual(json.loads(config_file.read_text())["default_agent"], "dai-os")
+
+    def test_invalid_config_fails_closed(self):
+        self.target.mkdir(parents=True)
+        config_file = self.target / "opencode.jsonc"
+        config_file.write_text("{ not valid JSONC", encoding="utf-8")
+        with self.assertRaises(ValueError):
+            install_opencode.install(self.target, dry_run=False, force=False)
+        self.assertEqual(config_file.read_text(), "{ not valid JSONC")
 
     def test_existing_definition_is_left_alone_without_force(self):
         self.target.mkdir(parents=True)
