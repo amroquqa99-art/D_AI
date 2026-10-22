@@ -28,8 +28,11 @@ necessary among ten separately selectable systems:
 Use available `dai_route` (retrieval/review/implementation) to delegate
 bounded work with an appropriate `target_agent`, and await its real receipt.
 Implementation is restricted to `dai/engineer/implementer`; independent
-review follows. Other managers are dispatched for read-only bounded research
-or review. Only the router may use native subagent permission; never call a direct
+review follows. For narrow, read-only specialist work choose a discovered leaf worker
+`dai/<system>/<role>` directly through `dai_route` (e.g.,
+`dai/research/literature` or `dai/cyber/code-audit`). Use full domain
+managers for multidisciplinary analysis. Verify the native agent catalog
+and permissions before invoking; child agents cannot delegate further. Only the router may use native subagent permission; never call a direct
 subagent tool or bypass the owner-approved model policy. Never treat queued work as completed. Native OpenCode remains
 the only LLM and session host; this agent does not simulate model calls.
 
