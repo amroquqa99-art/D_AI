@@ -42,7 +42,7 @@ def digest(path: Path) -> str | None:
         return None
 
 
-def install_mcp(target_root: Path, dry_run: bool) -> dict:
+def install_mcp(target_root: Path, dry_run: bool, force: bool = False) -> dict:
     """Register the D_AI MCP server in the host configuration.
 
     The command uses the interpreter that runs this installer, so a virtual
@@ -56,7 +56,8 @@ def install_mcp(target_root: Path, dry_run: bool) -> dict:
         "environment": {"DAI_PROJECT_ROOT": str(ROOT)},
     }
     if dry_run:
-        return {"config": str(config), "entry": entry, "action": "would-write"}
+        return {"config": str(config), "entry": entry, "action": "would-write",
+                "router": str(ADAPTER / "router"), "default_agent": "dai-os"}
     document: dict = {}
     if config.is_file():
         text = config.read_text(encoding="utf-8")
@@ -67,14 +68,24 @@ def install_mcp(target_root: Path, dry_run: bool) -> dict:
         stripped = re.sub(r",(\s*[}\]])", r"\1", stripped)
         try:
             document = json.loads(stripped)
-        except ValueError:
-            document = {}
+        except ValueError as exc:
+            raise ValueError(f"Cannot safely parse existing OpenCode config: {config}") from exc
     servers = document.setdefault("mcp", {})
     if not isinstance(servers, dict):
         servers = {}
         document["mcp"] = servers
     action = "updated" if "dai" in servers else "created"
     servers["dai"] = entry
+    # The native router is an actual plugin directory, not just a set of files.
+    plugins = document.setdefault("plugins", [])
+    if not isinstance(plugins, list):
+        raise ValueError("OpenCode plugins setting must be an array")
+    router_path = str(ADAPTER / "router")
+    if router_path not in plugins:
+        plugins.append(router_path)
+    # Keep a user-chosen primary unless --force explicitly replaces it.
+    if force or not document.get("default_agent"):
+        document["default_agent"] = "dai-os"
     config.parent.mkdir(parents=True, exist_ok=True)
     config.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n",
                       encoding="utf-8")
@@ -133,7 +144,7 @@ def install(target_root: Path, dry_run: bool, force: bool) -> dict:
     for source, target in build_plan(target_root):
         outcome = link_or_copy(source, target, dry_run, force)
         report.append({"source": str(source.relative_to(ROOT)), "target": str(target), **outcome})
-    mcp = install_mcp(target_root, dry_run)
+    mcp = install_mcp(target_root, dry_run, force)
     return {"target": str(target_root), "changes": report, "mcp": mcp,
             "applied": not dry_run}
 
