@@ -89,7 +89,8 @@ def install_mcp(target_root: Path, dry_run: bool, force: bool = False) -> dict:
         document["default_agent"] = "dai-os"
     # Preserve the literal original JSONC (including comments) for safe rollback.
     config.parent.mkdir(parents=True, exist_ok=True)
-    backup_path = config.with_name(config.name + ".dai-original")
+    backup_suffix = hashlib.sha256(original_bytes).hexdigest()[:12] if original_bytes is not None else "none"
+    backup_path = config.with_name(config.name + ".dai-original-" + backup_suffix)
     if original_bytes is not None and not backup_path.exists():
         with backup_path.open("xb") as handle:
             handle.write(original_bytes)
