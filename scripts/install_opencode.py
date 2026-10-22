@@ -55,9 +55,6 @@ def install_mcp(target_root: Path, dry_run: bool, force: bool = False) -> dict:
         "enabled": True,
         "environment": {"DAI_PROJECT_ROOT": str(ROOT)},
     }
-    if dry_run:
-        return {"config": str(config), "entry": entry, "action": "would-write",
-                "router": str(ADAPTER / "router"), "default_agent": "dai-os"}
     original_bytes = config.read_bytes() if config.is_file() else None
     document: dict = {}
     if config.is_file():
@@ -71,6 +68,9 @@ def install_mcp(target_root: Path, dry_run: bool, force: bool = False) -> dict:
             document = json.loads(stripped)
         except ValueError as exc:
             raise ValueError(f"Cannot safely parse existing OpenCode config: {config}") from exc
+    if dry_run:
+        return {"config": str(config), "entry": entry, "action": "would-write",
+                "router": str(ADAPTER / "router"), "default_agent": "dai-os"}
     servers = document.setdefault("mcp", {})
     if not isinstance(servers, dict):
         servers = {}
@@ -153,6 +153,8 @@ def link_or_copy(source: Path, target: Path, dry_run: bool, force: bool) -> dict
 
 
 def install(target_root: Path, dry_run: bool, force: bool) -> dict:
+    # Fail before installing any links when an existing host config is malformed.
+    install_mcp(target_root, dry_run=True, force=force)
     report: list[dict] = []
     for source, target in build_plan(target_root):
         outcome = link_or_copy(source, target, dry_run, force)
