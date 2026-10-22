@@ -81,6 +81,59 @@ def _call(tool, ctx: Context, *args, **kwargs):
         return DaiCoreBridge.error_payload(exc)
 
 
+# ---- encrypted mission/evidence/claim tools ----------------------------
+
+@mcp.tool()
+def dai_mission_create(ctx: Context, project_id: str, system: str,
+                       objective: str, acceptance: list[str]) -> dict:
+    """Create an encrypted project mission with explicit acceptance criteria."""
+    return _call(_get_bridge().dai_mission_create, ctx,
+                 project_id, system, objective, acceptance)
+
+
+@mcp.tool()
+def dai_mission_get(ctx: Context, project_id: str, mission_id: str) -> dict:
+    """Resume a durable encrypted mission and count attached evidence."""
+    return _call(_get_bridge().dai_mission_get, ctx, project_id, mission_id)
+
+
+@mcp.tool()
+def dai_mission_checkpoint(ctx: Context, project_id: str, mission_id: str,
+                           expected_version: int, status: str, next_action: str,
+                           artifacts: list[str] | None = None,
+                           receipts: list[str] | None = None,
+                           review: str | None = None) -> dict:
+    """Version-fenced checkpoint; COMPLETED requires artifacts/receipts/review."""
+    return _call(_get_bridge().dai_mission_checkpoint, ctx, project_id, mission_id,
+                 expected_version, status, next_action, artifacts, receipts, review)
+
+
+@mcp.tool()
+def dai_evidence_add(ctx: Context, project_id: str, mission_id: str,
+                     title: str, locator: str, content: str,
+                     source_kind: str = "provided_text") -> dict:
+    """Encrypt an original source and tie it to one mission in the same project."""
+    return _call(_get_bridge().dai_evidence_add, ctx, project_id, mission_id,
+                 title, locator, content, source_kind)
+
+
+@mcp.tool()
+def dai_claim_add(ctx: Context, project_id: str, mission_id: str,
+                  text: str, claim_type: str, source_ids: list[str] | None = None,
+                  limitations: str = "") -> dict:
+    """Store a typed claim; factual claims require original evidence in mission."""
+    return _call(_get_bridge().dai_claim_add, ctx, project_id, mission_id,
+                 text, claim_type, source_ids, limitations)
+
+
+@mcp.tool()
+def dai_project_grant(ctx: Context, project_id: str, member_agent: str,
+                      role: str = "contributor") -> dict:
+    """Owner-only explicit project grant to a named D_AI manager."""
+    return _call(_get_bridge().dai_project_grant, ctx, project_id,
+                 member_agent, role)
+
+
 # ---- project -----------------------------------------------------------
 
 @mcp.tool()
