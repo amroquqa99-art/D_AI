@@ -104,6 +104,27 @@ class InstallerTests(unittest.TestCase):
         self.assertFalse(any(Path(path).exists() for path in outcome["removed"]))
         self.assertTrue(kept.is_file())
 
+    def test_rollback_restores_original_config_byte_for_byte(self):
+        self.target.mkdir(parents=True)
+        config_file = self.target / "opencode.jsonc"
+        original = b'{ // custom\n "default_agent": "build"\n}\n'
+        config_file.write_bytes(original)
+        report = install_opencode.install(self.target, dry_run=False, force=False)
+        manifest = self.target / "dai-install-manifest.json"
+        manifest.write_text(json.dumps(report))
+        install_opencode.rollback(manifest)
+        self.assertEqual(config_file.read_bytes(), original)
+
+    def test_rollback_leaves_user_modified_config_untouched(self):
+        report = install_opencode.install(self.target, dry_run=False, force=False)
+        manifest = self.target / "dai-install-manifest.json"
+        manifest.write_text(json.dumps(report))
+        config_file = self.target / "opencode.jsonc"
+        config_file.write_text('{"user":"changed"}')
+        result = install_opencode.rollback(manifest)
+        self.assertEqual(config_file.read_text(), '{"user":"changed"}')
+        self.assertTrue(any("config changed" in x.get("reason", "") for x in result["kept"]))
+
     def test_rollback_keeps_a_copy_the_user_changed(self):
         report = install_opencode.install(self.target, dry_run=False, force=False)
         manifest = self.target / "dai-install-manifest.json"
