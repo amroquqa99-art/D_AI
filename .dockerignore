@@ -1,0 +1,15 @@
+.git
+.github
+__pycache__
+*.pyc
+*.db
+*.sqlite
+*.sqlite3
+.env
+.env.*
+node_modules
+.venv
+runtime
+backups
+archives
+*.log
