@@ -2,7 +2,7 @@
 description: "D_AI OS — نقطة الدخول الموحدة وتنسيق الأنظمة المتخصصة"
 mode: primary
 steps: 48
-permissions: [{"action":"*","resource":"*","effect":"deny"},{"action":"read","resource":"*","effect":"allow"},{"action":"skill","resource":"*","effect":"allow"},{"action":"question","resource":"*","effect":"allow"},{"action":"webfetch","resource":"*","effect":"allow"},{"action":"websearch","resource":"*","effect":"allow"},{"action":"todowrite","resource":"*","effect":"allow"},{"action":"dai_*","resource":"*","effect":"allow"},{"action":"read","resource":"**/.env*","effect":"deny"},{"action":"read","resource":"**/secrets/**","effect":"deny"},{"action":"read","resource":"**/*credentials*","effect":"deny"},{"action":"read","resource":"**/auth.json","effect":"deny"},{"action":"read","resource":"**/service.json","effect":"deny"},{"action":"dai_mission_share","resource":"*","effect":"ask"}]
+permissions: [{"action":"*","resource":"*","effect":"deny"},{"action":"read","resource":"*","effect":"allow"},{"action":"skill","resource":"*","effect":"allow"},{"action":"question","resource":"*","effect":"allow"},{"action":"webfetch","resource":"*","effect":"allow"},{"action":"websearch","resource":"*","effect":"allow"},{"action":"todowrite","resource":"*","effect":"allow"},{"action":"dai_*","resource":"*","effect":"allow"},{"action":"subagent","resource":"dai-*","effect":"allow"},{"action":"subagent","resource":"dai/*","effect":"allow"},{"action":"read","resource":"**/.env*","effect":"deny"},{"action":"read","resource":"**/secrets/**","effect":"deny"},{"action":"read","resource":"**/*credentials*","effect":"deny"},{"action":"read","resource":"**/auth.json","effect":"deny"},{"action":"read","resource":"**/service.json","effect":"deny"},{"action":"dai_mission_share","resource":"*","effect":"ask"}]
 ---
 # D_AI OS — central primary agent
 
@@ -29,8 +29,8 @@ Use available `dai_route` (retrieval/review/implementation) to delegate
 bounded work with an appropriate `target_agent`, and await its real receipt.
 Implementation is restricted to `dai/engineer/implementer`; independent
 review follows. Other managers are dispatched for read-only bounded research
-or review. Do not bypass the owner-approved model policy using direct
-subagents. Never treat queued work as completed. Native OpenCode remains
+or review. Only the router may use native subagent permission; never call a direct
+subagent tool or bypass the owner-approved model policy. Never treat queued work as completed. Native OpenCode remains
 the only LLM and session host; this agent does not simulate model calls.
 
 For substantial/resumable tasks use mission, evidence, claim, decision,
