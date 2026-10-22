@@ -204,6 +204,9 @@ class UpdateWatcherTests(unittest.TestCase):
         self.watcher.decide(self.owner, self.scope, record.id,
                             decision="update", expected_version=1)
 
+    def test_update_apply_is_metadata_only(self):
+        self.assertIn("external_applied", __import__("inspect").getsource(UpdateWatcher.apply))
+
     def test_apply_records_rollback_token_and_idempotent_reapply(self):
         record = self.watcher.plan(self.owner, self.scope, source="s", version="v",
                                    commit="c", diff="d", impact="i")
