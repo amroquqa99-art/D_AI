@@ -218,6 +218,7 @@ class UpdateWatcher:
             "migration": migration.strip(), "state": "PENDING", "decision": None,
             "decided_at": None, "decided_by": None, "rollback_token": None,
             "applied_at": None, "applied_by": None,
+            "external_applied": False,
             "rolled_back_at": None, "rolled_back_by": None,
         }
         with self.store._locked(), self.store._db("project") as db:
@@ -287,7 +288,8 @@ class UpdateWatcher:
                 return previous  # re-applying the same decision is a no-op
             token = rollback_token.strip() if rollback_token else "rollback-" + uuid4().hex
             content = dict(previous.content)
-            content.update(state="APPLIED", rollback_token=token,
+            # A recorded approval is not a real filesystem/package deployment.
+            content.update(state="APPLIED", external_applied=False, rollback_token=token,
                            applied_at=utc_now(), applied_by=actor.id)
             # The previous version stays in the record's revisions, so an apply
             # that fails is rolled back by simply discarding this record; no
@@ -318,7 +320,8 @@ class UpdateWatcher:
             if previous.content.get("state") != "APPLIED":
                 raise InvalidRequest("Only an applied update can be rolled back")
             content = dict(previous.content)
-            content.update(state="ROLLED_BACK", rolled_back_at=utc_now(),
+            # Restores only this approval record, not an external installation.
+            content.update(state="ROLLED_BACK", external_applied=False, rolled_back_at=utc_now(),
                            rolled_back_by=actor.id)
             meta = dict(row)
             meta.update(version=previous.version + 1, updated_at=utc_now())
