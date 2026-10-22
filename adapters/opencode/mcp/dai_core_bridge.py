@@ -31,6 +31,7 @@ from dai.contracts import Principal, Scope
 from dai.decisions import DecisionService
 from dai.errors import AccessDenied, DaiError, InvalidRequest
 from dai.memory import MemoryStore
+from dai.scoped_files import search_scoped_files
 from dai.mission import MissionService
 from dai.models import ModelRegistry
 from dai.tasks import TaskService
@@ -123,6 +124,12 @@ class DaiCoreBridge:
         scope = self.store.project_scope(actor, project_id)
         self.store.grant(actor, scope, member, role)
         return {"project_id": project_id, "agent": member_agent, "role": role, "granted": True}
+
+    def dai_search_files(self, actor: Principal, workspace: str,
+                         query: str, limit: int = 30) -> dict[str, Any]:
+        if not isinstance(actor, Principal):
+            raise AccessDenied("A native principal is required")
+        return search_scoped_files(workspace, query, limit=limit)
 
     # ---- principal and scope -------------------------------------------
 
