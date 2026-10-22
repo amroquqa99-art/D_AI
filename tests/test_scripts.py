@@ -107,7 +107,7 @@ class InstallerTests(unittest.TestCase):
     def test_rollback_restores_original_config_byte_for_byte(self):
         self.target.mkdir(parents=True)
         config_file = self.target / "opencode.jsonc"
-        original = b'{ // custom\n "default_agent": "build"\n}\n'
+        original = b'{\n // custom\n "default_agent": "build"\n}\n'
         config_file.write_bytes(original)
         report = install_opencode.install(self.target, dry_run=False, force=False)
         manifest = self.target / "dai-install-manifest.json"
