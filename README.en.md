@@ -45,9 +45,11 @@ python scripts/install_opencode.py --target ~/.config/opencode --dry-run
 python scripts/install_opencode.py --target ~/.config/opencode
 ```
 
-Then open OpenCode in your working directory and pick a system: `/research`
-`/innovate` `/learn` `/invest` `/assistant` `/consult` `/investigate`
-`/cyber` `/strategy` `/plan-task`.
+Then open OpenCode in your working directory. **The default agent is `dai-lead`
+(the leader):** any request you type is received, routed to the systems, agents,
+skills and models that fit, delegated, and merged into one inspectable result.
+To pick a system directly: `/research` `/innovate` `/learn` `/invest`
+`/assistant` `/consult` `/investigate` `/cyber` `/strategy` `/plan-task`.
 
 ## Repository layout
 

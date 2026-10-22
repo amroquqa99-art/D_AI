@@ -43,9 +43,11 @@ python scripts/install_opencode.py --target ~/.config/opencode --dry-run
 python scripts/install_opencode.py --target ~/.config/opencode
 ```
 
-ثم افتح OpenCode على مجلد عملك واختر نظاماً: `/research` `/innovate` `/learn`
-`/invest` `/assistant` `/consult` `/investigate` `/cyber` `/strategy`
-`/plan-task`.
+ثم افتح OpenCode على مجلد عملك. **الوكيل الافتراضي هو `dai-lead` (القائد):** أي
+طلب تكتبه يستقبله، فيحدّد الأنظمة والوكلاء والمهارات والنماذج المناسبة، ويفوّض
+العمل، ثم يدمج النتيجة في مخرج واحد قابل للفحص. إن أردت نظاماً بعينه مباشرة:
+`/research` `/innovate` `/learn` `/invest` `/assistant` `/consult` `/investigate`
+`/cyber` `/strategy` `/plan-task`.
 
 ## بنية المستودع
 

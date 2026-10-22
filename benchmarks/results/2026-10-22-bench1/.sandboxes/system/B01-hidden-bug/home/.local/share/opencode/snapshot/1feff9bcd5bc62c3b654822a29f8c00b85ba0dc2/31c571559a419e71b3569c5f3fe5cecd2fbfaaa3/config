@@ -1,0 +1,11 @@
+[core]
+	repositoryformatversion = 0
+	filemode = false
+	bare = false
+	logallrefupdates = true
+	worktree = /run/media/amro/18D1-F040/01 Projects/D_AI
+	symlinks = false
+	ignorecase = true
+
+[include]
+	path = opencode.gitconfig

@@ -1,0 +1,13 @@
+[core]
+	autocrlf = false
+	longpaths = true
+	symlinks = true
+	fsmonitor = false
+	untrackedCache = true
+	# A split index cannot name its shared file once manyFiles skips index checksums.
+	splitIndex = false
+[feature]
+	manyFiles = true
+[index]
+	version = 4
+	threads = true

@@ -1,0 +1,4 @@
+which: no pytest in (/home/amro/.opencode/bin:/home/amro/.bun/bin:/home/amro/.opencode/bin:/home/amro/.bun/bin:/usr/lib64/ccache:/usr/local/bin:/usr/bin:/bin:/var/lib/snapd/snap/bin)
+pkg
+tests
+Python 3.14.8

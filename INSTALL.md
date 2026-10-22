@@ -71,11 +71,14 @@ python scripts/install_opencode.py --target ~/.config/opencode
 - الأوامر إلى `command/`
 - خادم MCP باسم `dai` إلى `opencode.jsonc`
 
-ثم افتح OpenCode داخل مجلد عملك. تحقّق من التحميل:
+ثم افتح OpenCode داخل مجلد عملك. **الوكيل الافتراضي `dai-lead`** — يكتبه المثبّت في
+`default_agent` داخل `opencode.jsonc`، فيستقبل أي طلب ويوجّهه. الأنظمة تبقى
+متاحة مباشرة بأوامرها.
 
-```bash
-node scripts/check_host.mjs --target ~/.config/opencode
-```
+تحقّق من التحميل: أن يظهر `dai-lead` و`dai-research` بين الوكلاء، وأن يحتوي
+`opencode.jsonc` على `default_agent` وإدخال `dai` في `mcp.servers`.
+
+
 
 ### pi
 

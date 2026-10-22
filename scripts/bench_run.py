@@ -162,17 +162,30 @@ def run_agent(workspace: Path, env: dict[str, str], task_text: str, model: str,
 
     text_parts: list[str] = []
     tools: list[str] = []
+    provider_error = ""
     for line in stdout.splitlines():
         try:
             event = json.loads(line)
         except ValueError:
             continue
+        if event.get("type") == "error":
+            error = event.get("error") if isinstance(event.get("error"), dict) else {}
+            provider_error = str(error.get("message", ""))[:300]
         part = event.get("part") or {}
         if part.get("type") == "text" and isinstance(part.get("text"), str):
             text_parts.append(part["text"])
         if part.get("type") == "tool" and part.get("tool"):
             tools.append(str(part["tool"]))
+    if provider_error:
+        lowered = provider_error.lower()
+        if ("model unavailable" in lowered or "no-route" in lowered
+                or "transport" in lowered or "socket connection" in lowered
+                or "rate limit" in lowered or "overloaded" in lowered):
+            # The host could not reach the model. That is an infrastructure
+            # failure, not a task failure, and it must never be scored as one.
+            status = "unavailable"
     return {"status": status, "exit_code": exit_code, "duration_seconds": round(duration, 1),
+            "provider_error": provider_error,
             "assistant_text": "\n".join(text_parts), "assistant_chars": sum(len(t) for t in text_parts),
             "tool_calls": tools, "tool_call_count": len(tools),
             "stdout_tail": stdout[-4000:], "stderr_tail": stderr[-2000:]}
@@ -199,14 +212,30 @@ def run_checker(case_dir: Path, workspace: Path, timeout: float) -> dict[str, An
             "detail": str(payload.get("detail", ""))[:400]}
 
 
-def run_case(meta: dict[str, Any], arm: str, root: Path, model: str, timeout: float) -> dict[str, Any]:
-    """One case in one arm: build, run, measure."""
+def run_case(meta: dict[str, Any], arm: str, root: Path, model: str, timeout: float,
+             attempts: int = 3) -> dict[str, Any]:
+    """One case in one arm: build, run, measure.
+
+    A run that could not reach the model is retried: a provider outage is an
+    infrastructure failure, and scoring it as a task failure would invent a
+    difference that does not exist.
+    """
     case_dir = meta["_dir"]
     task_text = (case_dir / "task.md").read_text(encoding="utf-8").strip()
-    workspace, env = build_workspace(arm, case_dir, root)
     agent = "dai-lead" if arm == "system" else None
-    run = run_agent(workspace, env, task_text, model, agent, timeout)
-    check = run_checker(case_dir, workspace, timeout=120)
+    run: dict[str, Any] = {}
+    check: dict[str, Any] = {}
+    for attempt in range(1, attempts + 1):
+        workspace, env = build_workspace(arm, case_dir, root)
+        run = run_agent(workspace, env, task_text, model, agent, timeout)
+        run["attempts"] = attempt
+        if run["status"] != "unavailable":
+            check = run_checker(case_dir, workspace, timeout=120)
+            break
+        time.sleep(10)
+    if run.get("status") == "unavailable":
+        check = {"passed": False, "score": None, "metrics": {"unavailable": 1},
+                 "detail": f"model unavailable: {run.get('provider_error', '')[:120]}"}
     return {"case": meta.get("id"), "name": meta.get("name"), "arm": arm, "metric": meta.get("metric"),
             "unit": meta.get("unit"), "threshold": meta.get("threshold"), "run": run, "check": check}
 
@@ -267,10 +296,14 @@ def write_report(out_dir: Path, manifest: dict[str, Any]) -> None:
              "|---|---|---:|---:|---:|---|---|"]
     totals = {"baseline": 0.0, "system": 0.0}
     count = 0
+    unavailable: list[str] = []
     for case_id, arms in by_case.items():
         base = arms.get("baseline")
         system = arms.get("system")
         if not base or not system:
+            continue
+        if base["check"]["score"] is None or system["check"]["score"] is None:
+            unavailable.append(case_id)
             continue
         count += 1
         totals["baseline"] += base["check"]["score"]
@@ -284,6 +317,9 @@ def write_report(out_dir: Path, manifest: dict[str, Any]) -> None:
         lines += ["", f"**المجموع ({count} حالة):** baseline "
                   f"{totals['baseline'] / count:.3f} — system {totals['system'] / count:.3f} "
                   f"(فرق {(totals['system'] - totals['baseline']) / count:+.3f})"]
+    if unavailable:
+        lines += ["", "**حالات لم تُحتسب** (تعذّر الوصول إلى النموذج، وهي ليست إخفاقاً في المهمة): "
+                  + ", ".join(unavailable)]
     lines += ["", "## الحدود", "",
               "- حالة واحدة لكل ذراع ليست تجربة؛ الأرقام تصف هذه الجولة.",
               "- الفارق قد يأتي من سياق الأدوات لا من النظام نفسه.",
