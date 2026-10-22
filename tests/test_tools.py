@@ -110,6 +110,8 @@ class ToolGatewayTests(unittest.TestCase):
                                      payload={"command": "do something"},
                                      idempotency_key="invoke-1")
         self.assertEqual(result["status"], "AUTHORIZED")
+        self.assertFalse(result["executed"])
+        self.assertEqual(result["execution_status"], "NOT_EXECUTED")
         self.assertEqual(result["source"], "owner-policy")
         after = self._count_everything()
         self.assertEqual(after, before + 2)  # one attempt row, one idempotency row
