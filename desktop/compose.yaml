@@ -1,0 +1,11 @@
+services:
+  bridge-tests:
+    build:
+      context: ..
+      dockerfile: desktop/Dockerfile
+    network_mode: none
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
