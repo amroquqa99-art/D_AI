@@ -31,6 +31,7 @@ from dai.contracts import Principal, Scope
 from dai.decisions import DecisionService
 from dai.errors import AccessDenied, DaiError, InvalidRequest
 from dai.memory import MemoryStore
+from dai.mission import MissionService
 from dai.models import ModelRegistry
 from dai.tasks import TaskService
 from dai.teams import TeamService
@@ -70,6 +71,7 @@ class DaiCoreBridge:
         )
         self.native_client = native_client or NativeClient()
         self.store = MemoryStore(self.data_root, administrator=administrator)
+        self.missions = MissionService(self.store)
         self.charters = CharterService(self.store)
         self.tasks = TaskService(self.store)
         self.decisions = DecisionService(self.store)
@@ -78,6 +80,49 @@ class DaiCoreBridge:
         self.tools = ToolGateway(self.store)
         self.components = ComponentRegistry(self.store)
         self.updates = UpdateWatcher(self.store)
+
+    # ---- project-scoped encrypted mission journal ------------------------
+    def dai_mission_create(self, actor: Principal, project_id: str, system: str,
+                           objective: str, acceptance: list[str]) -> dict[str, Any]:
+        return self.missions.create(actor, project_id, system=system,
+                                    objective=objective, acceptance=acceptance)
+
+    def dai_mission_get(self, actor: Principal, project_id: str,
+                        mission_id: str) -> dict[str, Any]:
+        return self.missions.get(actor, project_id, mission_id)
+
+    def dai_mission_checkpoint(self, actor: Principal, project_id: str,
+                               mission_id: str, expected_version: int, status: str,
+                               next_action: str, artifacts: list[str] | None = None,
+                               receipts: list[str] | None = None,
+                               review: str | None = None) -> dict[str, Any]:
+        return self.missions.checkpoint(
+            actor, project_id, mission_id, expected_version=expected_version,
+            status=status, next_action=next_action,
+            artifacts=artifacts, receipts=receipts, review=review)
+
+    def dai_evidence_add(self, actor: Principal, project_id: str, mission_id: str,
+                         title: str, locator: str, content: str,
+                         source_kind: str = "provided_text") -> dict[str, Any]:
+        return self.missions.evidence_add(
+            actor, project_id, mission_id, title=title,
+            locator=locator, content=content, source_kind=source_kind)
+
+    def dai_claim_add(self, actor: Principal, project_id: str, mission_id: str,
+                      text: str, claim_type: str, source_ids: list[str] | None = None,
+                      limitations: str = "") -> dict[str, Any]:
+        return self.missions.claim_add(
+            actor, project_id, mission_id, text=text, claim_type=claim_type,
+            source_ids=source_ids, limitations=limitations)
+
+    def dai_project_grant(self, actor: Principal, project_id: str,
+                          member_agent: str, role: str = "contributor") -> dict[str, Any]:
+        if not isinstance(member_agent, str) or not member_agent.startswith("dai-"):
+            raise InvalidRequest("Only a named D_AI manager may be granted project access")
+        member = Principal(member_agent)
+        scope = self.store.project_scope(actor, project_id)
+        self.store.grant(actor, scope, member, role)
+        return {"project_id": project_id, "agent": member_agent, "role": role, "granted": True}
 
     # ---- principal and scope -------------------------------------------
 
