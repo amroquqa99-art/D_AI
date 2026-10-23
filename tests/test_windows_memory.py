@@ -69,7 +69,9 @@ class WindowsEncryptedMemoryTests(unittest.TestCase):
             finally:
                 kernel.LocalFree(descriptor)
             self.assertTrue(acl.startswith("D:P"), acl)
-            self.assertIn(_windows_user_sid(), acl)
+            # Windows SDDL canonicalizes the built-in Administrator SID (-500) as LA.
+            sid = _windows_user_sid()
+            self.assertTrue(sid in acl or (sid.endswith("-500") and ";;;LA)" in acl), acl)
             self.assertNotIn(";;;WD)", acl)
             self.assertNotIn(";;;BU)", acl)
 
