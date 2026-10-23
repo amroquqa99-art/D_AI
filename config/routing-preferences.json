@@ -1,6 +1,19 @@
 {
   "schema_version": 1,
-  "note": "The owner's per-class model choices live here. They start empty on purpose: no model is imposed. The native router opens a form for a missing choice.",
-  "global": {},
+  "note": "Owner's D_AI worker model policy: Auto evaluates all connected native models (free or paid) by documented task quality and estimated cost. /dai-models or workspace settings can explicitly pin any model; original OpenCode main-session model selector remains manual.",
+  "global": {
+    "retrieval": {
+      "mode": "auto",
+      "source": "owner-policy"
+    },
+    "implementation": {
+      "mode": "auto",
+      "source": "owner-policy"
+    },
+    "review": {
+      "mode": "auto",
+      "source": "owner-policy"
+    }
+  },
   "projects": {}
 }
