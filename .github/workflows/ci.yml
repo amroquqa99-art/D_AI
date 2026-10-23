@@ -79,3 +79,25 @@ jobs:
           node-version: "20"
       - name: Router contract tests
         run: node --test tests/router.test.mjs
+
+  windows-memory:
+    name: Windows encrypted memory acceptance
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install core
+        run: python -m pip install -e .
+      - name: Windows ACL, cross-process lock, encryption and recovery tests
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m unittest discover -s tests -p test_windows_memory.py -v
+          python -m unittest discover -s tests -p test_memory.py -v
+          python -m unittest discover -s tests -p test_mission.py -v
