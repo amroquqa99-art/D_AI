@@ -61,6 +61,9 @@ class MemoryStore:
             self.vault = KeyVault(self.root / "keys", administrator)
             for plane in PLANES:
                 self._initialize(plane)
+            # New SQLite database files inherit the private root ACL, but also
+            # protect their own DACL explicitly after first schema creation.
+            protect_existing_windows_tree(self.root)
             self._recover_restore()
             self._recover_purges()
 
