@@ -154,6 +154,88 @@ class ModelRegistryTests(unittest.TestCase):
         by_id = {m["model_id"]: m for m in catalog}
         self.assertEqual(by_id["model-a"]["cost_basis"], "measured")
 
+    def test_value_prefers_measured_paid_quality_when_gain_is_material(self):
+        premium = self.registry.register(
+            self.owner, self.scope, model_id="quality-premium", provider="test",
+            capabilities=["chat"], availability="available",
+            cost_basis="measured", cost_currency="USD",
+            cost_input_per_1k="0.80", cost_output_per_1k="1.20",
+            quality_by_task={"implementation": "97", "review": "80"},
+            quality_evidence="benchmark://validated-premium")
+        self.registry.register(
+            self.owner, self.scope, model_id="quality-economy", provider="test",
+            capabilities=["chat"], availability="available",
+            cost_basis="measured", cost_currency="USD",
+            cost_input_per_1k="0", cost_output_per_1k="0",
+            quality_by_task={"implementation": "75", "review": "95"},
+            quality_evidence="benchmark://validated-economy")
+        decision = self.registry.route(self.owner, self.scope, task_class="implementation")
+        self.assertEqual(decision["model"], "quality-premium")
+        self.assertEqual(decision["quality_score"], "97")
+        self.assertGreater(float(decision["estimated_cost_usd"]), 0)
+        # The same paid model is not automatically best for an independent review.
+        review = self.registry.route(self.owner, self.scope, task_class="review")
+        self.assertEqual(review["model"], "quality-economy")
+        self.assertEqual(review["estimated_cost_usd"], "0")
+
+    def test_value_prefers_cheaper_similar_quality_but_lowest_cost_mode_remains_available(self):
+        self.registry.register(
+            self.owner, self.scope, model_id="quality-top", provider="test",
+            capabilities=["chat"], availability="available",
+            cost_basis="measured", cost_currency="USD",
+            cost_input_per_1k="0.60", cost_output_per_1k="1.50",
+            quality_by_task={"review": "97"},
+            quality_evidence="benchmark://quality-top")
+        self.registry.register(
+            self.owner, self.scope, model_id="quality-near", provider="test",
+            capabilities=["chat"], availability="available",
+            cost_basis="measured", cost_currency="USD",
+            cost_input_per_1k="0.40", cost_output_per_1k="0.70",
+            quality_by_task={"review": "94"},
+            quality_evidence="benchmark://quality-near")
+        result = self.registry.route(self.owner, self.scope, task_class="review")
+        self.assertEqual(result["model"], "quality-near")
+        result = self.registry.route(self.owner, self.scope, task_class="review",
+                                     quality_slack="0")
+        self.assertEqual(result["model"], "quality-top")
+        result = self.registry.route(self.owner, self.scope, task_class="review",
+                                     selection_mode="lowest_cost")
+        self.assertEqual(result["model"], "model-b")
+
+    def test_quality_registration_needs_actual_evidence_and_bounded_score(self):
+        for kw in [
+            {"quality_by_task": {"review": "88"}},
+            {"quality_by_task": {"review": "101"}, "quality_evidence": "receipt"},
+            {"quality_by_task": {"review": "-2"}, "quality_evidence": "receipt"},
+        ]:
+            with self.subTest(kw=kw), self.assertRaises(InvalidRequest):
+                self.registry.register(
+                    self.owner, self.scope, model_id="quality-invalid", provider="test",
+                    capabilities=["chat"], **kw)
+        with self.assertRaises(InvalidRequest):
+            self.registry.route(self.owner, self.scope, task_class="review",
+                                selection_mode="guessed")
+        with self.assertRaises(InvalidRequest):
+            self.registry.route(self.owner, self.scope, task_class="review",
+                                quality_slack="31")
+
+    def test_value_does_not_assume_unknown_output_price_or_eur_is_zero_usd(self):
+        self.registry.register(
+            self.owner, self.scope, model_id="input-only", provider="test",
+            capabilities=["chat"], availability="available",
+            cost_basis="measured", cost_currency="USD",
+            cost_input_per_1k="0")
+        self.registry.register(
+            self.owner, self.scope, model_id="eur-pricing", provider="test",
+            capabilities=["chat"], availability="available",
+            cost_basis="measured", cost_currency="EUR",
+            cost_input_per_1k="0", cost_output_per_1k="0")
+        selected = self.registry.route(self.owner, self.scope, task_class="implementation")
+        self.assertEqual(selected["model"], "model-b")
+        unknown = [item["model_id"] for item in selected["unknown_cost_candidates"]]
+        self.assertIn("input-only", unknown)
+        self.assertIn("eur-pricing", unknown)
+
     def test_get_returns_model_record(self):
         record = self.registry.get(self.owner, self.scope, "model-a")
         self.assertEqual(record.kind, "model")
