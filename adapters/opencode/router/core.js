@@ -36,6 +36,18 @@ export function modelRef(id) {
   return { providerID: provider, id: model, ...(variant ? { variant } : {}) };
 }
 
+/** Verify a manual provider/model[#variant] against the native OpenCode catalog.
+ * OpenCode V2 publishes model variants in the `variants` array, not `variant`.
+ * Reject unknown variants instead of throwing or silently dropping a pin.
+ */
+export function catalogSupportsRef(model, ref) {
+  if (!model || !ref || model.enabled === false ||
+      model.providerID !== ref.providerID || model.id !== ref.id) return false;
+  if (!ref.variant) return true;
+  if (!Array.isArray(model.variants)) return false;
+  return model.variants.some(v => (typeof v === 'string' ? v : v?.id) === ref.variant);
+}
+
 // One lock for every plugin location/process. Never guess that an old lock is safe to remove.
 export class Registry {
   constructor(home) { this.home = home; this.state = path.join(home, 'runtime', 'router'); }
