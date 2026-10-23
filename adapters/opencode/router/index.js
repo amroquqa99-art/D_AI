@@ -32,7 +32,7 @@ export async function nativeForm(method, apiPath, body) {
     catch { throw new Error('DAI_OPENCODE_COMMAND_JSON must be a JSON command array'); }
     if (!Array.isArray(command) || !command.length ||
         command.some(arg => typeof arg !== 'string' || !arg.trim())) {
-      throw new Error('DAI_OPENCODE_COMMAND_JSON must contain nonempty command strings');
+      throw new Error('DAI_OPENCODE_COMMAND_JSON must be a JSON command array of nonempty command strings');
     }
   } else {
     command = [process.env.DAI_OPENCODE_BINARY || path.join(process.env.HOME || '', '.opencode', 'bin', 'opencode')];
