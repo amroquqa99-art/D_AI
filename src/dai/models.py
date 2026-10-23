@@ -212,9 +212,12 @@ class ModelRegistry:
 
     def route(self, actor: Principal, scope: Scope, *, task_class: str,
               required_capabilities: list[str] | None = None,
-              max_cost_per_1k: str | None = None) -> dict:
+              max_cost_per_1k: str | None = None,
+              free_only: bool = False) -> dict:
         if scope.namespace != "project":
             raise InvalidRequest("A model route belongs to a project")
+        if type(free_only) is not bool:
+            raise InvalidRequest("free_only must be a boolean")
         if not isinstance(task_class, str) or not task_class.strip():
             raise InvalidRequest("A bounded task class is required")
         required_capabilities = (_require_strings(required_capabilities, "required_capabilities")
@@ -238,7 +241,19 @@ class ModelRegistry:
                 capabilities = set(content.get("capabilities") or [])
                 if required_capabilities and not set(required_capabilities) <= capabilities:
                     continue
-                eligible.append(self._candidate(record))
+                candidate = self._candidate(record)
+                if free_only:
+                    # Fail closed: zero input *alone* is not free when output is
+                    # charged. Estimates, unknown output and non-OpenCode
+                    # providers are never auto-selected for a free-only task.
+                    input_cost = _cost_amount(content.get("cost_input_per_1k"))
+                    output_cost = _cost_amount(content.get("cost_output_per_1k"))
+                    if not (content.get("provider") in ("opencode", "opencode-go")
+                            and content.get("cost_basis") == "measured"
+                            and input_cost == Decimal("0")
+                            and output_cost == Decimal("0")):
+                        continue
+                eligible.append(candidate)
             eligible.sort(
                 key=lambda candidate: (not candidate["cost_known"],
                                        candidate["cost_input"]
@@ -270,7 +285,10 @@ class ModelRegistry:
                 }
             return {
                 "model": None,
-                "reason": (f"No model is available or limited in this scope; "
+                "reason": ("No verified zero-input/zero-output OpenCode model is eligible; "
+                           "free-only routing refuses paid or unknown-cost fallback"
+                           if free_only else
+                           f"No model is available or limited in this scope; "
                            f"{len(excluded)} registered model(s) need an owner decision"),
                 "candidates": self._public(excluded),
                 "needs_decision": True,

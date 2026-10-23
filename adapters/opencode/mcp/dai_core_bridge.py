@@ -475,13 +475,17 @@ class DaiCoreBridge:
     def dai_model_route(self, actor: Principal, project_id: str,
                         task_class: str,
                         required_capabilities: list[str] | None = None,
-                        max_cost_per_1k: str | None = None
+                        max_cost_per_1k: str | None = None,
+                        free_only: bool = True
                         ) -> dict[str, Any]:
+        # Agent routing is free-only by default: callers must explicitly
+        # opt out for a paid recommendation. No invocation occurs here.
         scope = self.project_scope(actor, project_id)
         return _json_safe(self.models.route(
             actor, scope, task_class=task_class,
             required_capabilities=required_capabilities,
-            max_cost_per_1k=max_cost_per_1k))
+            max_cost_per_1k=max_cost_per_1k,
+            free_only=free_only))
 
     def dai_model_choose(self, actor: Principal, project_id: str,
                          model_id: str, role: str, reason: str,
