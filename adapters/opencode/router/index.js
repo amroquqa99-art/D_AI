@@ -9,7 +9,12 @@ import { Registry, CLASSES, TARGETS, LABELS, classify, hash, modelRef, workerPer
 import { selectValueModel } from './value.js';
 
 const run = promisify(execFile);
-const HOME = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+// Resolve the Core repository root (router/ -> opencode/ -> adapters/ -> Core).
+// An independently branded Desktop may instead supply a dedicated state root.
+const CORE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+const overridden = process.env.DAI_ROUTER_DATA_ROOT;
+if (overridden && !path.isAbsolute(overridden)) throw new Error('DAI_ROUTER_DATA_ROOT must be absolute');
+const HOME = overridden ? path.resolve(overridden) : CORE_ROOT;
 const unwrap = value => value?.data ?? value;
 const textResult = value => ({ content: JSON.stringify(value) });
 
