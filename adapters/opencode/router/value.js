@@ -1,6 +1,7 @@
 // D_AI adaptive model routing: task-specific measured quality, then cost within the near-best band.
 // SPDX-License-Identifier: GPL-3.0-or-later
 // No guessed quality scores, credentials, model names or hidden paid fallbacks.
+import { createHash } from 'node:crypto';
 
 export const TASK_TOKEN_ESTIMATES = Object.freeze({
   retrieval: Object.freeze({ input: 4000, output: 1600 }),
@@ -63,8 +64,12 @@ export function selectValueModel(models, profiles, task, policy = {}) {
     const estimatedUsd = estimateModelCost(model, window);
     if (estimatedUsd === null) { unknownCost++; continue; }
     if (cap !== undefined && estimatedUsd > cap) continue;
-    eligible.push({ id, estimated_usd: estimatedUsd, quality: trustedQuality(profile, task),
-      quality_evidence: trustedQuality(profile, task) === null ? undefined : profile.benchmark_evidence });
+    const quality = trustedQuality(profile, task);
+    eligible.push({ id, estimated_usd: estimatedUsd, quality,
+      // Keep the owner's evidence locator in their profile, not in plaintext
+      // job receipts or renderer-readable status documents.
+      quality_evidence_sha256: quality === null ? null
+        : createHash('sha256').update(profile.benchmark_evidence).digest('hex') });
   }
   if (!eligible.length) throw new Error('No eligible model with known estimated input/output price within the configured budget; no worker dispatched. Select a model manually or update verified catalog/budget data.');
   const evaluated = eligible.filter(c => c.quality !== null);
@@ -83,7 +88,7 @@ export function selectValueModel(models, profiles, task, policy = {}) {
       expected_tokens: window,
       best_verified_quality: best,
       selected_verified_quality: winner.quality,
-      quality_evidence: winner.quality_evidence ?? null,
+      quality_evidence_sha256: winner.quality_evidence_sha256,
       quality_slack: tolerance,
       estimated_cost_is_not_a_hard_limit: true,
       unknown_cost_excluded: unknownCost,
