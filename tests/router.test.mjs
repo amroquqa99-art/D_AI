@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { Registry, classify, modelRef, workerPermissions, compactResult, hash } from '../adapters/opencode/router/core.js';
 import { makeRouter } from '../adapters/opencode/router/index.js';
+import { selectValueModel, estimateModelCost } from '../adapters/opencode/router/value.js';
 
 async function fixture() {
   const home = await mkdtemp(path.join(os.tmpdir(), 'dai-router-test-'));
@@ -295,4 +296,105 @@ test('fresh child with server-assigned default variant still verifies (live regr
   await f.router.context({ sessionID: 'ses_parent', system: [] });
   assert.equal(f.calls.create.length, 1);
   assert.equal(f.calls.prompt.length, 1);
+});
+
+
+test('value router selects a paid model when verified task quality is materially better', () => {
+  const models = [
+    { providerID: 'opencode', id: 'free', capabilities: { tools: true }, cost: [{ input: 0, output: 0 }] },
+    { providerID: 'opencode', id: 'paid', capabilities: { tools: true }, cost: [{ input: 1, output: 3 }] },
+  ];
+  const profiles = [
+    { id: 'opencode/free', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'bench://retrieval/free/1', quality_by_task: { retrieval: 78 } },
+    { id: 'opencode/paid', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'bench://retrieval/paid/1', quality_by_task: { retrieval: 97 } },
+  ];
+  const picked = selectValueModel(models, profiles, 'retrieval');
+  assert.equal(picked.model, 'opencode/paid');
+  assert.equal(picked.reason.selected_verified_quality, 97);
+  assert.ok(picked.reason.estimated_usd > 0);
+});
+
+test('value router prefers free model when verified quality is within near-best band', () => {
+  const models = [
+    { providerID: 'opencode', id: 'free', cost: [{ input: 0, output: 0 }] },
+    { providerID: 'opencode', id: 'paid', cost: [{ input: 1, output: 3 }] },
+  ];
+  const profiles = [
+    { id: 'opencode/free', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'receipt-1', quality_by_task: { review: 93 } },
+    { id: 'opencode/paid', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'receipt-2', quality_by_task: { review: 97 } },
+  ];
+  assert.equal(selectValueModel(models, profiles, 'review').model, 'opencode/free');
+  assert.equal(selectValueModel(models, profiles, 'review', { quality_slack: 0 }).model, 'opencode/paid');
+});
+
+test('value router does not infer quality from a verified label without benchmark evidence', () => {
+  const models = [
+    { providerID: 'worker', id: 'free', cost: [{ input: 0, output: 0 }] },
+    { providerID: 'worker', id: 'paid', cost: [{ input: 2, output: 4 }] },
+  ];
+  const profiles = [{ id: 'worker/paid', benchmark_status: 'VERIFIED_OK', quality_by_task: { implementation: 100 } }];
+  const result = selectValueModel(models, profiles, 'implementation');
+  assert.equal(result.model, 'worker/free');
+  assert.equal(result.reason.rule, 'cost_only_quality_unverified');
+  assert.equal(result.reason.selected_verified_quality, null);
+});
+
+test('unknown-cost model is never assumed free, even with a quality score', () => {
+  const result = selectValueModel([
+    { providerID: 'worker', id: 'unknown', cost: [] },
+    { providerID: 'worker', id: 'paid', cost: [{ input: 1, output: 2 }] },
+  ], [{ id: 'worker/unknown', benchmark_status: 'VERIFIED_OK',
+    benchmark_evidence: 'bench://unknown', quality_by_task: { review: 100 } }], 'review');
+  assert.equal(result.model, 'worker/paid');
+  assert.equal(result.reason.unknown_cost_excluded, 1);
+  assert.throws(() => selectValueModel([{ providerID: 'worker', id: 'unknown' }], [], 'review'), /No eligible model/);
+});
+
+test('value routing conservatively takes the most expensive catalog tier and respects budget', () => {
+  const tiered = { providerID: 'worker', id: 'tiered', cost: [
+    { input: 0, output: 0 }, { input: 5, output: 10 },
+  ] };
+  assert.equal(estimateModelCost(tiered, { input: 1000, output: 1000 }), 0.015);
+  assert.throws(() => selectValueModel([tiered], [], 'retrieval',
+    { max_estimated_usd_per_task: 0.001 }), /No eligible model/);
+  assert.equal(selectValueModel([tiered], [], 'review',
+    { max_estimated_usd_per_task: 0.1 }).model, 'worker/tiered');
+  assert.throws(() => selectValueModel([tiered], [], 'review',
+    { max_estimated_usd_per_task: -1 }), /nonnegative/);
+});
+
+test('owner-approved auto selection re-evaluates for every delegated task; manual choices stay pinned', async () => {
+  const f = await fixture();
+  f.setAnswer({ model: '__delegate__', scope: 'project' });
+  f.available.push({ providerID: 'worker', id: 'paid', capabilities: { tools: true },
+    cost: [{ input: 1, output: 2 }] });
+  await f.registry.write('config/model-profiles.json', {
+    profiles: [
+      { id: 'worker/free', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'measured-free',
+        quality_by_task: { retrieval: 75 } },
+      { id: 'worker/paid', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'measured-paid',
+        quality_by_task: { retrieval: 95 } },
+    ],
+  });
+  const plan = n => ({ id: 'auto-job-' + n, session_id: 'ses_parent', directory: '/workspace',
+    kind: 'retrieval', text: 'Find project source files', target_agent: 'dai/shared/explorer' });
+  await f.router.dispatch(plan(1));
+  assert.equal(f.calls.create[0].model.id, 'paid');
+  assert.equal((await f.registry.preference('retrieval', '/workspace')).mode, 'auto');
+  const receipt = await f.registry.read('runtime/router/delegated/' + hash('auto-job-1') + '.json', null);
+  assert.equal(receipt.reason.rule, 'verified_task_quality_within_band_then_estimated_cost');
+  // Catalog and verified results change; a model name must not be silently frozen by old auto policy.
+  await f.registry.write('config/model-profiles.json', {
+    profiles: [
+      { id: 'worker/free', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'new-free-bench',
+        quality_by_task: { retrieval: 98 } },
+      { id: 'worker/paid', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'new-paid-bench',
+        quality_by_task: { retrieval: 95 } },
+    ],
+  });
+  await f.router.dispatch(plan(2));
+  assert.equal(f.calls.create[1].model.id, 'free');
+  await f.registry.savePreference('retrieval', '/workspace', 'worker/paid', false);
+  await f.router.dispatch(plan(3));
+  assert.equal(f.calls.create[2].model.id, 'paid');
 });
