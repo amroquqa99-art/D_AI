@@ -41,12 +41,35 @@ These CI checks establish functional cross-platform test compatibility, not
 NTFS power-loss guarantees, hostile-account isolation testing, signed
 installer behavior or a full graphical application release.
 
+## Windows hard-process-exit recovery checkpoint (2026-10-23)
+
+At commit `ac9c40890e50f52aa2167e09bb40580e9a5afc1f`,
+[Actions run 39878700977](https://github.com/amroquqa99-art/D_AI/actions/runs/39878700977)
+completed successfully across Python 3.11 and 3.12 and the Linux core,
+router and release-layout jobs.
+
+The raw Windows job logs confirm **5 dedicated native Windows tests passed**,
+including two new real subprocess hard-exit cases implemented with
+`os._exit`:
+
+1. The child exits abruptly just after the per-record key is unlinked,
+   before its purge database state is finished. A fresh store initialization
+   completes purge recovery, and the original content remains inaccessible.
+2. The child exits abruptly immediately after one SQLite database plane
+   is restored. A fresh store initialization resumes the durable journal and
+   returns both private and project records to the same snapshot generation.
+
+The existing 18 memory tests passed with 2 Unix SIGKILL-specific tests skipped;
+all 4 mission tests passed. These are **process-exit** injection results only.
+They do not simulate the storage device losing power, a partial sector write,
+disk-cache behavior or an unrelated Windows user attempting to open the files.
+
 ## Acceptance evidence still required
 
 1. GitHub Actions Windows Python 3.11/3.12 suites: passed for commit
    `572f527fea066738596119f608631207e01f4a6a`. The Unix SIGKILL
-   tests are inapplicable; native Windows forced-termination fault injection
-   remains unverified.
+   tests are inapplicable; native Windows hard-process-exit at key deletion and at the first
+   restore plane now passed in run 39878700977; further crash boundaries remain.
 2. Run GUI side-by-side installers under a non-admin local user profile, check
    Windows file ownership/ACLs against an unrelated local account, and verify
    userData/profile isolation from OpenCode. The CLI CI tests are not substitutes.
@@ -54,8 +77,9 @@ installer behavior or a full graphical application release.
    directory `fsync` through Python's `os.open` in this implementation.
    File `fsync` and SQLite `PRAGMA synchronous=FULL` remain in place, but a
    hardware power failure requires independent destructive fault-injection tests.
-4. Test crash at every restore-journal boundary, encryption-key deletion and
-   snapshot restoration on NTFS, including sudden process termination.
+4. Extend forced-termination coverage to **every** restore-journal boundary
+   and storage failure mode on NTFS. Two specific hard-exit boundaries passed;
+   power interruption and real device-failure behavior remain unverified.
 5. Audit behavior on network shares, FAT/exFAT, roaming profiles and junctions
    separately. If the filesystem cannot apply a protected DACL, fail closed.
 
