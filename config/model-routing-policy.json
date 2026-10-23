@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "quality_slack": 5,
+  "expected_tokens": {
+    "retrieval": {
+      "input": 4000,
+      "output": 1600
+    },
+    "implementation": {
+      "input": 8000,
+      "output": 4000
+    },
+    "review": {
+      "input": 6000,
+      "output": 2500
+    }
+  }
+}
