@@ -6,6 +6,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { Registry, CLASSES, TARGETS, LABELS, classify, hash, modelRef, workerPermissions, compactResult, sleep } from './core.js';
+import { selectValueModel } from './value.js';
 
 const run = promisify(execFile);
 const HOME = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -34,25 +35,11 @@ export function makeRouter(ctx, options = {}) {
   async function models() { return unwrap(await ctx.model.list()); }
   async function root(sid) { return !(await session(sid)).parentID; }
 
-  async function delegatedPick(available) {
+  async function delegatedPick(available, kind) {
     const profiles = (await registry.read('config/model-profiles.json', null)) ?? {};
+    const policy = (await registry.read('config/model-routing-policy.json', null)) ?? {};
     const list = Array.isArray(profiles.profiles) ? profiles.profiles : [];
-    const byId = new Map(list.filter(p => p && p.id).map(p => [p.id, p]));
-    // Missing/empty cost data is NOT free: unknown-cost models are excluded from delegated picks.
-    const costOf = m => {
-      const tiers = (Array.isArray(m.cost) ? m.cost : []).filter(t => t && Number.isFinite(t.input) && Number.isFinite(t.output));
-      return tiers.length ? Math.min(...tiers.map(t => t.input + t.output)) : null;
-    };
-    const scored = available.map(m => {
-      const id = `${m.providerID}/${m.id}`;
-      const cost = costOf(m);
-      return { id, cost, free: cost === 0, verified: (byId.get(id) ?? {}).benchmark_status === 'VERIFIED_OK' };
-    }).filter(c => c.cost !== null && (byId.get(c.id) ?? {}).allow_worker !== false);
-    if (!scored.length) throw new Error('Delegated selection found no eligible tool-capable model with known cost; no worker request sent. Unknown-cost models require an explicit owner choice.');
-    const rank = c => (c.verified && c.free ? 0 : c.verified ? 1 : c.free ? 2 : 3);
-    scored.sort((a, b) => rank(a) - rank(b) || a.cost - b.cost);
-    const pick = scored[0];
-    return { model: pick.id, reason: { rule: 'verified-free > verified > free > cheapest (known cost only)', cost: pick.cost, verified: pick.verified, candidates: scored.length, offered: available.length } };
+    return selectValueModel(available, list, kind, policy);
   }
   async function choice(kind, sid, directory, force = false) {
     const previous = await registry.preference(kind, directory);
@@ -73,7 +60,7 @@ export function makeRouter(ctx, options = {}) {
             id: form.id,
             title: `D_AI — اختر نموذج ${LABELS[kind]} (يُحفظ ولا يتغير بصمت)`,
             fields: [
-              { key: 'model', type: 'string', required: true, title: 'النموذج المنفذ', options: [...ids.map(id => ({ value: id, label: id })), { value: DELEGATE, label: 'اختر أنت — أفضل جودة مقابل أفضل سعر (مسجَّل ومعلَن)' }], custom: true },
+              { key: 'model', type: 'string', required: true, title: 'النموذج المنفذ', options: [...ids.map(id => ({ value: id, label: id })), { value: DELEGATE, label: 'اختيار تلقائي حسب جودة مثبتة وتكلفة متوقعة (مجاني أو مدفوع؛ تقييم عند كل مهمة)' }], custom: true },
               { key: 'scope', type: 'string', required: true, title: 'نطاق حفظ الاختيار', options: [{ value: 'global', label: 'افتراضي عام — يلغي استثناء هذا المشروع؛ استثناءات المشاريع الأخرى تبقى' }, { value: 'project', label: 'هذا المشروع فقط' }], default: 'global' },
             ],
           });
@@ -93,9 +80,10 @@ export function makeRouter(ctx, options = {}) {
           const selected = String(answer.model ?? '').trim();
           if (!['global', 'project'].includes(answer.scope)) throw new Error('Invalid choice scope');
           if (selected === DELEGATE) {
-            const pick = await delegatedPick(available);
-            await registry.write(`runtime/router/delegated/${hash(`${sid}:${kind}`)}.json`, { kind, session_id: sid, directory, ...pick, saved_at: new Date().toISOString() });
-            return registry.savePreference(kind, directory, pick.model, answer.scope === 'global');
+            // Validate the policy against the current catalog, but persist auto mode
+            // rather than freezing today's cheapest/strongest model forever.
+            await delegatedPick(available, kind);
+            return registry.saveAutoPreference(kind, directory, answer.scope === 'global');
           }
           const ref = modelRef(selected);
           if (!ids.includes(`${ref.providerID}/${ref.id}`)) throw new Error('Owner-selected model not in native catalog; no fallback used.');
@@ -141,7 +129,13 @@ export function makeRouter(ctx, options = {}) {
     }
     await ensureActive();
     if (!CLASSES.includes(plan.kind)) throw new Error('Invalid task class');
-    const pref = await choice(plan.kind, plan.session_id, plan.directory);
+    const stored = await choice(plan.kind, plan.session_id, plan.directory);
+    // Auto mode is re-evaluated for every new job, so a price/benchmark/catalog
+    // change changes future work. A manual choice remains an exact model pin.
+    const decision = stored.mode === 'auto'
+      ? await delegatedPick((await models()).filter(m => m.enabled !== false && m.capabilities?.tools !== false), plan.kind)
+      : null;
+    const pref = decision ? { ...stored, model: decision.model } : stored;
     await ensureActive();
     const target = plan.target_agent ?? TARGETS[plan.kind];
     // Explicit preference must still exist today; it is not a connectivity guarantee.
@@ -156,6 +150,10 @@ export function makeRouter(ctx, options = {}) {
     await ctx.permission.assert({ sessionID: plan.session_id, action: 'subagent', resources: [target], metadata: { task_class: plan.kind, model: pref.model } });
     await ensureActive();
     const reservation = await registry.reserve(plan, pref.model);
+    if (decision && reservation.fresh) await registry.write(
+      `runtime/router/delegated/${hash(plan.id)}.json`,
+      { task_class: plan.kind, job_id: plan.id, ...decision, saved_at: new Date().toISOString() },
+    );
     let job = reservation.job;
     try { await ensureActive(); }
     catch (error) {
