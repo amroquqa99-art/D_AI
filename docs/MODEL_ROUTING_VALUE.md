@@ -1,8 +1,10 @@
 # D_AI model routing — automatic value or exact manual choice
 
 The original OpenCode session model picker remains in place and user-controlled.
-This policy currently applies only to D_AI delegated OpenCode workers, not to
-the main OpenCode conversation or the read-only D_AI Desktop mission panel.
+The value-based decision code is present in both D_AI Core's project-scoped
+ModelRegistry route command and the separate D_AI OpenCode worker router. It
+does not replace the main OpenCode conversation selector or connect the
+read-only D_AI Desktop mission panel to live model execution.
 
 ## Automatic (initial worker policy)
 
@@ -61,3 +63,18 @@ The D_AI OpenCode router now supports this selection strategy. D_AI Desktop
 still provides the inherited OpenCode manual model picker and provider login;
 its separate D_AI mission bridge is read-only. This is not proof of packaged
 GUI sign-in, a live paid request, a final installer, or OS-wide billing limits.
+
+## D_AI Core project-scoped CLI
+
+The Core command supports `dai model route --project PROJECT --task-class review`
+(value mode by default), and explicit `--selection-mode lowest_cost`,
+`--quality-slack 0` for quality-first ranking among assessed models. Model
+registration can accept `--quality-by-task '{"review":"94"}'` together with
+`--quality-evidence benchmark://your-real-report`. These scores and source
+references belong in the encrypted project model record, not the plaintext
+model index. Core prices are USD per **1,000** tokens; the native OpenCode
+plugin consumes USD per **million** tokens from the host catalog. Each path
+normalizes its own pricing units before comparison.
+
+These interfaces are development-stage. No current integration proves a hard
+money cap or production-quality performance data for any specific model.
