@@ -5,7 +5,7 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
-import { Registry, CLASSES, TARGETS, LABELS, classify, hash, modelRef, workerPermissions, compactResult, sleep } from './core.js';
+import { Registry, CLASSES, TARGETS, LABELS, classify, hash, modelRef, workerPermissions, compactResult, sleep, catalogSupportsRef } from './core.js';
 import { selectValueModel } from './value.js';
 
 const run = promisify(execFile);
@@ -140,13 +140,10 @@ export function makeRouter(ctx, options = {}) {
     const target = plan.target_agent ?? TARGETS[plan.kind];
     // Explicit preference must still exist today; it is not a connectivity guarantee.
     const ref = modelRef(pref.model);
-    const exists = (await models()).some(m => m.providerID === ref.providerID && m.id === ref.id && m.enabled !== false);
-    if (!exists) throw new Error('Saved worker unavailable in native catalog. Update /dai-models; no fallback used.');
-    // Validate model exists in catalog and note if needs re-selection
     const prefRef = modelRef(pref.model);
     const available = (await models()).filter(m => m.enabled !== false && m.capabilities?.tools !== false);
-    const prefExists = available.some(m => m.providerID === prefRef.providerID && m.id === prefRef.id && (prefRef.variant ? m.variant.includes(prefRef.variant) : true));
-    if (!prefExists) throw new Error('Model not in native catalog; reopen selection via /dai-models or explicit owner form.');
+    const prefExists = available.some(m => catalogSupportsRef(m, prefRef));
+    if (!prefExists) throw new Error('Selected worker model or variant is not available in native catalog; reopen selection via /dai-models. No fallback used.');
     await ctx.permission.assert({ sessionID: plan.session_id, action: 'subagent', resources: [target], metadata: { task_class: plan.kind, model: pref.model } });
     await ensureActive();
     const reservation = await registry.reserve(plan, pref.model);
@@ -168,7 +165,7 @@ export function makeRouter(ctx, options = {}) {
       const child = await session(job.child_session_id);
       const actualRef = typeof child.model === 'string' ? modelRef(child.model) : (child.model ?? null);
       if (actualRef) {
-        const modelMatch = actualRef.providerID === prefRef.providerID && actualRef.id === prefRef.id && (prefRef.variant ? actualRef.variant?.includes(prefRef.variant) : true);
+        const modelMatch = actualRef.providerID === prefRef.providerID && actualRef.id === prefRef.id && (prefRef.variant ? actualRef.variant === prefRef.variant : true);
         if (!modelMatch) {
           await registry.update(plan.id, { status: 'MODEL_MISMATCH', saved_model: pref.model, observed_model: child.model });
           await registry.releaseWriter(job);
@@ -187,7 +184,7 @@ export function makeRouter(ctx, options = {}) {
         job = await registry.update(plan.id, { child_session_id: child.id, status: 'CREATED' });
         const actual = await session(child.id);
         const actualRef = typeof actual.model === 'string' ? modelRef(actual.model) : (actual.model ?? null);
-        const modelOk = actualRef && actualRef.providerID === ref.providerID && actualRef.id === ref.id && (ref.variant ? (actualRef.variant ?? '').includes(ref.variant) : true);
+        const modelOk = actualRef && actualRef.providerID === ref.providerID && actualRef.id === ref.id && (ref.variant ? actualRef.variant === ref.variant : true);
         if (!modelOk) throw new Error('Actual child model differs from approved model');
         // Preserve nearby intent for requests such as "implement the plan"; never transfer reasoning/tool dumps.
         const parentContext = unwrap(await ctx.session.context({ sessionID: plan.session_id }));
