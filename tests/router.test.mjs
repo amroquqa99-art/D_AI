@@ -440,3 +440,38 @@ test('manual worker rejects missing native variant instead of crashing or fallin
     target_agent: 'dai/shared/explorer' }), /model or variant is not available/);
   assert.equal(f.calls.create.length, 0);
 });
+
+test('desktop Native V2 API form uses explicit CLI command instead of user OpenCode installation', async () => {
+  const { nativeForm } = await import('../adapters/opencode/router/index.js');
+  const original = process.env.DAI_OPENCODE_COMMAND_JSON;
+  try {
+    process.env.DAI_OPENCODE_COMMAND_JSON = JSON.stringify([
+      process.execPath, '-e', "console.log(JSON.stringify({data:{source:'fork-stub'}}))", '--',
+    ]);
+    assert.deepEqual(await nativeForm('get', '/api/test'), { source: 'fork-stub' });
+    process.env.DAI_OPENCODE_COMMAND_JSON = '{"not":"an-array"}';
+    await assert.rejects(() => nativeForm('post', '/api/test'), /JSON command array/);
+  } finally {
+    if (original === undefined) delete process.env.DAI_OPENCODE_COMMAND_JSON;
+    else process.env.DAI_OPENCODE_COMMAND_JSON = original;
+  }
+});
+
+test('router resolves Core root by default, honors absolute isolated Desktop root and rejects relative root', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const script = `import {makeRouter} from './adapters/opencode/router/index.js'; console.log(makeRouter({options:{}}).registry.home)`;
+  const root = path.resolve('.');
+  const run = env => spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+    cwd: root, env: { ...process.env, ...env }, encoding: 'utf8',
+  });
+  const isolated = path.join(os.tmpdir(), 'dai-desktop-router-isolated');
+  const chosen = run({ DAI_ROUTER_DATA_ROOT: isolated });
+  assert.equal(chosen.status, 0, chosen.stderr);
+  assert.equal(chosen.stdout.trim(), isolated);
+  const invalid = run({ DAI_ROUTER_DATA_ROOT: 'relative-not-allowed' });
+  assert.notEqual(invalid.status, 0);
+  assert.match(invalid.stderr, /must be absolute/);
+  const original = run({ DAI_ROUTER_DATA_ROOT: '' });
+  assert.equal(original.status, 0, original.stderr);
+  assert.equal(original.stdout.trim(), root);
+});
