@@ -99,5 +99,8 @@ jobs:
           PYTHONPATH: src
         run: |
           python -m unittest discover -s tests -p test_windows_memory.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m unittest discover -s tests -p test_memory.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m unittest discover -s tests -p test_mission.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
