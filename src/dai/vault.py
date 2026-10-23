@@ -16,9 +16,14 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from .contracts import identifier
 from .errors import Gone, IntegrityFailure, InvalidRequest
+from .platform_fs import protect_windows_path
 
 
 def sync_directory(path: Path) -> None:
+    if os.name == "nt":
+        # Windows does not support opening a directory for os.fsync via Python.
+        # File contents are flushed separately; power-loss durability is not yet proven.
+        return
     fd = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
     try:
         os.fsync(fd)
@@ -32,9 +37,12 @@ def private_directory(path: Path) -> Path:
     path.mkdir(parents=True, exist_ok=True, mode=0o700)
     if not path.is_dir():
         raise InvalidRequest("A private state directory is required")
-    os.chmod(path, 0o700)
-    if path.stat().st_mode & 0o077:
-        raise InvalidRequest("Private state requires Unix permissions; use a Linux filesystem")
+    if os.name == "nt":
+        protect_windows_path(path, directory=True)
+    else:
+        os.chmod(path, 0o700)
+        if path.stat().st_mode & 0o077:
+            raise InvalidRequest("Private state requires Unix permissions; use a Linux filesystem")
     return path
 
 
@@ -67,11 +75,18 @@ class KeyVault:
             file.write(data)
             file.flush()
             os.fsync(file.fileno())
+        if os.name == "nt":
+            protect_windows_path(self.path / name, directory=False)
         sync_directory(self.path)
 
     def _read(self, name: str) -> bytes:
         try:
-            fd = os.open(self.path / name, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+            target = self.path / name
+            if target.is_symlink():
+                raise IntegrityFailure("Encryption key path must not be a symlink")
+            if os.name == "nt" and target.exists():
+                protect_windows_path(target, directory=False)
+            fd = os.open(target, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
         except FileNotFoundError:
             raise Gone("Record encryption key is unavailable") from None
         with os.fdopen(fd, "rb") as file:

@@ -42,7 +42,7 @@ def digest(path: Path) -> str | None:
         return None
 
 
-def install_mcp(target_root: Path, dry_run: bool) -> dict:
+def install_mcp(target_root: Path, dry_run: bool, force: bool = False) -> dict:
     """Register the D_AI MCP server in the host configuration.
 
     The command uses the interpreter that runs this installer, so a virtual
@@ -55,8 +55,7 @@ def install_mcp(target_root: Path, dry_run: bool) -> dict:
         "enabled": True,
         "environment": {"DAI_PROJECT_ROOT": str(ROOT)},
     }
-    if dry_run:
-        return {"config": str(config), "entry": entry, "action": "would-write"}
+    original_bytes = config.read_bytes() if config.is_file() else None
     document: dict = {}
     if config.is_file():
         text = config.read_text(encoding="utf-8")
@@ -67,18 +66,43 @@ def install_mcp(target_root: Path, dry_run: bool) -> dict:
         stripped = re.sub(r",(\s*[}\]])", r"\1", stripped)
         try:
             document = json.loads(stripped)
-        except ValueError:
-            document = {}
+        except ValueError as exc:
+            raise ValueError(f"Cannot safely parse existing OpenCode config: {config}") from exc
+    if dry_run:
+        return {"config": str(config), "entry": entry, "action": "would-write",
+                "router": str(ADAPTER / "router"), "default_agent": "dai-os"}
     servers = document.setdefault("mcp", {})
     if not isinstance(servers, dict):
         servers = {}
         document["mcp"] = servers
     action = "updated" if "dai" in servers else "created"
     servers["dai"] = entry
+    # The native router is an actual plugin directory, not just a set of files.
+    plugins = document.setdefault("plugins", [])
+    if not isinstance(plugins, list):
+        raise ValueError("OpenCode plugins setting must be an array")
+    router_path = str(ADAPTER / "router")
+    if router_path not in plugins:
+        plugins.append(router_path)
+    # Keep a user-chosen primary unless --force explicitly replaces it.
+    if force or not document.get("default_agent"):
+        document["default_agent"] = "dai-os"
+    # Preserve the literal original JSONC (including comments) for safe rollback.
     config.parent.mkdir(parents=True, exist_ok=True)
-    config.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n",
-                      encoding="utf-8")
-    return {"config": str(config), "entry": entry, "action": action}
+    backup_suffix = hashlib.sha256(original_bytes).hexdigest()[:12] if original_bytes is not None else "none"
+    backup_path = config.with_name(config.name + ".dai-original-" + backup_suffix)
+    if original_bytes is not None and not backup_path.exists():
+        with backup_path.open("xb") as handle:
+            handle.write(original_bytes)
+        os.chmod(backup_path, 0o600)
+    updated_bytes = (json.dumps(document, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    with config.open("wb") as handle:
+        handle.write(updated_bytes)
+    return {"config": str(config), "entry": entry, "action": action,
+            "created": original_bytes is None,
+            "backup_path": str(backup_path) if original_bytes is not None else None,
+            "before_sha256": hashlib.sha256(original_bytes).hexdigest() if original_bytes is not None else None,
+            "after_sha256": hashlib.sha256(updated_bytes).hexdigest()}
 
 
 def build_plan(target_root: Path) -> list[tuple[Path, Path]]:
@@ -129,11 +153,13 @@ def link_or_copy(source: Path, target: Path, dry_run: bool, force: bool) -> dict
 
 
 def install(target_root: Path, dry_run: bool, force: bool) -> dict:
+    # Fail before installing any links when an existing host config is malformed.
+    install_mcp(target_root, dry_run=True, force=force)
     report: list[dict] = []
     for source, target in build_plan(target_root):
         outcome = link_or_copy(source, target, dry_run, force)
         report.append({"source": str(source.relative_to(ROOT)), "target": str(target), **outcome})
-    mcp = install_mcp(target_root, dry_run)
+    mcp = install_mcp(target_root, dry_run, force)
     return {"target": str(target_root), "changes": report, "mcp": mcp,
             "applied": not dry_run}
 
@@ -170,6 +196,25 @@ def rollback(manifest_path: Path) -> dict:
         elif target.is_dir():
             shutil.rmtree(target)
             removed.append(str(target))
+    # Restore host configuration only when it still matches our installed bytes.
+    mcp = manifest.get("mcp", {})
+    config_value = mcp.get("config")
+    if config_value and mcp.get("after_sha256"):
+        config = Path(config_value)
+        current = digest(config)
+        if current != mcp["after_sha256"]:
+            kept.append({"target": str(config),
+                         "reason": "config changed since install; keeping user changes"})
+        elif mcp.get("backup_path") and Path(mcp["backup_path"]).is_file():
+            backup = Path(mcp["backup_path"])
+            if hashlib.sha256(backup.read_bytes()).hexdigest() != mcp.get("before_sha256"):
+                kept.append({"target": str(config), "reason": "original config backup changed"})
+            else:
+                backup.replace(config)
+                removed.append("D_AI changes restored from original: " + str(config))
+        elif mcp.get("created"):
+            config.unlink()
+            removed.append(str(config))
     return {"removed": removed, "kept": kept,
             "note": "User data under the D_AI data root is never touched by a rollback."}
 

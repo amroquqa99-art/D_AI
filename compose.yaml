@@ -1,0 +1,21 @@
+# Docker is for reproducible core/router tests; the native OpenCode plugin
+# must run in the host's OpenCode location with its own authenticated sessions.
+services:
+  core-tests:
+    build: .
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m
+    environment:
+      PYTHONPATH: /work/src
+      HOME: /tmp
+    command: ["python", "-m", "unittest", "discover", "-s", "tests", "-v"]
+  router-tests:
+    image: node:22-alpine
+    read_only: true
+    working_dir: /work
+    volumes:
+      - .:/work:ro
+    tmpfs:
+      - /tmp:size=128m
+    command: ["node", "--test", "tests/router.test.mjs"]

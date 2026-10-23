@@ -39,3 +39,19 @@
 
 ## 6. حالة الإصدار
 NOT_READY — السبب: النشر العام كـ V1 كاملة غير جاهز لأن التحقق المهني للمجالات والتحقق من الأسطح المضيفة مفقودان، رغم أن النواة صالحة للنشر كأساس. **إصدار 0.1 هو ما يُنشر الآن:** نواة مكتملة ومختبَرة وموثّقة، لا V1 كاملة.
+
+
+## 7. D_AI OS source integration review — 2026-10-23
+
+The central OS feature was developed separately on `feat/central-orchestrator-integrations` (PR #27). It introduces the `dai-os` OpenCode primary agent, `dai-os` domain skill, native router integration, encrypted project missions/evidence/claims and cross-platform Windows memory locking/ACLs, alongside installer and Docker test changes. The existing `dai-core` contains Adaptive Workflow OS; these are complementary, not separate replacement source trees.
+
+**Verification receipt at branch head `6bd1a46789f47376e02c1ebda9cc163886827c55`:** GitHub Actions run `39878884810` completed successfully on 2026-10-23. Raw job logs show Python 3.12 `Ran 225 tests ... OK (skipped=5)` (Windows-only cases), Node router `33 passed, 0 failed`, Linux core 3.11/3.12, Windows encrypted-memory acceptance 3.11/3.12 and release-layout jobs all successful.
+
+**NOT VERIFIED / NOT PRODUCTION-READY:**
+- Installed OpenCode Desktop V2 end-to-end with live tool discovery, actual `dai-os` selection, model authentication, router sessions and durable re-entry.
+- Security review for any separate legacy plaintext SQLite evidence path `adapters/opencode/mcp/core.py`; it must not be treated as interchangeable with `src/dai/mission.py` AES-GCM data.
+- NTFS machine power-loss and hostile-account ACL behavior; Windows process tests do not cover either.
+- Full specialist-domain acceptance and packaged desktop builds across Linux/Windows/macOS.
+- The installer must be verified against the **actual target OpenCode version** before installing to the owner's existing profile. Backups/rollback tests do not prove plugin registration on every V2 release.
+
+The source-level merge, when performed, is a **code integration only** and must not upgrade the product's readiness classification from NOT_READY / 0.1 to a complete or accepted release. Keep these checks open and do not automatically migrate legacy data or grant elevated permissions.
