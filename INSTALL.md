@@ -8,7 +8,7 @@
 | المتطلب | الإصدار | لماذا |
 |---|---|---|
 | Python | 3.11 أو أحدث | `from __future__ import annotations`، `datetime.fromisoformat`، و`asyncio` في الوصلات |
-| نظام ملفات يدعم صلاحيات Unix | Linux أو macOS | النواة ترفض العمل على مجلد بيانات بصلاحيات مفتوحة |
+| نظام ملفات خاص وآمن | Linux/macOS بصلاحيات Unix، أو Windows/NTFS مع ACL | دعم Windows قيد اختبارات القبول؛ راجع `docs/WINDOWS_MEMORY_ACCEPTANCE.md` |
 | Node.js | 20 أو أحدث | مُشغّل اختبار الراوتر فقط (`node --test`) |
 | OpenCode | v2.0.27 أو أحدث | المضيف المرجعي للوكلاء والمهارات والأوامر |
 
@@ -187,7 +187,8 @@ dai component adopt --project my-project <component-id> \
 
 | العَرَض | السبب | الحل |
 |---|---|---|
-| `Private state requires Unix permissions` | مجلد البيانات بصلاحيات مفتوحة | `chmod 700 ~/.d-ai` |
+| `Private state requires Unix permissions` | صلاحيات مجلد مفتوحة على Linux/macOS | `chmod 700 ~/.d-ai` |
+| `Cannot secure Windows private state ACL` | نظام الملفات أو حساب المستخدم يرفض ACL محمية | استخدم NTFS ومجلد المستخدم؛ لا تتجاوز آلية الحماية |
 | `A trusted principal is required` | استُدعيت خدمة بلا هوية موثوقة | استخدم `dai` CLI أو مُشغّل MCP بمetadata جلسة أصلي |
 | `The scoped capability was not granted` | الدور لا يملك القدرة | المالك يمنحها عبر `MemoryStore.grant` |
 | `Record was permanently purged` | مُحيت النسخة نهائياً | لا استرجع بالمفتاح؛ المحو غير قابل للعكس |
