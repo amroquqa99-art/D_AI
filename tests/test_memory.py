@@ -1,3 +1,4 @@
+from contextlib import closing
 from __future__ import annotations
 
 from dataclasses import replace
@@ -114,7 +115,7 @@ class MemoryTests(unittest.TestCase):
 
     def test_tampered_authenticated_metadata_fails_instead_of_returning_content(self):
         item = self.record(text="not a plausible fallback")
-        with sqlite3.connect(self.base / "state/project.db") as db:
+        with closing(sqlite3.connect(self.base / "state/project.db")) as db, db:
             db.execute("UPDATE records SET kind='different' WHERE id=?", (item.id,))
         with self.assertRaises(IntegrityFailure):
             self.store.get(self.owner, self.project, item.id)
@@ -153,7 +154,7 @@ class MemoryTests(unittest.TestCase):
         with self.assertRaises(Gone):
             self.store.get(self.owner, self.project, item.id, include_archived=True)
         self.assertEqual(self.store.search(self.owner, self.project, "erased-private-content"), [])
-        with sqlite3.connect(self.base / "state/project.db") as db:
+        with closing(sqlite3.connect(self.base / "state/project.db")) as db, db:
             self.assertEqual(db.execute("SELECT COUNT(*) FROM revisions WHERE record_id=?", (item.id,)).fetchone()[0], 0)
             self.assertNotIn("erased-private-content", str(db.execute("SELECT * FROM audit").fetchall()))
 
@@ -172,7 +173,7 @@ class MemoryTests(unittest.TestCase):
         reopened = MemoryStore(self.base / "state")
         with self.assertRaises(Gone):
             reopened.get(self.owner, self.project, item.id)
-        with sqlite3.connect(self.base / "state/project.db") as db:
+        with closing(sqlite3.connect(self.base / "state/project.db")) as db, db:
             self.assertEqual(db.execute("SELECT state FROM purge_requests").fetchone()[0], "COMPLETED")
 
     def test_corrupt_snapshot_rejected_before_changing_live_record(self):
