@@ -54,8 +54,9 @@ A record in config/model-profiles.json may describe:
 
 Scores must be populated from relevant repeatable tests or validated evidence
 rather than model vendor marketing claims or inferred performance. The routing
-receipt records quality evidence, predicted task USD, reason, and the catalog
-model ID, without authentication secrets.
+receipt records a SHA-256 digest of the quality evidence locator, predicted
+task USD, reason and catalog model ID. The original locator stays in the
+owner-maintained profile and is not copied into plaintext job receipts.
 
 ## Integration boundary
 
