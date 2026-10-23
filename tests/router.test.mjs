@@ -243,45 +243,51 @@ test('dai-models audit mode returns audit instructions without opening forms', a
   assert.equal(f.calls.form.length, 0);
 });
 
-test('E7 delegated choice picks verified-then-cheapest, records the rationale, and saves the preference', async () => {
+test('E7 owner can approve value routing; paid model wins when measured quality is materially better', async () => {
   const f = await fixture();
   f.available.push({ providerID: 'worker', id: 'paid', capabilities: { tools: true }, cost: [{ input: 5, output: 15 }] });
-  await f.registry.write('config/model-profiles.json', { profiles: [{ id: 'worker/paid', allow_worker: true, benchmark_status: 'VERIFIED_OK' }] });
+  await f.registry.write('config/model-profiles.json', { profiles: [
+    { id: 'worker/free', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'free-run',
+      quality_by_task: { retrieval: 75 } },
+    { id: 'worker/paid', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'paid-run',
+      quality_by_task: { retrieval: 98 } },
+  ] });
   f.setAnswer({ model: '__delegate__', scope: 'global' });
-  const saved = await f.registry.preference('retrieval', '/workspace');
-  if (saved) throw new Error('unexpected pre-existing preference');
   await f.router.choice('retrieval', 'ses_parent', '/workspace');
-  const pref = await f.registry.preference('retrieval', '/workspace');
-  assert.equal(pref.model, 'worker/paid');
-  const record = await f.registry.read(`runtime/router/delegated/${hash('ses_parent:retrieval')}.json`, null);
+  assert.equal((await f.registry.preference('retrieval', '/workspace')).mode, 'auto');
+  await f.router.dispatch({ id: 'paid-quality-run', session_id: 'ses_parent', directory: '/workspace',
+    kind: 'retrieval', target_agent: 'dai/shared/explorer', text: 'Find verified sources' });
+  assert.equal(f.calls.create[0].model.id, 'paid');
+  const record = await f.registry.read('runtime/router/delegated/' + hash('paid-quality-run') + '.json', null);
   assert.equal(record.model, 'worker/paid');
   assert.equal(record.reason.candidates, 2);
-  assert.equal(record.reason.rule, 'verified-free > verified > free > cheapest (known cost only)');
+  assert.equal(record.reason.rule, 'verified_task_quality_within_band_then_estimated_cost');
 });
-test('E7 delegated choice excludes allow_worker=false profiles and rejects without an eligible candidate', async () => {
+test('E7 value choice respects allow_worker=false and declines dispatch with no priced candidates', async () => {
   const f = await fixture();
   await f.registry.write('config/model-profiles.json', { profiles: [{ id: 'worker/free', allow_worker: false }] });
   f.setAnswer({ model: '__delegate__', scope: 'global' });
-  await assert.rejects(f.router.choice('retrieval', 'ses_parent', '/workspace'), /no eligible tool-capable/);
+  await assert.rejects(f.router.choice('retrieval', 'ses_parent', '/workspace'), /No eligible model/);
   assert.ok(!(await f.registry.preference('retrieval', '/workspace')));
 });
-
-test('E7 delegated choice never treats missing cost data as free', async () => {
+test('E7 missing cost data is unknown, never free; value mode is saved, not a frozen model', async () => {
   const f = await fixture();
   f.available.push({ providerID: 'worker', id: 'unknown', capabilities: { tools: true } });
   f.setAnswer({ model: '__delegate__', scope: 'global' });
   await f.router.choice('retrieval', 'ses_parent', '/workspace');
-  const pref = await f.registry.preference('retrieval', '/workspace');
-  assert.equal(pref.model, 'worker/free');
-  const record = await f.registry.read(`runtime/router/delegated/${hash('ses_parent:retrieval')}.json`, null);
+  assert.equal((await f.registry.preference('retrieval', '/workspace')).mode, 'auto');
+  await f.router.dispatch({ id: 'unknown-cost-run', session_id: 'ses_parent', directory: '/workspace',
+    kind: 'retrieval', target_agent: 'dai/shared/explorer', text: 'Find source files' });
+  const record = await f.registry.read('runtime/router/delegated/' + hash('unknown-cost-run') + '.json', null);
+  assert.equal(record.model, 'worker/free');
   assert.equal(record.reason.candidates, 1);
-  assert.equal(record.reason.offered, 2);
+  assert.equal(record.reason.unknown_cost_excluded, 1);
 });
-test('E7 delegated choice fails explicitly when only unknown-cost models exist', async () => {
+test('E7 value choice refuses a catalog containing only models with unknown prices', async () => {
   const f = await fixture();
   f.available.splice(0, f.available.length, { providerID: 'worker', id: 'unknown', capabilities: { tools: true } });
   f.setAnswer({ model: '__delegate__', scope: 'global' });
-  await assert.rejects(f.router.choice('retrieval', 'ses_parent', '/workspace'), /known cost/);
+  await assert.rejects(f.router.choice('retrieval', 'ses_parent', '/workspace'), /known estimated input\/output price/);
 });
 
 test('fresh child with server-assigned default variant still verifies (live regression)', async () => {
