@@ -1,5 +1,6 @@
-from contextlib import closing
 from __future__ import annotations
+
+from contextlib import closing
 
 from dataclasses import replace
 from pathlib import Path
