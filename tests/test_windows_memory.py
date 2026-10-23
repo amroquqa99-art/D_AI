@@ -102,5 +102,74 @@ class WindowsEncryptedMemoryTests(unittest.TestCase):
                 process.communicate()
 
 
+    def test_forced_process_exit_after_key_unlink_recovers_purge(self):
+        """A hard exit between key deletion and DB updates must not resurrect data."""
+        from dai.contracts import Scope
+        from dai.errors import Gone
+
+        store = MemoryStore(self.root)
+        scope = store.create_project(self.owner, "Crash purge", project_id="crash-purge")
+        record = store.create(self.owner, scope, "note", {"text": "never recover deleted bytes"})
+        code = """
+import os,sys
+from dai.memory import MemoryStore
+from dai.contracts import Principal,Scope
+store=MemoryStore(sys.argv[1])
+owner=Principal('owner')
+scope=Scope('project','owner','crash-purge')
+confirmation=store.request_purge(owner,scope,sys.argv[2],expected_version=1)
+original=store.vault.destroy
+def crash_after_destroy(key):
+    original(key)
+    os._exit(37)
+store.vault.destroy=crash_after_destroy
+store.confirm_purge(owner,confirmation)
+"""
+        child = subprocess.run([sys.executable, "-c", code, str(self.root), record.id],
+                               timeout=20, capture_output=True, text=True)
+        self.assertEqual(child.returncode, 37, child.stderr)
+        reopened = MemoryStore(self.root)
+        with self.assertRaises(Gone):
+            reopened.get(self.owner, scope, record.id)
+        self.assertEqual(reopened.search(self.owner, scope, "never recover deleted bytes"), [])
+
+    def test_forced_process_exit_after_first_restore_plane_recovers_entire_snapshot(self):
+        """A hard exit after restoring one DB plane must not expose mixed versions."""
+        from dai.contracts import Scope
+
+        store = MemoryStore(self.root)
+        project = store.create_project(self.owner, "Crash restore", project_id="crash-restore")
+        personal = Scope("person", "owner")
+        records = [
+            (personal, store.create(self.owner, personal, "note", {"value": "old-person"})),
+            (project, store.create(self.owner, project, "note", {"value": "old-project"})),
+        ]
+        snapshot = store.snapshot(self.owner, Path(self.temp.name) / "snapshot")
+        for scope, item in records:
+            store.update(self.owner, scope, item.id, {"value": "new"},
+                         expected_version=1)
+        code = """
+import os,sys
+from dai.memory import MemoryStore
+from dai.contracts import Principal
+store=MemoryStore(sys.argv[1])
+original=store._apply_restore_plane
+def crash_after_one_plane(stage,plane):
+    original(stage,plane)
+    if plane=='person':
+        os._exit(39)
+store._apply_restore_plane=crash_after_one_plane
+store.restore_snapshot(Principal('owner'),sys.argv[2])
+"""
+        child = subprocess.run([sys.executable, "-c", code, str(self.root), str(snapshot)],
+                               timeout=20, capture_output=True, text=True)
+        self.assertEqual(child.returncode, 39, child.stderr)
+        reopened = MemoryStore(self.root)
+        for scope, item in records:
+            self.assertEqual(reopened.get(self.owner, scope, item.id).content["value"],
+                             "old-person" if scope == personal else "old-project")
+        self.assertFalse((self.root / ".restore.json").exists())
+
+
 if __name__ == "__main__":
     unittest.main()
