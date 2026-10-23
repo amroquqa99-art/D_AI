@@ -16,6 +16,7 @@ mcp = ["mcp>=1.12,<2"]
 [project.scripts]
 dai = "dai.cli:main"
 dai-mcp = "dai.mcp_server:main"
+dai-desktop-bridge = "dai.desktop_bridge:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
