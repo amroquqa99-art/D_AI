@@ -65,8 +65,13 @@ export class Registry {
       try { await handle.writeFile(JSON.stringify(data, null, 2) + '\n'); await handle.sync(); }
       finally { await handle.close(); }
       await fs.rename(tmp, file);
-      const directory = await fs.open(path.dirname(file), 'r');
-      try { await directory.sync(); } finally { await directory.close(); }
+      // Node cannot open directory handles with fs.open('r') on Windows.
+      // The file itself was fsync'ed above; POSIX also syncs the rename's
+      // directory entry. Windows power-loss durability remains unverified.
+      if (process.platform !== 'win32') {
+        const directory = await fs.open(path.dirname(file), 'r');
+        try { await directory.sync(); } finally { await directory.close(); }
+      }
     } finally { await fs.unlink(tmp).catch(() => {}); }
   }
   async locked(fn) {
