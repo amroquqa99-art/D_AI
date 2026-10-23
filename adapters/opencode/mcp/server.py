@@ -471,11 +471,16 @@ def dai_model_list(ctx: Context, project_id: str) -> list[dict]:
 @mcp.tool()
 def dai_model_route(ctx: Context, project_id: str, task_class: str,
                     required_capabilities: list[str] | None = None,
-                    max_cost_per_1k: str | None = None) -> dict:
-    """Route a task class to a model."""
+                    max_cost_per_1k: str | None = None,
+                    free_only: bool = True) -> dict:
+    """Recommend a model; D_AI automatic routing defaults to free-only.
+
+    Explicit free_only=False is a *recommendation*, not a spending authorization.
+    Actual inference must apply host/provider permissions and billing checks.
+    """
     return _call(_get_bridge().dai_model_route, ctx, project_id, task_class,
                  required_capabilities=required_capabilities,
-                 max_cost_per_1k=max_cost_per_1k)
+                 max_cost_per_1k=max_cost_per_1k, free_only=free_only)
 
 
 @mcp.tool()
