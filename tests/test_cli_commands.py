@@ -219,6 +219,8 @@ class CommandTests(unittest.TestCase):
                                       "--provider", "opencode",
                                       "--capabilities", "chat",
                                       "--cost-input-per-1k", "0.5",
+                                      "--cost-output-per-1k", "1.2",
+                                      "--cost-currency", "USD",
                                       "--cost-basis", "estimated",
                                       "--availability", "available")
             self.assertEqual(registered["kind"], "model")
