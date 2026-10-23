@@ -22,7 +22,22 @@ const textResult = value => ({ content: JSON.stringify(value) });
 export async function nativeForm(method, apiPath, body) {
   const args = ['api', method, apiPath];
   if (body !== undefined) args.push('--data', JSON.stringify(body));
-  const { stdout } = await run(process.env.DAI_OPENCODE_BINARY || `${process.env.HOME}/.opencode/bin/opencode`, args, { timeout: 20000, maxBuffer: 1024 * 1024 });
+  // Desktop V2 resolves either its staged binary or a Bun development command.
+  // Never silently call a different OpenCode binary when an explicit host
+  // command was supplied, and retain the standalone OpenCode fallback.
+  const configured = process.env.DAI_OPENCODE_COMMAND_JSON;
+  let command;
+  if (configured) {
+    try { command = JSON.parse(configured); }
+    catch { throw new Error('DAI_OPENCODE_COMMAND_JSON must be a JSON command array'); }
+    if (!Array.isArray(command) || !command.length ||
+        command.some(arg => typeof arg !== 'string' || !arg.trim())) {
+      throw new Error('DAI_OPENCODE_COMMAND_JSON must contain nonempty command strings');
+    }
+  } else {
+    command = [process.env.DAI_OPENCODE_BINARY || path.join(process.env.HOME || '', '.opencode', 'bin', 'opencode')];
+  }
+  const { stdout } = await run(command[0], [...command.slice(1), ...args], { timeout: 20000, maxBuffer: 1024 * 1024 });
   return unwrap(JSON.parse(stdout));
 }
 
