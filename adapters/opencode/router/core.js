@@ -36,6 +36,18 @@ export function modelRef(id) {
   return { providerID: provider, id: model, ...(variant ? { variant } : {}) };
 }
 
+/** Verify a manual provider/model[#variant] against the native OpenCode catalog.
+ * OpenCode V2 publishes model variants in the `variants` array, not `variant`.
+ * Reject unknown variants instead of throwing or silently dropping a pin.
+ */
+export function catalogSupportsRef(model, ref) {
+  if (!model || !ref || model.enabled === false ||
+      model.providerID !== ref.providerID || model.id !== ref.id) return false;
+  if (!ref.variant) return true;
+  if (!Array.isArray(model.variants)) return false;
+  return model.variants.some(v => (typeof v === 'string' ? v : v?.id) === ref.variant);
+}
+
 // One lock for every plugin location/process. Never guess that an old lock is safe to remove.
 export class Registry {
   constructor(home) { this.home = home; this.state = path.join(home, 'runtime', 'router'); }
@@ -53,8 +65,13 @@ export class Registry {
       try { await handle.writeFile(JSON.stringify(data, null, 2) + '\n'); await handle.sync(); }
       finally { await handle.close(); }
       await fs.rename(tmp, file);
-      const directory = await fs.open(path.dirname(file), 'r');
-      try { await directory.sync(); } finally { await directory.close(); }
+      // Node cannot open directory handles with fs.open('r') on Windows.
+      // The file itself was fsync'ed above; POSIX also syncs the rename's
+      // directory entry. Windows power-loss durability remains unverified.
+      if (process.platform !== 'win32') {
+        const directory = await fs.open(path.dirname(file), 'r');
+        try { await directory.sync(); } finally { await directory.close(); }
+      }
     } finally { await fs.unlink(tmp).catch(() => {}); }
   }
   async locked(fn) {
@@ -80,6 +97,18 @@ export class Registry {
       p.global ??= {}; p.projects ??= {};
       const scope = global ? p.global : (p.projects[directory] ??= {});
       scope[kind] = { model, approved_at: new Date().toISOString(), source: 'native-owner-form' };
+      if (global && p.projects[directory]) delete p.projects[directory][kind];
+      await this.write('config/routing-preferences.json', p);
+      return scope[kind];
+    });
+  }
+  async saveAutoPreference(kind, directory, global) {
+    if (!CLASSES.includes(kind)) throw new Error('Unknown task class');
+    return this.locked(async () => {
+      const p = await this.read('config/routing-preferences.json', { schema_version: 1, global: {}, projects: {} });
+      p.global ??= {}; p.projects ??= {};
+      const scope = global ? p.global : (p.projects[directory] ??= {});
+      scope[kind] = { mode: 'auto', approved_at: new Date().toISOString(), source: 'native-owner-form' };
       if (global && p.projects[directory]) delete p.projects[directory][kind];
       await this.write('config/routing-preferences.json', p);
       return scope[kind];

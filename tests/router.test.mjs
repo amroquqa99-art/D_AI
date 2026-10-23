@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { Registry, classify, modelRef, workerPermissions, compactResult, hash } from '../adapters/opencode/router/core.js';
+import { Registry, classify, modelRef, workerPermissions, compactResult, hash, catalogSupportsRef } from '../adapters/opencode/router/core.js';
 import { makeRouter } from '../adapters/opencode/router/index.js';
+import { selectValueModel, estimateModelCost } from '../adapters/opencode/router/value.js';
 
 async function fixture() {
   const home = await mkdtemp(path.join(os.tmpdir(), 'dai-router-test-'));
@@ -242,45 +243,51 @@ test('dai-models audit mode returns audit instructions without opening forms', a
   assert.equal(f.calls.form.length, 0);
 });
 
-test('E7 delegated choice picks verified-then-cheapest, records the rationale, and saves the preference', async () => {
+test('E7 owner can approve value routing; paid model wins when measured quality is materially better', async () => {
   const f = await fixture();
   f.available.push({ providerID: 'worker', id: 'paid', capabilities: { tools: true }, cost: [{ input: 5, output: 15 }] });
-  await f.registry.write('config/model-profiles.json', { profiles: [{ id: 'worker/paid', allow_worker: true, benchmark_status: 'VERIFIED_OK' }] });
+  await f.registry.write('config/model-profiles.json', { profiles: [
+    { id: 'worker/free', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'free-run',
+      quality_by_task: { retrieval: 75 } },
+    { id: 'worker/paid', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'paid-run',
+      quality_by_task: { retrieval: 98 } },
+  ] });
   f.setAnswer({ model: '__delegate__', scope: 'global' });
-  const saved = await f.registry.preference('retrieval', '/workspace');
-  if (saved) throw new Error('unexpected pre-existing preference');
   await f.router.choice('retrieval', 'ses_parent', '/workspace');
-  const pref = await f.registry.preference('retrieval', '/workspace');
-  assert.equal(pref.model, 'worker/paid');
-  const record = await f.registry.read(`runtime/router/delegated/${hash('ses_parent:retrieval')}.json`, null);
+  assert.equal((await f.registry.preference('retrieval', '/workspace')).mode, 'auto');
+  await f.router.dispatch({ id: 'paid-quality-run', session_id: 'ses_parent', directory: '/workspace',
+    kind: 'retrieval', target_agent: 'dai/shared/explorer', text: 'Find verified sources' });
+  assert.equal(f.calls.create[0].model.id, 'paid');
+  const record = await f.registry.read('runtime/router/delegated/' + hash('paid-quality-run') + '.json', null);
   assert.equal(record.model, 'worker/paid');
   assert.equal(record.reason.candidates, 2);
-  assert.equal(record.reason.rule, 'verified-free > verified > free > cheapest (known cost only)');
+  assert.equal(record.reason.rule, 'verified_task_quality_within_band_then_estimated_cost');
 });
-test('E7 delegated choice excludes allow_worker=false profiles and rejects without an eligible candidate', async () => {
+test('E7 value choice respects allow_worker=false and declines dispatch with no priced candidates', async () => {
   const f = await fixture();
   await f.registry.write('config/model-profiles.json', { profiles: [{ id: 'worker/free', allow_worker: false }] });
   f.setAnswer({ model: '__delegate__', scope: 'global' });
-  await assert.rejects(f.router.choice('retrieval', 'ses_parent', '/workspace'), /no eligible tool-capable/);
+  await assert.rejects(f.router.choice('retrieval', 'ses_parent', '/workspace'), /No eligible model/);
   assert.ok(!(await f.registry.preference('retrieval', '/workspace')));
 });
-
-test('E7 delegated choice never treats missing cost data as free', async () => {
+test('E7 missing cost data is unknown, never free; value mode is saved, not a frozen model', async () => {
   const f = await fixture();
   f.available.push({ providerID: 'worker', id: 'unknown', capabilities: { tools: true } });
   f.setAnswer({ model: '__delegate__', scope: 'global' });
   await f.router.choice('retrieval', 'ses_parent', '/workspace');
-  const pref = await f.registry.preference('retrieval', '/workspace');
-  assert.equal(pref.model, 'worker/free');
-  const record = await f.registry.read(`runtime/router/delegated/${hash('ses_parent:retrieval')}.json`, null);
+  assert.equal((await f.registry.preference('retrieval', '/workspace')).mode, 'auto');
+  await f.router.dispatch({ id: 'unknown-cost-run', session_id: 'ses_parent', directory: '/workspace',
+    kind: 'retrieval', target_agent: 'dai/shared/explorer', text: 'Find source files' });
+  const record = await f.registry.read('runtime/router/delegated/' + hash('unknown-cost-run') + '.json', null);
+  assert.equal(record.model, 'worker/free');
   assert.equal(record.reason.candidates, 1);
-  assert.equal(record.reason.offered, 2);
+  assert.equal(record.reason.unknown_cost_excluded, 1);
 });
-test('E7 delegated choice fails explicitly when only unknown-cost models exist', async () => {
+test('E7 value choice refuses a catalog containing only models with unknown prices', async () => {
   const f = await fixture();
   f.available.splice(0, f.available.length, { providerID: 'worker', id: 'unknown', capabilities: { tools: true } });
   f.setAnswer({ model: '__delegate__', scope: 'global' });
-  await assert.rejects(f.router.choice('retrieval', 'ses_parent', '/workspace'), /known cost/);
+  await assert.rejects(f.router.choice('retrieval', 'ses_parent', '/workspace'), /known estimated input\/output price/);
 });
 
 test('fresh child with server-assigned default variant still verifies (live regression)', async () => {
@@ -295,4 +302,176 @@ test('fresh child with server-assigned default variant still verifies (live regr
   await f.router.context({ sessionID: 'ses_parent', system: [] });
   assert.equal(f.calls.create.length, 1);
   assert.equal(f.calls.prompt.length, 1);
+});
+
+
+test('value router selects a paid model when verified task quality is materially better', () => {
+  const models = [
+    { providerID: 'opencode', id: 'free', capabilities: { tools: true }, cost: [{ input: 0, output: 0 }] },
+    { providerID: 'opencode', id: 'paid', capabilities: { tools: true }, cost: [{ input: 1, output: 3 }] },
+  ];
+  const profiles = [
+    { id: 'opencode/free', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'bench://retrieval/free/1', quality_by_task: { retrieval: 78 } },
+    { id: 'opencode/paid', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'bench://retrieval/paid/1', quality_by_task: { retrieval: 97 } },
+  ];
+  const picked = selectValueModel(models, profiles, 'retrieval');
+  assert.equal(picked.model, 'opencode/paid');
+  assert.equal(picked.reason.selected_verified_quality, 97);
+  assert.ok(picked.reason.estimated_usd > 0);
+});
+
+test('value router prefers free model when verified quality is within near-best band', () => {
+  const models = [
+    { providerID: 'opencode', id: 'free', cost: [{ input: 0, output: 0 }] },
+    { providerID: 'opencode', id: 'paid', cost: [{ input: 1, output: 3 }] },
+  ];
+  const profiles = [
+    { id: 'opencode/free', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'receipt-1', quality_by_task: { review: 93 } },
+    { id: 'opencode/paid', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'receipt-2', quality_by_task: { review: 97 } },
+  ];
+  assert.equal(selectValueModel(models, profiles, 'review').model, 'opencode/free');
+  assert.equal(selectValueModel(models, profiles, 'review', { quality_slack: 0 }).model, 'opencode/paid');
+});
+
+test('value router does not infer quality from a verified label without benchmark evidence', () => {
+  const models = [
+    { providerID: 'worker', id: 'free', cost: [{ input: 0, output: 0 }] },
+    { providerID: 'worker', id: 'paid', cost: [{ input: 2, output: 4 }] },
+  ];
+  const profiles = [{ id: 'worker/paid', benchmark_status: 'VERIFIED_OK', quality_by_task: { implementation: 100 } }];
+  const result = selectValueModel(models, profiles, 'implementation');
+  assert.equal(result.model, 'worker/free');
+  assert.equal(result.reason.rule, 'cost_only_quality_unverified');
+  assert.equal(result.reason.selected_verified_quality, null);
+});
+
+test('unknown-cost model is never assumed free, even with a quality score', () => {
+  const result = selectValueModel([
+    { providerID: 'worker', id: 'unknown', cost: [] },
+    { providerID: 'worker', id: 'paid', cost: [{ input: 1, output: 2 }] },
+  ], [{ id: 'worker/unknown', benchmark_status: 'VERIFIED_OK',
+    benchmark_evidence: 'bench://unknown', quality_by_task: { review: 100 } }], 'review');
+  assert.equal(result.model, 'worker/paid');
+  assert.equal(result.reason.unknown_cost_excluded, 1);
+  assert.throws(() => selectValueModel([{ providerID: 'worker', id: 'unknown' }], [], 'review'), /No eligible model/);
+});
+
+test('value routing conservatively takes the most expensive catalog tier and respects budget', () => {
+  const tiered = { providerID: 'worker', id: 'tiered', cost: [
+    { input: 0, output: 0 }, { input: 5, output: 10 },
+  ] };
+  assert.equal(estimateModelCost(tiered, { input: 1000, output: 1000 }), 0.015);
+  assert.throws(() => selectValueModel([tiered], [], 'retrieval',
+    { max_estimated_usd_per_task: 0.001 }), /No eligible model/);
+  assert.equal(selectValueModel([tiered], [], 'review',
+    { max_estimated_usd_per_task: 0.1 }).model, 'worker/tiered');
+  assert.throws(() => selectValueModel([tiered], [], 'review',
+    { max_estimated_usd_per_task: -1 }), /nonnegative/);
+});
+
+test('owner-approved auto selection re-evaluates for every delegated task; manual choices stay pinned', async () => {
+  const f = await fixture();
+  f.setAnswer({ model: '__delegate__', scope: 'project' });
+  f.available.push({ providerID: 'worker', id: 'paid', capabilities: { tools: true },
+    cost: [{ input: 1, output: 2 }] });
+  await f.registry.write('config/model-profiles.json', {
+    profiles: [
+      { id: 'worker/free', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'measured-free',
+        quality_by_task: { retrieval: 75 } },
+      { id: 'worker/paid', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'measured-paid',
+        quality_by_task: { retrieval: 95 } },
+    ],
+  });
+  const plan = n => ({ id: 'auto-job-' + n, session_id: 'ses_parent', directory: '/workspace',
+    kind: 'retrieval', text: 'Find project source files', target_agent: 'dai/shared/explorer' });
+  await f.router.dispatch(plan(1));
+  assert.equal(f.calls.create[0].model.id, 'paid');
+  assert.equal((await f.registry.preference('retrieval', '/workspace')).mode, 'auto');
+  const receipt = await f.registry.read('runtime/router/delegated/' + hash('auto-job-1') + '.json', null);
+  assert.equal(receipt.reason.rule, 'verified_task_quality_within_band_then_estimated_cost');
+  assert.match(receipt.reason.quality_evidence_sha256, /^[a-f0-9]{64}$/);
+  assert.doesNotMatch(JSON.stringify(receipt), /measured-paid|measured-free/);
+  // Catalog and verified results change; a model name must not be silently frozen by old auto policy.
+  await f.registry.write('config/model-profiles.json', {
+    profiles: [
+      { id: 'worker/free', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'new-free-bench',
+        quality_by_task: { retrieval: 98 } },
+      { id: 'worker/paid', benchmark_status: 'VERIFIED_OK', benchmark_evidence: 'new-paid-bench',
+        quality_by_task: { retrieval: 95 } },
+    ],
+  });
+  await f.router.dispatch(plan(2));
+  assert.equal(f.calls.create[1].model.id, 'free');
+  await f.registry.savePreference('retrieval', '/workspace', 'worker/paid', false);
+  await f.router.dispatch(plan(3));
+  assert.equal(f.calls.create[2].model.id, 'paid');
+});
+
+
+test('manual OpenCode V2 variant is validated exactly, including nested model IDs', async () => {
+  assert.equal(catalogSupportsRef({ providerID: 'worker', id: 'free', variants: [{ id: 'fast' }, { id: 'superfast' }] },
+    modelRef('worker/free#fast')), true);
+  assert.equal(catalogSupportsRef({ providerID: 'worker', id: 'free', variants: [{ id: 'superfast' }] },
+    modelRef('worker/free#fast')), false);
+  assert.equal(catalogSupportsRef({ providerID: 'lmstudio', id: 'vendor/model', variants: [{ id: 'analysis' }] },
+    modelRef('lmstudio/vendor/model#analysis')), true);
+  assert.equal(catalogSupportsRef({ providerID: 'worker', id: 'free' },
+    modelRef('worker/free#fast')), false);
+  assert.equal(catalogSupportsRef({ providerID: 'worker', id: 'free', variants: [{ id: 'fast' }], enabled: false },
+    modelRef('worker/free#fast')), false);
+});
+
+test('manual worker variant is sent unchanged to the native child and never silently replaced', async () => {
+  const f = await fixture();
+  f.available[0].variants = [{ id: 'fast' }, { id: 'superfast' }];
+  f.setAnswer({ model: 'worker/free#fast', scope: 'project' });
+  await f.router.dispatch({ id: 'exact-variant-task', session_id: 'ses_parent',
+    directory: '/workspace', kind: 'retrieval', text: 'Review sources', target_agent: 'dai/shared/explorer' });
+  assert.deepEqual(f.calls.create[0].model, { providerID: 'worker', id: 'free', variant: 'fast' });
+  assert.equal((await f.registry.preference('retrieval', '/workspace')).model, 'worker/free#fast');
+  assert.equal(f.calls.create.length, 1);
+});
+
+test('manual worker rejects missing native variant instead of crashing or falling back', async () => {
+  const f = await fixture();
+  f.setAnswer({ model: 'worker/free#unknown', scope: 'project' });
+  await assert.rejects(f.router.dispatch({ id: 'bad-variant-task', session_id: 'ses_parent',
+    directory: '/workspace', kind: 'retrieval', text: 'Collect citations',
+    target_agent: 'dai/shared/explorer' }), /model or variant is not available/);
+  assert.equal(f.calls.create.length, 0);
+});
+
+test('desktop Native V2 API form uses explicit CLI command instead of user OpenCode installation', async () => {
+  const { nativeForm } = await import('../adapters/opencode/router/index.js');
+  const original = process.env.DAI_OPENCODE_COMMAND_JSON;
+  try {
+    process.env.DAI_OPENCODE_COMMAND_JSON = JSON.stringify([
+      process.execPath, '-e', "console.log(JSON.stringify({data:{source:'fork-stub'}}))", '--',
+    ]);
+    assert.deepEqual(await nativeForm('get', '/api/test'), { source: 'fork-stub' });
+    process.env.DAI_OPENCODE_COMMAND_JSON = '{"not":"an-array"}';
+    await assert.rejects(() => nativeForm('post', '/api/test'), /JSON command array/);
+  } finally {
+    if (original === undefined) delete process.env.DAI_OPENCODE_COMMAND_JSON;
+    else process.env.DAI_OPENCODE_COMMAND_JSON = original;
+  }
+});
+
+test('router resolves Core root by default, honors absolute isolated Desktop root and rejects relative root', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const script = `import {makeRouter} from './adapters/opencode/router/index.js'; console.log(makeRouter({options:{}}).registry.home)`;
+  const root = path.resolve('.');
+  const run = env => spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+    cwd: root, env: { ...process.env, ...env }, encoding: 'utf8',
+  });
+  const isolated = path.join(os.tmpdir(), 'dai-desktop-router-isolated');
+  const chosen = run({ DAI_ROUTER_DATA_ROOT: isolated });
+  assert.equal(chosen.status, 0, chosen.stderr);
+  assert.equal(chosen.stdout.trim(), isolated);
+  const invalid = run({ DAI_ROUTER_DATA_ROOT: 'relative-not-allowed' });
+  assert.notEqual(invalid.status, 0);
+  assert.match(invalid.stderr, /must be absolute/);
+  const original = run({ DAI_ROUTER_DATA_ROOT: '' });
+  assert.equal(original.status, 0, original.stderr);
+  assert.equal(original.stdout.trim(), root);
 });

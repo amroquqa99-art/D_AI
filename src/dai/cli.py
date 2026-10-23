@@ -317,11 +317,16 @@ def _add_model(commands) -> None:
     register.add_argument("--availability", default="unknown",
                           help="available, limited, unavailable or unknown")
     register.add_argument("--notes", default="", help="Model notes")
+    register.add_argument("--quality-by-task", help="JSON object of 0-100 measured quality scores per task class")
+    register.add_argument("--quality-evidence", help="Benchmark evidence locator required with quality scores")
     m_actions.add_parser("list", help="List registered models")
     route = m_actions.add_parser("route", help="Route a task class to a model")
     route.add_argument("--task-class", required=True, help="Bounded task class")
     route.add_argument("--required-capabilities", action="append", help="Required capability (repeatable)")
     route.add_argument("--max-cost-per-1k", help="Maximum input cost per 1k tokens")
+    route.add_argument("--selection-mode", choices=["value", "lowest_cost"], default="value",
+                       help="Measured task-quality/price value or strict lowest input cost")
+    route.add_argument("--quality-slack", default="5", help="Near-best quality tolerance in points, 0-30")
     choose = m_actions.add_parser("choose", help="Choose a model for a role")
     choose.add_argument("--model-id", required=True, help="Model id")
     choose.add_argument("--role", required=True, help="Role the model is assigned to")
@@ -554,13 +559,18 @@ def _dispatch_new(args: argparse.Namespace, store: MemoryStore, actor: Principal
                                        cost_output_per_1k=args.cost_output_per_1k,
                                        cost_currency=args.cost_currency, cost_basis=args.cost_basis,
                                        tool_support=_string_list(args.tool_support),
-                                       availability=args.availability, notes=args.notes))
+                                       availability=args.availability, notes=args.notes,
+                                       quality_by_task=_json_object(args.quality_by_task, "quality_by_task")
+                                       if args.quality_by_task is not None else None,
+                                       quality_evidence=args.quality_evidence))
         if args.action == "list":
             return svc.catalog(actor, scope)
         if args.action == "route":
             return svc.route(actor, scope, task_class=args.task_class,
                              required_capabilities=_string_list(args.required_capabilities),
-                             max_cost_per_1k=args.max_cost_per_1k)
+                             max_cost_per_1k=args.max_cost_per_1k,
+                             selection_mode=args.selection_mode,
+                             quality_slack=args.quality_slack)
         if args.action == "choose":
             return asdict(svc.choose(actor, scope, model_id=args.model_id, role=args.role,
                                      reason=args.reason, task_class=args.task_class,

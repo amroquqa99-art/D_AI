@@ -21,6 +21,8 @@ from .memory import MemoryStore, utc_now
 
 COST_BASES = ("measured", "estimated", "unknown")
 AVAILABILITY = ("available", "limited", "unavailable", "unknown")
+TASK_ESTIMATES = {"retrieval": (4000, 1600), "implementation": (8000, 4000),
+                  "review": (6000, 2500)}
 
 # A model identity is either a plain bounded name or provider/model, optionally
 # with a variant suffix. It is not a generic record identifier: the provider
@@ -113,10 +115,17 @@ class ModelRegistry:
             return None
         return self.store.get(actor, scope, row["record_id"])
 
-    def _candidate(self, record: Record) -> dict[str, Any]:
+    def _candidate(self, record: Record, task_class: str | None = None) -> dict[str, Any]:
         content = record.content
         cost_input = _cost_amount(content.get("cost_input_per_1k"))
-        known = content.get("cost_basis") in ("measured", "estimated") and cost_input is not None
+        cost_output = _cost_amount(content.get("cost_output_per_1k"))
+        known = (content.get("cost_basis") in ("measured", "estimated")
+                 and cost_input is not None and cost_output is not None
+                 and content.get("cost_currency") == "USD")
+        scores = content.get("quality_by_task") or {}
+        score = (_cost_amount(scores.get(task_class)) if task_class
+                 and content.get("quality_evidence") and isinstance(scores, dict)
+                 else None)
         return {
             "model_id": content["model_id"],
             "availability": content["availability"],
@@ -125,12 +134,13 @@ class ModelRegistry:
             "cost_output_per_1k": content.get("cost_output_per_1k"),
             "cost_currency": content.get("cost_currency"),
             "cost_known": known,
-            "cost_input": cost_input,
+            "cost_input": cost_input, "cost_output": cost_output,
+            "_quality": score, "quality_score": str(score) if score is not None else None,
         }
 
     @staticmethod
     def _public(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        return [{key: value for key, value in candidate.items() if key != "cost_input"}
+        return [{key: value for key, value in candidate.items() if key not in ("cost_input", "cost_output", "_quality")}
                 for candidate in candidates]
 
     def register(self, actor: Principal, scope: Scope, *, model_id: str,
@@ -142,7 +152,9 @@ class ModelRegistry:
                  cost_basis: str = "unknown",
                  tool_support: list[str] | None = None,
                  availability: str = "unknown",
-                 notes: str = "") -> Record:
+                 notes: str = "",
+                 quality_by_task: dict[str, str] | None = None,
+                 quality_evidence: str | None = None) -> Record:
         if scope.namespace != "project":
             raise InvalidRequest("A model belongs to a project")
         _model_id(model_id)
@@ -161,6 +173,19 @@ class ModelRegistry:
             raise InvalidRequest("availability must be one of available, limited, unavailable, unknown")
         if not isinstance(notes, str):
             raise InvalidRequest("Notes must be a string")
+        scores: dict[str, str] = {}
+        if quality_by_task is not None:
+            if not isinstance(quality_by_task, dict) or not quality_by_task:
+                raise InvalidRequest("quality_by_task must be a nonempty task-score mapping")
+            for task, raw in quality_by_task.items():
+                identifier(task)
+                score = _cost_text(raw, "quality_by_task." + task)
+                if score is None or Decimal(score) > Decimal("100"):
+                    raise InvalidRequest("Quality scores must be between 0 and 100")
+                scores[task] = score
+            if (not isinstance(quality_evidence, str) or not quality_evidence.strip()
+                    or len(quality_evidence) > 1024):
+                raise InvalidRequest("Task quality requires a bounded benchmark evidence reference")
         content = {
             "model_id": model_id, "provider": provider.strip(),
             "capabilities": capabilities, "context_window": context_window,
@@ -168,6 +193,7 @@ class ModelRegistry:
             "cost_currency": cost_currency.strip() if cost_currency else None,
             "cost_basis": cost_basis, "tool_support": tool_support,
             "availability": availability, "notes": notes.strip(),
+            "quality_by_task": scores, "quality_evidence": quality_evidence.strip() if scores else None,
         }
         with self.store._locked(), self.store._db("project") as db:
             self.store._authorize(actor, scope, "write", kind="model")
@@ -199,6 +225,8 @@ class ModelRegistry:
                 "tool_support": content["tool_support"],
                 "availability": content["availability"],
                 "notes": content["notes"],
+                "quality_by_task": content.get("quality_by_task", {}),
+                "quality_evidence": content.get("quality_evidence"),
                 "version": record.version,
             })
         return result
@@ -212,7 +240,9 @@ class ModelRegistry:
 
     def route(self, actor: Principal, scope: Scope, *, task_class: str,
               required_capabilities: list[str] | None = None,
-              max_cost_per_1k: str | None = None) -> dict:
+              max_cost_per_1k: str | None = None,
+              selection_mode: str = "value",
+              quality_slack: str = "5") -> dict:
         if scope.namespace != "project":
             raise InvalidRequest("A model route belongs to a project")
         if not isinstance(task_class, str) or not task_class.strip():
@@ -222,6 +252,13 @@ class ModelRegistry:
         cost_limit_text = _cost_text(max_cost_per_1k, "max_cost_per_1k") \
             if max_cost_per_1k is not None else None
         cost_limit = Decimal(cost_limit_text) if cost_limit_text is not None else None
+        if selection_mode not in ("value", "lowest_cost"):
+            raise InvalidRequest("selection_mode must be value or lowest_cost")
+        slack_text = _cost_text(quality_slack, "quality_slack")
+        if slack_text is None or Decimal(slack_text) > Decimal("30"):
+            raise InvalidRequest("quality_slack must be between 0 and 30")
+        slack = Decimal(slack_text)
+        input_tokens, output_tokens = TASK_ESTIMATES.get(task_class, (4000, 1600))
         with self.store._locked(), self.store._db("project") as db:
             self.store._authorize(actor, scope, "read")
             rows = db.execute(
@@ -233,12 +270,12 @@ class ModelRegistry:
                 record = self.store.get(actor, scope, row["record_id"])
                 content = record.content
                 if content["availability"] not in AUTO_AVAILABILITY:
-                    excluded.append(self._candidate(record))
+                    excluded.append(self._candidate(record, task_class))
                     continue
                 capabilities = set(content.get("capabilities") or [])
                 if required_capabilities and not set(required_capabilities) <= capabilities:
                     continue
-                eligible.append(self._candidate(record))
+                eligible.append(self._candidate(record, task_class))
             eligible.sort(
                 key=lambda candidate: (not candidate["cost_known"],
                                        candidate["cost_input"]
@@ -249,12 +286,29 @@ class ModelRegistry:
                 known = [c for c in known
                          if c["cost_input"] is not None and c["cost_input"] <= cost_limit]
             if known:
-                pick = min(known, key=lambda candidate: candidate["cost_input"])
-                currency = pick["cost_currency"] or ""
+                assessed = ([c for c in known if c["_quality"] is not None]
+                            if selection_mode == "value" else [])
+                best_quality = max((c["_quality"] for c in assessed), default=None)
+                nearby = ([c for c in assessed if c["_quality"] >= best_quality - slack]
+                          if best_quality is not None else known)
+                def task_cost(candidate: dict[str, Any]) -> Decimal:
+                    return ((candidate["cost_input"] * input_tokens
+                             + candidate["cost_output"] * output_tokens) / 1000)
+                if selection_mode == "lowest_cost":
+                    pick = min(known, key=lambda c: (c["cost_input"], c["model_id"]))
+                    rule = "lowest_input_price"
+                else:
+                    pick = min(nearby, key=lambda c: (task_cost(c), c["model_id"]))
+                    rule = ("task_quality_within_band_then_estimated_cost"
+                            if best_quality is not None else "cost_only_quality_unverified")
                 return {
                     "model": pick["model_id"],
-                    "reason": (f"Routed to {pick['model_id']}: cheapest eligible model with "
-                               f"known cost ({pick['cost_basis']} {currency} per 1k input)"),
+                    "reason": f"Routed to {pick['model_id']} using {rule}; estimated USD per task is not a spending cap",
+                    "selection_mode": selection_mode,
+                    "rule": rule,
+                    "estimated_cost_usd": str(task_cost(pick)),
+                    "quality_score": pick["quality_score"],
+                    "quality_slack": str(slack),
                     "candidates": self._public(eligible),
                     "needs_decision": False,
                     "unknown_cost_candidates": self._public(unknown_cost_candidates),
@@ -262,7 +316,7 @@ class ModelRegistry:
             if eligible:
                 return {
                     "model": None,
-                    "reason": ("Every eligible model has unknown cost; no automatic routing; "
+                    "reason": ("No eligible model has complete known USD pricing within the supplied limits; "
                                "owner decision required"),
                     "candidates": self._public(eligible),
                     "needs_decision": True,
