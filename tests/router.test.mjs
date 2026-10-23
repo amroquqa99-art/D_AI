@@ -389,6 +389,8 @@ test('owner-approved auto selection re-evaluates for every delegated task; manua
   assert.equal((await f.registry.preference('retrieval', '/workspace')).mode, 'auto');
   const receipt = await f.registry.read('runtime/router/delegated/' + hash('auto-job-1') + '.json', null);
   assert.equal(receipt.reason.rule, 'verified_task_quality_within_band_then_estimated_cost');
+  assert.match(receipt.reason.quality_evidence_sha256, /^[a-f0-9]{64}$/);
+  assert.doesNotMatch(JSON.stringify(receipt), /measured-paid|measured-free/);
   // Catalog and verified results change; a model name must not be silently frozen by old auto policy.
   await f.registry.write('config/model-profiles.json', {
     profiles: [
