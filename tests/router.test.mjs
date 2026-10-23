@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { Registry, classify, modelRef, workerPermissions, compactResult, hash } from '../adapters/opencode/router/core.js';
+import { Registry, classify, modelRef, workerPermissions, compactResult, hash, catalogSupportsRef } from '../adapters/opencode/router/core.js';
 import { makeRouter } from '../adapters/opencode/router/index.js';
 import { selectValueModel, estimateModelCost } from '../adapters/opencode/router/value.js';
 
@@ -405,4 +405,38 @@ test('owner-approved auto selection re-evaluates for every delegated task; manua
   await f.registry.savePreference('retrieval', '/workspace', 'worker/paid', false);
   await f.router.dispatch(plan(3));
   assert.equal(f.calls.create[2].model.id, 'paid');
+});
+
+
+test('manual OpenCode V2 variant is validated exactly, including nested model IDs', async () => {
+  assert.equal(catalogSupportsRef({ providerID: 'worker', id: 'free', variants: [{ id: 'fast' }, { id: 'superfast' }] },
+    modelRef('worker/free#fast')), true);
+  assert.equal(catalogSupportsRef({ providerID: 'worker', id: 'free', variants: [{ id: 'superfast' }] },
+    modelRef('worker/free#fast')), false);
+  assert.equal(catalogSupportsRef({ providerID: 'lmstudio', id: 'vendor/model', variants: [{ id: 'analysis' }] },
+    modelRef('lmstudio/vendor/model#analysis')), true);
+  assert.equal(catalogSupportsRef({ providerID: 'worker', id: 'free' },
+    modelRef('worker/free#fast')), false);
+  assert.equal(catalogSupportsRef({ providerID: 'worker', id: 'free', variants: [{ id: 'fast' }], enabled: false },
+    modelRef('worker/free#fast')), false);
+});
+
+test('manual worker variant is sent unchanged to the native child and never silently replaced', async () => {
+  const f = await fixture();
+  f.available[0].variants = [{ id: 'fast' }, { id: 'superfast' }];
+  f.setAnswer({ model: 'worker/free#fast', scope: 'project' });
+  await f.router.dispatch({ id: 'exact-variant-task', session_id: 'ses_parent',
+    directory: '/workspace', kind: 'retrieval', text: 'Review sources', target_agent: 'dai/shared/explorer' });
+  assert.deepEqual(f.calls.create[0].model, { providerID: 'worker', id: 'free', variant: 'fast' });
+  assert.equal((await f.registry.preference('retrieval', '/workspace')).model, 'worker/free#fast');
+  assert.equal(f.calls.create.length, 1);
+});
+
+test('manual worker rejects missing native variant instead of crashing or falling back', async () => {
+  const f = await fixture();
+  f.setAnswer({ model: 'worker/free#unknown', scope: 'project' });
+  await assert.rejects(f.router.dispatch({ id: 'bad-variant-task', session_id: 'ses_parent',
+    directory: '/workspace', kind: 'retrieval', text: 'Collect citations',
+    target_agent: 'dai/shared/explorer' }), /model or variant is not available/);
+  assert.equal(f.calls.create.length, 0);
 });
