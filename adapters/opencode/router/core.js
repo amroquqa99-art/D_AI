@@ -85,6 +85,18 @@ export class Registry {
       return scope[kind];
     });
   }
+  async saveAutoPreference(kind, directory, global) {
+    if (!CLASSES.includes(kind)) throw new Error('Unknown task class');
+    return this.locked(async () => {
+      const p = await this.read('config/routing-preferences.json', { schema_version: 1, global: {}, projects: {} });
+      p.global ??= {}; p.projects ??= {};
+      const scope = global ? p.global : (p.projects[directory] ??= {});
+      scope[kind] = { mode: 'auto', approved_at: new Date().toISOString(), source: 'native-owner-form' };
+      if (global && p.projects[directory]) delete p.projects[directory][kind];
+      await this.write('config/routing-preferences.json', p);
+      return scope[kind];
+    });
+  }
   async record(id) { return this.read(`runtime/router/jobs/${id}.json`, null); }
   async update(id, update) {
     return this.locked(async () => {
