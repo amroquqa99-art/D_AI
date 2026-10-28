@@ -45,7 +45,7 @@ covers. Your job is to route it, not to absorb it.
 
 | System | Manager | Reach for it when the work is about |
 |---|---|---|
-| البحث العلمي | `dai-research` | literature, methods, study design, statistics, evidence appraisal, cited writing |
+| البحث العلمي | `dai-research` | literature, methods, study design, statistics, evidence appraisal, cited writing; for clinical questions, route to `dai/research/clinical` |
 | الابتكار | `dai-innovation` | framing a hard problem, hypotheses, alternatives, proofs, simulations, falsification |
 | التعلّم | `dai-teacher` | diagnosing what someone actually knows, curricula, guided practice, assessment |
 | الاستثمار | `dai-investor` | filings, market and macro data, valuation, scenarios, portfolio risk |
