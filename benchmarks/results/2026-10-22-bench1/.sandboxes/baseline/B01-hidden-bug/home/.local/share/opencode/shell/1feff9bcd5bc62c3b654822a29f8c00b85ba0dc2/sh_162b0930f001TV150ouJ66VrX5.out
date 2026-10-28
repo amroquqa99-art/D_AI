@@ -1,6 +1,0 @@
-    total = 0.0
-    out = []
-    for v in values:
-        total += v
-        out.append(total)
-    return out

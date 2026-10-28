@@ -83,10 +83,14 @@ def build_workspace(arm: str, case_dir: Path, root: Path) -> tuple[Path, dict[st
 
     starting = case_dir / "workspace"
     if starting.is_dir():
+        # The workspace is rebuilt from scratch on every attempt, so a retry
+        # never inherits the previous attempt's files.
+        shutil.rmtree(workspace, ignore_errors=True)
+        workspace.mkdir(parents=True, exist_ok=True)
         for item in starting.iterdir():
             target = workspace / item.name
             if item.is_dir():
-                shutil.copytree(item, target)
+                shutil.copytree(item, target, dirs_exist_ok=True)
             else:
                 shutil.copy2(item, target)
 
@@ -196,6 +200,11 @@ def run_checker(case_dir: Path, workspace: Path, timeout: float) -> dict[str, An
     checker = case_dir / "check.py"
     if not checker.is_file():
         return {"passed": False, "score": 0.0, "metrics": {}, "detail": "no checker"}
+    if not workspace.is_dir():
+        # The run removed the workspace it was given. That is what the agent
+        # did, so it is scored as a task outcome and named as such.
+        return {"passed": False, "score": 0.0, "metrics": {"workspace_removed": 1},
+                "detail": "the agent removed the workspace during the run"}
     try:
         proc = subprocess.run([PYTHON, str(checker), str(workspace)], cwd=str(workspace),
                               capture_output=True, text=True, timeout=timeout)
@@ -237,7 +246,60 @@ def run_case(meta: dict[str, Any], arm: str, root: Path, model: str, timeout: fl
         check = {"passed": False, "score": None, "metrics": {"unavailable": 1},
                  "detail": f"model unavailable: {run.get('provider_error', '')[:120]}"}
     return {"case": meta.get("id"), "name": meta.get("name"), "arm": arm, "metric": meta.get("metric"),
-            "unit": meta.get("unit"), "threshold": meta.get("threshold"), "run": run, "check": check}
+            "unit": meta.get("unit"), "threshold": meta.get("threshold"), "model": model,
+            "run": run, "check": check}
+
+
+
+def probe_model(model: str, timeout: float = 90) -> bool:
+    """Is this model actually serving right now?
+
+    A free provider answers with "Model unavailable" when its quota is spent.
+    Both arms MUST run the same model, so the round picks one that answers
+    rather than recording half the cases as infrastructure failures.
+    """
+    sandbox = Path(tempfile.mkdtemp(prefix="dai-probe-"))
+    try:
+        home = sandbox / "home"
+        (home / ".config").mkdir(parents=True)
+        for name in ("state", "cache", "workspace"):
+            (sandbox / name).mkdir(parents=True)
+        env = os.environ.copy()
+        env.update({"HOME": str(home), "XDG_STATE_HOME": str(sandbox / "state"),
+                    "XDG_CONFIG_HOME": str(home / ".config"),
+                    "XDG_CACHE_HOME": str(sandbox / "cache"),
+                    "PWD": str(sandbox / "workspace")})
+        proc = subprocess.run(
+            [OPENCODE, "run", "--standalone", "--auto", "--format", "json",
+             "--model", model, "Reply with exactly: PONG"],
+            cwd=str(sandbox / "workspace"), env=env, capture_output=True, text=True,
+            timeout=timeout)
+        if proc.returncode != 0:
+            return False
+        for line in proc.stdout.splitlines():
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if event.get("type") == "error":
+                return False
+            part = event.get("part") or {}
+            if part.get("type") == "text" and str(part.get("text", "")).strip():
+                return True
+        return False
+    except (OSError, subprocess.SubprocessError, subprocess.TimeoutExpired):
+        return False
+    finally:
+        shutil.rmtree(sandbox, ignore_errors=True)
+
+
+def select_model(candidates: list[str]) -> str:
+    """The first candidate that is actually serving."""
+    for candidate in candidates:
+        if probe_model(candidate):
+            print(f"bench_run: using {candidate}", flush=True)
+            return candidate
+    raise SystemExit("bench_run: none of the candidate models is serving right now")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -245,17 +307,24 @@ def main(argv: list[str] | None = None) -> int:
                                      description="Run the D_AI benchmark suite")
     parser.add_argument("--cases", type=Path, default=CASES)
     parser.add_argument("--arm", choices=["system", "baseline", "both"], default="both")
-    parser.add_argument("--model", required=True, help="provider/model, the same for every arm")
+    parser.add_argument("--model", required=True,
+                        help="provider/model, or a comma separated list of candidates: the first "
+                             "one that is actually serving is used, and the same model is then "
+                             "used for every arm")
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--timeout", type=float, default=600)
     parser.add_argument("--only", action="append", help="run only this case id (repeatable)")
     parser.add_argument("--keep", action="store_true", help="keep the sandboxes")
+    parser.add_argument("--resume", action="store_true",
+                        help="keep the results already in the output directory and run only "
+                             "the cases that are missing or were unavailable")
     args = parser.parse_args(argv)
 
     cases = load_cases(args.cases, args.only)
     if not cases:
         print("bench_run: no cases found", file=sys.stderr)
         return 2
+    model = select_model([item.strip() for item in args.model.split(",") if item.strip()])
     out_dir = (args.out or (ROOT / "benchmarks" / "results"
                             / time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()))).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -263,17 +332,39 @@ def main(argv: list[str] | None = None) -> int:
 
     arms = ["baseline", "system"] if args.arm == "both" else [args.arm]
     results: list[dict[str, Any]] = []
+    previous: dict[tuple[str, str], dict[str, Any]] = {}
+    results_path = out_dir / "results.json"
+    if args.resume and results_path.is_file():
+        for record in json.loads(results_path.read_text(encoding="utf-8")).get("results", []):
+            previous[(record["case"], record["arm"])] = record
     for meta in cases:
         for arm in arms:
-            record = run_case(meta, arm, root, args.model, args.timeout)
+            if args.resume:
+                kept = previous.get((meta.get("id"), arm))
+                # A record is only reusable when it was measured the same way as
+                # this round: a pair measured on two different models is not a
+                # comparison, so it is measured again.
+                if (kept and kept.get("check", {}).get("score") is not None
+                        and kept.get("model") == model):
+                    results.append(kept)
+                    continue
+            record = run_case(meta, arm, root, model, args.timeout)
             results.append(record)
             check = record["check"]
-            print(f"{record['case']:>22} {arm:9} score={check['score']:.2f} "
+            score = check["score"]
+            shown = "n/a " if score is None else f"{score:.2f}"
+            print(f"{record['case']:>22} {arm:9} score={shown} "
                   f"passed={check['passed']} tools={record['run']['tool_call_count']:3} "
                   f"{record['run']['duration_seconds']:6.1f}s  {check['detail'][:70]}",
                   flush=True)
+            # Written after every case, so a later failure never loses the round.
+            (out_dir / "results.json").write_text(
+                json.dumps({"schema": "bench-v1", "model": model,
+                            "timeout": args.timeout, "arms": arms, "results": results},
+                           ensure_ascii=False, indent=2, default=str) + "\n",
+                encoding="utf-8")
 
-    manifest = {"schema": "bench-v1", "model": args.model, "timeout": args.timeout,
+    manifest = {"schema": "bench-v1", "model": model, "timeout": args.timeout,
                 "arms": arms, "results": results}
     (out_dir / "results.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2,
                                                       default=str) + "\n", encoding="utf-8")
@@ -297,6 +388,7 @@ def write_report(out_dir: Path, manifest: dict[str, Any]) -> None:
     totals = {"baseline": 0.0, "system": 0.0}
     count = 0
     unavailable: list[str] = []
+    mixed: list[str] = []
     for case_id, arms in by_case.items():
         base = arms.get("baseline")
         system = arms.get("system")
@@ -304,6 +396,11 @@ def write_report(out_dir: Path, manifest: dict[str, Any]) -> None:
             continue
         if base["check"]["score"] is None or system["check"]["score"] is None:
             unavailable.append(case_id)
+            continue
+        if base.get("model") != system.get("model"):
+            # Both arms must be measured the same way. A pair that was not is
+            # reported, not compared.
+            mixed.append(f"{case_id} ({base.get('model')} vs {system.get('model')})")
             continue
         count += 1
         totals["baseline"] += base["check"]["score"]
@@ -317,6 +414,9 @@ def write_report(out_dir: Path, manifest: dict[str, Any]) -> None:
         lines += ["", f"**المجموع ({count} حالة):** baseline "
                   f"{totals['baseline'] / count:.3f} — system {totals['system'] / count:.3f} "
                   f"(فرق {(totals['system'] - totals['baseline']) / count:+.3f})"]
+    if mixed:
+        lines += ["", "**حالات لم تُقارَن** (الذراعان قِيسا بنموذجين مختلفين، وهذا ليس مقارنة): "
+                  + "; ".join(mixed)]
     if unavailable:
         lines += ["", "**حالات لم تُحتسب** (تعذّر الوصول إلى النموذج، وهي ليست إخفاقاً في المهمة): "
                   + ", ".join(unavailable)]
