@@ -184,6 +184,9 @@ class AdapterTests(unittest.TestCase):
             "dai_consultation_open", "dai_model_route",
             "dai_tool_resolve", "dai_component_decide",
             "dai_update_status", "dai_memory_search",
+            "dai_mission_create", "dai_mission_get", "dai_mission_checkpoint",
+            "dai_evidence_add", "dai_claim_add", "dai_search_files",
+            "dai_project_grant",
         }
         missing = expected - tool_names
         self.assertFalse(missing, f"missing MCP tools: {sorted(missing)}")
@@ -211,6 +214,24 @@ class AdapterTests(unittest.TestCase):
             self.assertEqual(read_back["id"], record["id"])
             self.assertEqual(read_back["content"], {"text": "round-trip payload"})
             self.assertEqual(read_back["scope"]["project"], project_id)
+
+    def test_project_owner_can_share_mission_with_known_manager(self):
+        with tempfile.TemporaryDirectory(prefix="dai-sharing-") as directory:
+            bridge = DaiCoreBridge(data_root=directory)
+            owner = Principal("dai-os")
+            specialist = Principal("dai-research")
+            created = bridge.dai_project_create(owner, "Coordinated research")
+            project_id = created["project"]
+            mission = bridge.dai_mission_create(
+                owner, project_id, "research", "Review claims", ["checked sources"])
+            from dai.errors import AccessDenied
+            with self.assertRaises(AccessDenied):
+                bridge.dai_mission_get(specialist, project_id, mission["mission_id"])
+            bridge.dai_project_grant(owner, project_id, "dai-research", "contributor")
+            record = bridge.dai_mission_get(specialist, project_id, mission["mission_id"])
+            self.assertEqual(record["objective"], "Review claims")
+            with self.assertRaises(AccessDenied):
+                bridge.dai_project_grant(specialist, project_id, "dai-cyber", "contributor")
 
     # ---- Case 8: destructive operations not exposed as MCP tools ----
 

@@ -48,6 +48,18 @@ test('classifies Arabic/English intake and explicit owner opt-out', () => {
   assert.equal(classify('ابحث لكن لا تفوض'), 'disabled');
   assert.equal(classify('كم 2+2؟'), null);
 });
+test('DAI OS primary retains routing authority instead of preemptive keyword dispatch', async () => {
+  const f = await fixture();
+  f.sessions.ses_parent.agent = 'dai-os';
+  await f.router.intake(f.event('ابحث عن مصادر أصلية'));
+  const e = { sessionID: 'ses_parent', system: [] };
+  await f.router.context(e);
+  assert.equal(f.calls.create.length, 0);
+  assert.match(e.system[0].text, /dai_route/);
+  await f.router.intake(f.event('ابحث عن مصادر لكن لا تفوض', 'msg_owner_no_delegate'));
+  assert.equal((await f.registry.read('runtime/router/active/' + hash('ses_parent') + '.json', null)).kind, 'disabled');
+});
+
 test('exact model IDs including nested IDs and variant; malformed IDs rejected', () => {
   assert.deepEqual(modelRef('lmstudio/vendor/model#fast'), { providerID: 'lmstudio', id: 'vendor/model', variant: 'fast' });
   assert.throws(() => modelRef('guess')); assert.throws(() => modelRef('worker/a b'));

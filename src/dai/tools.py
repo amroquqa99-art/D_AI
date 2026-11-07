@@ -212,7 +212,8 @@ class ToolGateway:
                         raise Conflict("Idempotency key was reused with a different invocation payload")
                     return {"status": existing["status"], "tool_id": tool_id,
                             "system": system, "action": action, "reason": existing["reason"],
-                            "source": existing["source"], "idempotent": True}
+                            "source": existing["source"], "idempotent": True,
+                            "executed": False, "execution_status": "NOT_EXECUTED"}
             db.execute(
                 "INSERT INTO tool_attempts(project, tool_id, system, action, status, "
                 "requested_by, created_at, idempotency_key) VALUES(?,?,?,?,?,?,?,?)",
@@ -224,7 +225,8 @@ class ToolGateway:
                             tool_id + "\u2029" + system + "\u2029" + action,
                             status, reason, source))
             return {"status": status, "tool_id": tool_id, "system": system, "action": action,
-                    "reason": reason, "source": source}
+                    "reason": reason, "source": source,
+                    "executed": False, "execution_status": "NOT_EXECUTED"}
 
     def attempts(self, actor: Principal, scope: Scope, tool_id: str) -> list[dict]:
         if scope.namespace != "project":

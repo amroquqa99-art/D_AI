@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from datetime import datetime, timezone
-import fcntl
 import hashlib
 import hmac
 import json
@@ -28,6 +27,7 @@ from uuid import uuid4
 
 from .contracts import Principal, PurgeConfirmation, Record, Scope, identifier, json_bytes
 from .errors import AccessDenied, Conflict, Gone, IntegrityFailure, InvalidRequest, NotFound
+from .platform_fs import exclusive_writer_lock, protect_existing_windows_tree
 from .vault import KeyVault, private_directory, sync_directory
 
 PLANES = ("person", "project", "global")
@@ -54,12 +54,16 @@ def terms(content: str) -> set[str]:
 class MemoryStore:
     def __init__(self, root: str | Path, *, administrator: str = "owner"):
         self.root = private_directory(Path(root).absolute())
+        protect_existing_windows_tree(self.root)
         self._thread_lock = threading.RLock()
         self._local = threading.local()
         with self._locked():
             self.vault = KeyVault(self.root / "keys", administrator)
             for plane in PLANES:
                 self._initialize(plane)
+            # New SQLite database files inherit the private root ACL, but also
+            # protect their own DACL explicitly after first schema creation.
+            protect_existing_windows_tree(self.root)
             self._recover_restore()
             self._recover_purges()
 
@@ -74,17 +78,21 @@ class MemoryStore:
                 finally:
                     self._local.depth -= 1
                 return
-            fd = os.open(self.root / ".writer.lock", os.O_CREAT | os.O_RDWR |
+            lock_path = self.root / ".writer.lock"
+            if lock_path.is_symlink():
+                raise InvalidRequest("Writer lock must not be a symlink")
+            fd = os.open(lock_path, os.O_CREAT | os.O_RDWR |
                          getattr(os, "O_NOFOLLOW", 0), 0o600)
             try:
-                fcntl.flock(fd, fcntl.LOCK_EX)
-                self._local.depth = 1
-                if hasattr(self, "vault") and not getattr(self._local, "recovering", False):
-                    self._recover_restore()
-                yield
+                with exclusive_writer_lock(fd):
+                    self._local.depth = 1
+                    try:
+                        if hasattr(self, "vault") and not getattr(self._local, "recovering", False):
+                            self._recover_restore()
+                        yield
+                    finally:
+                        self._local.depth = 0
             finally:
-                self._local.depth = 0
-                fcntl.flock(fd, fcntl.LOCK_UN)
                 os.close(fd)
 
     @contextmanager

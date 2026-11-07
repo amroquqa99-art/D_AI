@@ -30,7 +30,7 @@ recovered from any database backup.
 | Tampered metadata or ciphertext fails as `IntegrityFailure` instead of returning content | `src/dai/memory.py` |
 | Permanent purge destroys the key, so the content is unrecoverable from managed copies | `MemoryStore._finish_purge` |
 | Purge requires an interactive local confirmation bound to actor, record, scope and version | `src/dai/cli.py` |
-| Private state directories must be `0700` and must not be symlinks | `src/dai/vault.py` |
+| Private state uses `0700` Unix permissions or protected Windows per-user/System DACLs; symlinks/reparse points are rejected on Windows | `src/dai/vault.py`, `src/dai/platform_fs.py` |
 | Version fencing on every mutation; conflicts are refused, never merged | all core modules |
 | Only identifiers and reasons appear in error messages, never record content | all core modules |
 | Authority comes from a trusted local adapter, never from source or model text | `src/dai/contracts.py` |
@@ -52,8 +52,9 @@ recovered from any database backup.
   not control: an earlier manual export, a backup taken outside D_AI, or
   content already sent to an external model provider. These limits are shown
   before a purge confirmation and are not promised away.
-- File-system permission checks assume a local Unix-like filesystem with
-  working permission bits.
+- Windows ACL and cross-process locking code is under acceptance testing; see
+  `docs/WINDOWS_MEMORY_ACCEPTANCE.md`. Unsupported filesystems must fail closed.
+  Windows power-loss recovery has not been independently verified.
 - The tool gateway is a policy layer. Enforcement of an allowed external
   action still rests with the host and the provider behind it.
 
