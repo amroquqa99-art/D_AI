@@ -41,6 +41,7 @@ class MissionService:
 
     def _mission(self, actor: Principal, project_id: str, mission_id: str):
         scope = self._scope(actor, project_id)
+        self.store._authorize(actor, scope, "read")
         record = self.store.get(actor, scope, mission_id)
         if record.kind != "mission":
             raise NotFound("Record is not a mission")
@@ -48,6 +49,8 @@ class MissionService:
 
     def create(self, actor: Principal, project_id: str, *, system: str,
                objective: str, acceptance: list[str]) -> dict[str, Any]:
+        scope = self._scope(actor, project_id)
+        self.store._authorize(actor, scope, "write")
         if system not in SYSTEMS:
             raise InvalidRequest("Unknown D_AI specialist system")
         content = {
@@ -58,7 +61,7 @@ class MissionService:
             "next_action": "inspect",
             "artifacts": [], "receipts": [], "review": None,
         }
-        record = self.store.create(actor, self._scope(actor, project_id), "mission", content)
+        record = self.store.create(actor, scope, "mission", content)
         return {"mission_id": record.id, "project_id": project_id,
                 "version": record.version, **record.content}
 
@@ -78,6 +81,7 @@ class MissionService:
                    artifacts: list[str] | None = None, receipts: list[str] | None = None,
                    review: str | None = None) -> dict[str, Any]:
         scope, record = self._mission(actor, project_id, mission_id)
+        self.store._authorize(actor, scope, "write")
         if status not in STATES:
             raise InvalidRequest("Unknown mission status")
         content = dict(record.content)
@@ -100,6 +104,7 @@ class MissionService:
                      title: str, locator: str, content: str,
                      source_kind: str = "provided_text") -> dict[str, Any]:
         scope, _ = self._mission(actor, project_id, mission_id)
+        self.store._authorize(actor, scope, "write")
         original = _text(content, "content", 2000000)
         data = {"mission_id": mission_id, "title": _text(title, "title", 500),
                 "locator": _text(locator, "locator", 4000),
@@ -114,6 +119,7 @@ class MissionService:
                   text: str, claim_type: str, source_ids: list[str] | None = None,
                   limitations: str = "") -> dict[str, Any]:
         scope, _ = self._mission(actor, project_id, mission_id)
+        self.store._authorize(actor, scope, "write")
         if claim_type not in CLAIM_TYPES:
             raise InvalidRequest("Unknown claim type")
         ids = source_ids or []
@@ -131,3 +137,39 @@ class MissionService:
         saved = self.store.create(actor, scope, "claim", payload)
         return {"claim_id": saved.id, "mission_id": mission_id,
                 "type": claim_type, "version": saved.version}
+
+    def list_missions(self, actor: Principal, project_id: str, *,
+                      system: str | None = None, status: str | None = None) -> list[dict[str, Any]]:
+        """List missions, optionally filtered by system or status."""
+        scope = self._scope(actor, project_id)
+        self.store._authorize(actor, scope, "read")
+        missions = [r for r in self.store.list(actor, scope, kind="mission", limit=200)]
+        result = []
+        for m in missions:
+            content = m.content
+            if system is not None and content.get("system") != system:
+                continue
+            if status is not None and content.get("status") != status:
+                continue
+            result.append({"mission_id": m.id, "project_id": project_id,
+                           "version": m.version, **content})
+        return result
+
+    def share_mission(self, actor: Principal, project_id: str, mission_id: str,
+                      member_agent: str) -> dict[str, Any]:
+        """Grant a named D_AI agent read access to a mission."""
+        scope, record = self._mission(actor, project_id, mission_id)
+        self.store._authorize(actor, scope, "write")
+        if not member_agent.startswith("dai-") and not member_agent.startswith("dai/"):
+            raise InvalidRequest("Only named D_AI agents may be granted mission access")
+        # Record the grant in the mission content
+        content = dict(record.content)
+        grants = list(content.get("grants", []))
+        if member_agent not in grants:
+            grants.append(member_agent)
+        content["grants"] = grants
+        updated = self.store.update(actor, scope, mission_id, content,
+                                    expected_version=record.version)
+        return {"mission_id": updated.id, "project_id": project_id,
+                "version": updated.version, "granted_to": member_agent,
+                "grants": grants}

@@ -15,6 +15,10 @@ risk and whether a direct answer is sufficient. Answer small tasks yourself.
 For complex work inspect `config/systems.json` and route to the MINIMUM
 necessary among ten separately selectable systems:
 - `dai-research`: scientific research, literature, methods, statistics
+- `dai/research/clinical`: clinical/medical AI, patient data, regulatory awareness, GRADE
+- `dai/research/systematic-review`: Cochrane-style systematic reviews, PRISMA, risk of bias
+- `dai/research/meta-analysis`: quantitative synthesis, forest plots, heterogeneity
+- `dai/research/biostatistics`: power calculations, sample size, survival analysis
 - `dai-innovation`: novel hypotheses, experiments and engineering innovation
 - `dai-teacher`: tutoring, curricula, assessment
 - `dai-investor`: investment scenarios, filings and risk

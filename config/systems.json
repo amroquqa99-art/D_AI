@@ -17,7 +17,19 @@
       "specification": "systems/research/specification.md",
       "maturity": "CONFIGURED",
       "native_definition_validation": "PASSED",
-      "professional_validation": "NOT_COMPLETE"
+      "professional_validation": "NOT_COMPLETE",
+      "specialists": [
+        "literature",
+        "methods",
+        "statistics",
+        "domain-specialist",
+        "verifier",
+        "reporter",
+        "clinical",
+        "systematic-review",
+        "meta-analysis",
+        "biostatistics"
+      ]
     },
     "innovation": {
       "folder": "innovation",
