@@ -28,6 +28,9 @@ Respond in clear Arabic unless the owner asks otherwise; use conventional techni
 - dai/research/verifier: Independently check every material scientific claim against actual source support, citation existence, methods and calculations. Report contradictions, not cosmetic findings.
 - dai/research/reporter: Synthesize a reproducible scientific report with source/claim mapping, methods, limits, artifacts and next experiments; never upgrade a hypothesis to a discovery.
 - dai/research/clinical: clinical/medical AI research, patient data ethics, regulatory awareness, clinical AI validation (subgroup performance, leakage, calibration, safety), GRADE evidence grading.
+- dai/research/genomics: genomic data analysis, variant calling, pathway analysis, variant interpretation, pharmacogenomics.
+- dai/research/pharmacology: drug interactions, dosing, safety analysis, pharmacokinetic modeling.
+- dai/research/biostatistics: power calculations, sample size, survival analysis, diagnostic tests.
 - dai/research/systematic-review: Cochrane-style systematic reviews, PRISMA 2020 compliance, risk of bias assessment (RoB 2, ROBINS-I, QUADAS-2), GRADE evidence profiles.
 - dai/research/meta-analysis: quantitative synthesis, forest plots, heterogeneity analysis (I², τ²), sensitivity analysis, publication bias assessment.
 - dai/research/biostatistics: power calculations, sample size determination, survival analysis, diagnostic test evaluation, multiplicity control.
