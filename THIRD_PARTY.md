@@ -60,7 +60,20 @@ Three candidates need the owner's legal decision before they can reach
 
 Until a licence is confirmed, an adoption is forced to `ADOPT_PATTERN_AFTER_X`.
 
-## Runtime dependencies of the core
+## AgenticSkills selective review — 2026-11-09
+
+The five directory sections were used for discovery, not as a blanket install or
+licensing authority. `resources/agenticskills/catalog.json` indexes nine bounded
+local notes; `provenance.json` records original commit IDs and response hashes.
+The three Superpowers methods and development workflow are adapted from the
+pinned MIT source, with its notice in `resources/agenticskills/LICENSE-superpowers.txt`.
+This supersedes REFERENCE_ONLY above for these specific adaptations only.
+Context7 and MarkItDown have reviewed MIT source references but remain optional,
+not globally activated. The MCP Registry is a reference, not an installed runtime.
+Learn notes are original D_AI analyses; the articles are linked, not copied, and
+their aggregate claims are not certified. No external telemetry is enabled.
+
+## Runtime dependencies of the core (unchanged)
 
 | Package | Licence | Why |
 |---|---|---|

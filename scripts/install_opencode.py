@@ -48,11 +48,21 @@ def install_mcp(target_root: Path, dry_run: bool, force: bool = False) -> dict:
     The command uses the interpreter that runs this installer, so a virtual
     environment is honoured and the server resolves the installed package.
     """
-    config = target_root / "opencode.jsonc"
+    # OpenCode v2 reads opencode.json first; only fall back to the JSONC name
+    # when the host has no plain config yet, so an existing config is extended
+    # instead of being shadowed by a second file.
+    config = target_root / "opencode.json"
+    if not config.is_file() and (target_root / "opencode.jsonc").is_file():
+        config = target_root / "opencode.jsonc"
     entry = {
         "type": "local",
         "command": [sys.executable, "-m", "dai.mcp_server"],
-        "enabled": True,
+        # OpenCode v2 uses "disabled" and hides MCP tools behind Code Mode by
+        # default. D_AI agents deny the execute tool, so the server must expose
+        # its own <server>_<tool> tools directly.
+        "disabled": False,
+        "codemode": False,
+        "protocol": "legacy",
         "environment": {"DAI_PROJECT_ROOT": str(ROOT)},
     }
     original_bytes = config.read_bytes() if config.is_file() else None

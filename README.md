@@ -49,6 +49,8 @@ python scripts/install_opencode.py --target ~/.config/opencode
 `/research` `/innovate` `/learn` `/invest` `/assistant` `/consult` `/investigate`
 `/cyber` `/strategy` `/plan-task`.
 
+موارد منتقاة من الأقسام الخمسة في AgenticSkills متاحة عبر `/dai-resources`، ببحث بيانات تعريفية ثم قراءة محدودة عند الحاجة، دون تحميل الدليل كله. التفاصيل والحدود في [دليل الدمج وإدارة السياق](docs/AGENTICSKILLS_INTEGRATION_AR.md). خوادم MCP الاختيارية ليست مفعلة تلقائيًا.
+
 ## بنية المستودع
 
 ```

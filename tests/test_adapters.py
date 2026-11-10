@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import importlib.util
+import asyncio
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from dai.contracts import Principal
@@ -108,6 +110,28 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(payload["error"], "AccessDenied")
         self.assertEqual(set(payload.keys()), {"error", "message"})
         self.assertNotIn("private", payload["message"].lower())
+
+    def test_list_tool_denial_is_protocol_error_not_output_schema_failure(self):
+        from mcp.server.fastmcp.exceptions import ToolError
+        with patch.object(server, "_actor", side_effect=AccessDenied("Native principal required")):
+            with self.assertRaises(ToolError) as caught:
+                asyncio.run(mcp.call_tool("dai_project_list", {}))
+        self.assertIn("AccessDenied", str(caught.exception))
+        self.assertNotIn("validation error", str(caught.exception).lower())
+
+    def test_dict_tool_denial_also_uses_protocol_error(self):
+        from mcp.server.fastmcp.exceptions import ToolError
+        with patch.object(server, "_actor", side_effect=InvalidRequest("Native session required")):
+            with self.assertRaises(ToolError) as caught:
+                asyncio.run(mcp.call_tool("dai_project_create", {"name": "Synthetic"}))
+        self.assertIn("InvalidRequest", str(caught.exception))
+
+    def test_scoped_file_search_denial_is_marked_as_tool_error(self):
+        from mcp.server.fastmcp.exceptions import ToolError
+        with patch.object(server, "_actor", side_effect=AccessDenied("Native principal required")):
+            with self.assertRaises(ToolError) as caught:
+                asyncio.run(mcp.call_tool("dai_search_files", {"query": "synthetic"}))
+        self.assertIn("AccessDenied", str(caught.exception))
 
     # ---- Case 3: OpenCode probe reports NOT_INSTALLED with a reason ----
 

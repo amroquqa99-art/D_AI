@@ -1,12 +1,16 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "default_agent": "dai-lead",
+  "compaction": {"auto": true, "keep": {"tokens": 8000}, "buffer": 12000},
+  "tool_output": {"max_lines": 200, "max_bytes": 12000},
   "mcp": {
     "servers": {
       "dai": {
         "type": "local",
         "command": ["dai-mcp"],
-        "enabled": true,
+        "disabled": false,
+        "codemode": false,
+        "protocol": "legacy",
         "environment": {
           "DAI_PROJECT_ROOT": "."
         }

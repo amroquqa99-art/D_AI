@@ -51,6 +51,10 @@ skills and models that fit, delegated, and merged into one inspectable result.
 To pick a system directly: `/research` `/innovate` `/learn` `/invest`
 `/assistant` `/consult` `/investigate` `/cyber` `/strategy` `/plan-task`.
 
+Use `/dai-resources` for selective AgenticSkills discovery: metadata search,
+then bounded page reads, never the full catalog in context. Optional MCP servers
+are not auto-enabled. See [integration and limits](docs/AGENTICSKILLS_INTEGRATION_AR.md).
+
 ## Repository layout
 
 ```

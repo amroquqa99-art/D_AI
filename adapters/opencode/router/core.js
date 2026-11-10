@@ -19,9 +19,9 @@ export function classify(text) {
   // Shell commands / installation / setup / environment / basic file ops — NOT implementation
   if (/(?:نف[ّ]?ذ\s+(?:الخطة|الكود|التعديل|المطلوب)|اصلح\s+|أصلح\s+|برمج\s+|implement\s|fix (?:the |a )?(?:bug|code|test)|build (?:a |the )?(?:app|feature))/iu.test(text)) return 'implementation';
   // Specific shell/install patterns that should NOT be classified as implementation
-  if (/(?:cd\s+|ls|mkdir|rm\s+|cp\s+|mv\s+|cat\s+|grep\s+|find\s+|chmod\s+|chown\s+|ps|kill|top|free|df|du)\s/iu.test(text)) return 'shell';
-  if (/(?:npm\s+|yarn\s+|pip\s+|pip3\s+|composer\s+|npm install|npm i|pip install|pip3 install)\s/iu.test(text)) return 'shell';
-  if (/(?:python\s+|node\s+|bash|sh|zsh)\s/iu.test(text)) return 'shell';
+  if (/(?:cd\s+|ls|mkdir|rm\s+|cp\s+|mv\s+|cat\s+|grep\s+|find\s+|chmod\s+|chown\s+|ps|kill|top|free|df|du)\s/iu.test(text)) return null;
+  if (/(?:npm\s+|yarn\s+|pip\s+|pip3\s+|composer\s+|npm install|npm i|pip install|pip3 install)\s/iu.test(text)) return null;
+  if (/(?:python\s+|node\s+|bash|sh|zsh)\s/iu.test(text)) return null;
   if (/(?:لا\s+تفوض|لا\s+تفوّض|بدون\s+تفويض)/iu.test(text)) return 'disabled';
   if (/(?:اجراء\s+بحث|إجراء\s+بحث|ابحث\s|إبحث\s|اجمع\s+(?:المصادر|الملفات|المراجع)|بحث\s+(?:شامل|في\s+جميع)|research\s|search (?:the |for )|scan (?:the |all )|extract (?:the |all ))/iu.test(text)) return 'retrieval';
   return null;
@@ -38,14 +38,15 @@ export function modelRef(id) {
 
 // One lock for every plugin location/process. Never guess that an old lock is safe to remove.
 export class Registry {
-  constructor(home) { this.home = home; this.state = path.join(home, 'runtime', 'router'); }
+  constructor(home, stateHome = home) { this.home = home; this.stateHome = stateHome; this.state = path.join(stateHome, 'runtime', 'router'); }
+  file(name) { return path.join(name.startsWith('runtime/router/') ? this.stateHome : this.home, name); }
   async init() { await fs.mkdir(this.state, { recursive: true, mode: 0o700 }); }
   async read(name, fallback) {
-    try { return JSON.parse(await fs.readFile(path.join(this.home, name), 'utf8')); }
+    try { return JSON.parse(await fs.readFile(this.file(name), 'utf8')); }
     catch (error) { if (error.code === 'ENOENT') return structuredClone(fallback); throw error; }
   }
   async write(name, data) {
-    const file = path.join(this.home, name);
+    const file = this.file(name);
     await fs.mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
     const tmp = `${file}.${randomUUID()}.tmp`;
     try {
@@ -86,6 +87,21 @@ export class Registry {
     });
   }
   async record(id) { return this.read(`runtime/router/jobs/${id}.json`, null); }
+  async listJobs(limit = 50) {
+    const dir = path.join(this.state, 'jobs');
+    let entries = [];
+    try { entries = await fs.readdir(dir); }
+    catch (error) { if (error.code === 'ENOENT') return []; throw error; }
+    const jobs = [];
+    for (const entry of entries) {
+      if (!entry.endsWith('.json')) continue;
+      try { jobs.push(JSON.parse(await fs.readFile(path.join(dir, entry), 'utf8'))); }
+      catch { /* skip corrupt job file; never hide the rest */ }
+    }
+    jobs.sort((a, b) => String(b?.created_at ?? '').localeCompare(String(a?.created_at ?? '')));
+    const n = Math.max(1, Math.min(200, Number(limit) || 50));
+    return jobs.slice(0, n);
+  }
   async update(id, update) {
     return this.locked(async () => {
       const old = await this.record(id);
@@ -120,7 +136,7 @@ export class Registry {
     await this.locked(async () => {
       const key = `runtime/router/writers/${hash(job.directory)}.json`;
       const record = await this.read(key, null);
-      if (record?.id === job.id) await fs.unlink(path.join(this.home, key));
+      if (record?.id === job.id) await fs.unlink(this.file(key));
     });
   }
 }

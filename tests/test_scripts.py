@@ -31,6 +31,11 @@ class InstallerTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
+    def config_path(self) -> Path:
+        """The config file the installer used: plain JSON wins over JSONC."""
+        plain = self.target / "opencode.json"
+        return plain if plain.is_file() else self.target / "opencode.jsonc"
+
     def test_dry_run_changes_nothing(self):
         before = list(self.target.rglob("*")) if self.target.exists() else []
         report = install_opencode.install(self.target, dry_run=True, force=False)
@@ -44,7 +49,7 @@ class InstallerTests(unittest.TestCase):
         self.assertTrue(report["changes"])
         self.assertTrue(all(change["action"] == "created" for change in report["changes"]))
         self.assertTrue(any((self.target / "agent").rglob("*.md")))
-        config = json.loads((self.target / "opencode.jsonc").read_text(encoding="utf-8"))
+        config = json.loads(self.config_path().read_text(encoding="utf-8"))
         entry = config["mcp"]["dai"]
         # The command must name a real module and the interpreter that runs it.
         self.assertIn("-m", entry["command"])
@@ -56,7 +61,7 @@ class InstallerTests(unittest.TestCase):
 
     def test_existing_primary_is_preserved_and_force_can_change_it(self):
         self.target.mkdir(parents=True)
-        config_file = self.target / "opencode.jsonc"
+        config_file = self.config_path()
         config_file.write_text(json.dumps({"default_agent": "build", "plugins": ["example"]}))
         install_opencode.install(self.target, dry_run=False, force=False)
         config = json.loads(config_file.read_text())
@@ -67,7 +72,7 @@ class InstallerTests(unittest.TestCase):
 
     def test_invalid_config_fails_closed(self):
         self.target.mkdir(parents=True)
-        config_file = self.target / "opencode.jsonc"
+        config_file = self.config_path()
         config_file.write_text("{ not valid JSONC", encoding="utf-8")
         with self.assertRaises(ValueError):
             install_opencode.install(self.target, dry_run=False, force=False)
@@ -107,7 +112,7 @@ class InstallerTests(unittest.TestCase):
 
     def test_rollback_restores_original_config_byte_for_byte(self):
         self.target.mkdir(parents=True)
-        config_file = self.target / "opencode.jsonc"
+        config_file = self.config_path()
         original = b'{\n // custom\n "default_agent": "build"\n}\n'
         config_file.write_bytes(original)
         report = install_opencode.install(self.target, dry_run=False, force=False)
@@ -120,7 +125,7 @@ class InstallerTests(unittest.TestCase):
         report = install_opencode.install(self.target, dry_run=False, force=False)
         manifest = self.target / "dai-install-manifest.json"
         manifest.write_text(json.dumps(report))
-        config_file = self.target / "opencode.jsonc"
+        config_file = self.config_path()
         config_file.write_text('{"user":"changed"}')
         result = install_opencode.rollback(manifest)
         self.assertEqual(config_file.read_text(), '{"user":"changed"}')

@@ -76,6 +76,20 @@ class MissionService:
                 "evidence_count_in_first_200": len(evidence),
                 "claims_count_in_first_200": len(claims)}
 
+    def list_evidence(self, actor: Principal, project_id: str, mission_id: str) -> list[dict[str, Any]]:
+        scope, _ = self._mission(actor, project_id, mission_id)
+        self.store._authorize(actor, scope, "read")
+        evidence = [r for r in self.store.list(actor, scope, kind="evidence", limit=200)
+                    if r.content.get("mission_id") == mission_id]
+        return [{"source_id": r.id, "version": r.version, **r.content} for r in evidence]
+
+    def list_claims(self, actor: Principal, project_id: str, mission_id: str) -> list[dict[str, Any]]:
+        scope, _ = self._mission(actor, project_id, mission_id)
+        self.store._authorize(actor, scope, "read")
+        claims = [r for r in self.store.list(actor, scope, kind="claim", limit=200)
+                  if r.content.get("mission_id") == mission_id]
+        return [{"claim_id": r.id, "version": r.version, **r.content} for r in claims]
+
     def checkpoint(self, actor: Principal, project_id: str, mission_id: str, *,
                    expected_version: int, status: str, next_action: str,
                    artifacts: list[str] | None = None, receipts: list[str] | None = None,

@@ -32,10 +32,12 @@ the CLI exactly as the core CLI enforces.
 from __future__ import annotations
 
 import os
+import json
 from pathlib import Path
 
 from dai.errors import DaiError
 from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.fastmcp.exceptions import ToolError
 
 try:  # imported as adapters.opencode.mcp.server
     from .dai_core_bridge import DaiCoreBridge
@@ -78,7 +80,10 @@ def _call(tool, ctx: Context, *args, **kwargs):
         actor = _actor(ctx)
         return tool(actor, *args, **kwargs)
     except DaiError as exc:
-        return DaiCoreBridge.error_payload(exc)
+        # Returning a dict from a list-returning tool fails FastMCP output
+        # validation and hides the actual denial. Protocol errors bypass the
+        # success schema and are marked isError by the MCP transport.
+        raise ToolError(json.dumps(DaiCoreBridge.error_payload(exc))) from None
 
 
 @mcp.tool()
@@ -91,9 +96,9 @@ def dai_search_files(ctx: Context, query: str, limit: int = 30) -> dict:
         workspace = native["location"]["directory"]
         return _get_bridge().dai_search_files(actor, workspace, query, limit)
     except DaiError as exc:
-        return DaiCoreBridge.error_payload(exc)
+        raise ToolError(json.dumps(DaiCoreBridge.error_payload(exc))) from None
     except (KeyError, TypeError, OSError, ValueError):
-        return {"error": "AccessDenied", "message": "Native workspace is unavailable"}
+        raise ToolError(json.dumps({"error": "AccessDenied", "message": "Native workspace is unavailable"})) from None
 
 
 # ---- encrypted mission/evidence/claim tools ----------------------------
@@ -110,6 +115,59 @@ def dai_mission_create(ctx: Context, project_id: str, system: str,
 def dai_mission_get(ctx: Context, project_id: str, mission_id: str) -> dict:
     """Resume a durable encrypted mission and count attached evidence."""
     return _call(_get_bridge().dai_mission_get, ctx, project_id, mission_id)
+
+
+@mcp.tool()
+def dai_mission_list(ctx: Context, project_id: str,
+                     system: str | None = None,
+                     status: str | None = None) -> list[dict]:
+    """List missions, optionally filtered by system or status."""
+    return _call(_get_bridge().dai_mission_list, ctx, project_id,
+                 system=system, status=status)
+
+
+@mcp.tool()
+def dai_evidence_list(ctx: Context, project_id: str,
+                      mission_id: str) -> list[dict]:
+    """List evidence sources attached to a mission."""
+    return _call(_get_bridge().dai_evidence_list, ctx, project_id, mission_id)
+
+
+@mcp.tool()
+def dai_claim_list(ctx: Context, project_id: str,
+                   mission_id: str) -> list[dict]:
+    """List claims attached to a mission."""
+    return _call(_get_bridge().dai_claim_list, ctx, project_id, mission_id)
+
+
+@mcp.tool()
+def dai_calculate_decimal(ctx: Context, operation: str,
+                          values: list) -> dict:
+    """Perform a bounded exact decimal calculation (sum, mean, product, difference, quotient, power, sqrt, min, max, median)."""
+    return _call(_get_bridge().dai_calculate_decimal, ctx, operation, values)
+
+
+@mcp.tool()
+def dai_summarize_csv(ctx: Context, csv_text: str,
+                      has_header: bool = True) -> dict:
+    """Summarize a bounded CSV document with per-column statistics."""
+    return _call(_get_bridge().dai_summarize_csv, ctx, csv_text,
+                 has_header=has_header)
+
+
+@mcp.tool()
+def dai_extract_pdf(ctx: Context, project_id: str, path: str) -> dict:
+    """Extract text from a PDF inside the project root (local pdftotext)."""
+    return _call(_get_bridge().dai_extract_pdf, ctx, project_id, path)
+
+
+@mcp.tool()
+def dai_crossref_search(ctx: Context, query: str,
+                        rows: int = 20,
+                        filter_type: str | None = None) -> dict:
+    """Search Crossref public metadata (read-only network)."""
+    return _call(_get_bridge().dai_crossref_search, ctx, query, rows=rows,
+                 filter_type=filter_type)
 
 
 @mcp.tool()

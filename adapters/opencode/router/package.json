@@ -4,5 +4,5 @@
   "private": true,
   "type": "module",
   "exports": "./index.js",
-  "scripts": { "test": "node --test ../../tests/router.test.mjs" }
+  "scripts": { "test": "node --test ../../../tests/router.test.mjs ../../../tests/resources.test.mjs" }
 }

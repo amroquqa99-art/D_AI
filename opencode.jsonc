@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // Project-local context budget. Do not override the owner's model/provider.
+  "compaction": {
+    "auto": true,
+    "keep": { "tokens": 8000 },
+    // OpenCode 2.2.5 uses an integer buffer, not percentage-string syntax.
+    "buffer": 12000
+  },
+  "tool_output": { "max_lines": 200, "max_bytes": 12000 },
+  "watcher": { "ignore": ["sources/**", "runtime/**", "docs/history/**"] }
+}

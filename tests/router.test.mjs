@@ -47,10 +47,33 @@ test('classifies Arabic/English intake and explicit owner opt-out', () => {
   assert.equal(classify('راجع الكود'), 'review');
   assert.equal(classify('ابحث لكن لا تفوض'), 'disabled');
   assert.equal(classify('كم 2+2؟'), null);
+  assert.equal(classify('npm install example'), null);
+  assert.equal(classify('bash script.sh'), null);
+});
+test('obsolete shell plan never crashes the model context or dispatches a child', async () => {
+  const f = await fixture();
+  await f.registry.write('runtime/router/active/' + hash('ses_parent') + '.json', { kind: 'shell', id: 'obsolete' });
+  const event = { sessionID: 'ses_parent', system: [] };
+  await f.router.context(event);
+  assert.equal(f.calls.create.length, 0); assert.match(event.system[0].text, /obsolete/i);
+  await f.router.intake(f.event('continue', 'msg_resume'));
+  assert.equal((await f.registry.read('runtime/router/active/' + hash('ses_parent') + '.json', null)).kind, null);
 });
 test('DAI OS primary retains routing authority instead of preemptive keyword dispatch', async () => {
   const f = await fixture();
   f.sessions.ses_parent.agent = 'dai-os';
+  await f.router.intake(f.event('ابحث عن مصادر أصلية'));
+  const e = { sessionID: 'ses_parent', system: [] };
+  await f.router.context(e);
+  assert.equal(f.calls.create.length, 0);
+  assert.match(e.system[0].text, /dai_route/);
+  await f.router.intake(f.event('ابحث عن مصادر لكن لا تفوض', 'msg_owner_no_delegate'));
+  assert.equal((await f.registry.read('runtime/router/active/' + hash('ses_parent') + '.json', null)).kind, 'disabled');
+});
+
+test('DAI lead primary retains routing authority instead of preemptive keyword dispatch', async () => {
+  const f = await fixture();
+  f.sessions.ses_parent.agent = 'dai-lead';
   await f.router.intake(f.event('ابحث عن مصادر أصلية'));
   const e = { sessionID: 'ses_parent', system: [] };
   await f.router.context(e);
@@ -72,6 +95,25 @@ test('project preference overrides global and survives a new Registry instance',
   assert.equal((await fresh.preference('retrieval', '/workspace')).model, 'worker/project');
   assert.equal((await fresh.preference('retrieval', '/another')).model, 'worker/free');
 });
+test('private runtime state can live outside the public source/preferences tree', async () => {
+  const f = await fixture();
+  const state = await mkdtemp(path.join(os.tmpdir(), 'dai-private-router-'));
+  const registry = new Registry(f.home, state);
+  await registry.write('runtime/router/example.json', { id: 'private-job' });
+  assert.equal((await registry.read('runtime/router/example.json', null)).id, 'private-job');
+  await assert.rejects(readFile(path.join(f.home, 'runtime/router/example.json')), /ENOENT/);
+  assert.equal(JSON.parse(await readFile(path.join(state, 'runtime/router/example.json'))).id, 'private-job');
+  await registry.savePreference('retrieval', '/workspace', 'worker/free', true);
+  assert.equal((await new Registry(f.home, state).preference('retrieval', '/workspace')).model, 'worker/free');
+});
+test('upgrade preserves an existing Linux registry rather than dropping receipts', async () => {
+  const f = await fixture();
+  await f.registry.write('runtime/router/previous.json', { id: 'old-receipt' });
+  f.ctx.options = { registryHome: f.home };
+  const router = makeRouter(f.ctx);
+  assert.equal(router.registry.stateHome, f.home);
+  assert.equal((await router.registry.read('runtime/router/previous.json', null)).id, 'old-receipt');
+});
 test('missing choice creates native form and saves only actual owner answer', async () => {
   const f = await fixture();
   await f.router.choice('retrieval', 'ses_parent', '/workspace');
@@ -90,7 +132,7 @@ test('normal research dispatches before parent generation; preserves primary and
   assert.equal(f.calls.create.length, 1); assert.equal(f.calls.create[0].agent, 'dai/shared/explorer');
   assert.deepEqual(f.calls.create[0].model, { providerID: 'worker', id: 'free' });
   assert.deepEqual(f.sessions.ses_parent.model, { providerID: 'owner', id: 'primary' });
-  assert.match(f.calls.prompt[0].text, /Original goal context/);
+  assert.doesNotMatch(f.calls.prompt[0].text, /Original goal context/);
   assert.match(e.system[0].text, /Outcome with/); assert.doesNotMatch(e.system[0].text, /PRIVATE/);
 });
 test('same prompt replay and repeated continuation do not create or send another child', async () => {
@@ -163,6 +205,16 @@ test('actual setup registers hooks and records their identity', async () => {
   const f = await fixture(); const cleanup = await f.router.setup();
   assert.deepEqual(f.calls.hooks, ['prompt', 'context', 'tool.execute.before', 'tool.execute.after', 'compaction']);
   await cleanup();
+});
+test('routing and resource tools are direct-discoverable without execute permission', async () => {
+  const f = await fixture(); await f.router.setup();
+  for (const name of ['dai_route', 'dai_routing_status', 'dai_resource_search', 'dai_resource_read']) {
+    assert.equal(f.calls.tools[name].options.codemode, false, name);
+  }
+  const result = JSON.parse((await f.calls.tools.dai_resource_search.execute({ query: 'debug' })).content);
+  assert.ok(result.resources.some(r => r.id === 'systematic-debugging'));
+  const page = JSON.parse((await f.calls.tools.dai_resource_read.execute({ id: 'systematic-debugging', max_bytes: 500 })).content);
+  assert.ok(page.content.length); assert.equal(page.untrusted, true);
 });
 test('typed implementation tool also enforces independent review', async () => {
   const f = await fixture(); await f.router.setup();
@@ -295,4 +347,31 @@ test('fresh child with server-assigned default variant still verifies (live regr
   await f.router.context({ sessionID: 'ses_parent', system: [] });
   assert.equal(f.calls.create.length, 1);
   assert.equal(f.calls.prompt.length, 1);
+});
+
+test('native variants field and missing variant are validated without crash', async () => {
+  const f = await fixture();
+  f.available[0].variants = ['fast'];
+  f.setAnswer({ model: 'worker/free#fast', scope: 'global' });
+  await f.router.choice('retrieval', 'ses_parent', '/workspace');
+  assert.equal((await f.registry.preference('retrieval', '/workspace')).model, 'worker/free#fast');
+});
+
+test('unknown variant is rejected without crash', async () => {
+  const f = await fixture();
+  f.available[0].variants = ['fast'];
+  f.setAnswer({ model: 'worker/free#slow', scope: 'global' });
+  await f.router.choice('retrieval', 'ses_parent', '/workspace');
+  await f.router.intake(f.event('ابحث عن مصادر أصلية'));
+  await assert.rejects(f.router.context({ sessionID: 'ses_parent', system: [] }), /not in native catalog/);
+  assert.equal(f.calls.create.length, 0);
+});
+
+test('missing variant field accepts unvariant model', async () => {
+  const f = await fixture();
+  delete f.available[0].variant;
+  delete f.available[0].variants;
+  f.setAnswer({ model: 'worker/free', scope: 'global' });
+  await f.router.choice('retrieval', 'ses_parent', '/workspace');
+  assert.equal((await f.registry.preference('retrieval', '/workspace')).model, 'worker/free');
 });

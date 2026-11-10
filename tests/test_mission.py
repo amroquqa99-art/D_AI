@@ -71,5 +71,42 @@ class MissionJournalTests(unittest.TestCase):
             self.missions.get(self.other, self.project.project, self.created["mission_id"])
 
 
+class MissionListingTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.store = MemoryStore(Path(self.tmp.name) / "state")
+        self.owner = Principal("dai-os")
+        self.project = self.store.create_project(self.owner, "Test project")
+        self.missions = MissionService(self.store)
+        self.m1 = self.missions.create(self.owner, self.project.project, system="research",
+                                       objective="First mission", acceptance=["Evidence"])
+        self.m2 = self.missions.create(self.owner, self.project.project, system="engineer",
+                                       objective="Second mission", acceptance=["Tests"])
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_list_missions_filters_by_system_and_status(self):
+        listed = self.missions.list_missions(self.owner, self.project.project)
+        self.assertEqual(len(listed), 2)
+        research = self.missions.list_missions(self.owner, self.project.project, system="research")
+        self.assertEqual(len(research), 1)
+        self.assertEqual(research[0]["mission_id"], self.m1["mission_id"])
+
+    def test_list_evidence_and_claims(self):
+        mid = self.m1["mission_id"]
+        src = self.missions.evidence_add(self.owner, self.project.project, mid,
+                                        title="src", locator="file://x", content="body")
+        claim = self.missions.claim_add(self.owner, self.project.project, mid,
+                                       text="fact", claim_type="FACT",
+                                       source_ids=[src["source_id"]])
+        ev = self.missions.list_evidence(self.owner, self.project.project, mid)
+        cl = self.missions.list_claims(self.owner, self.project.project, mid)
+        self.assertEqual(len(ev), 1)
+        self.assertEqual(ev[0]["source_id"], src["source_id"])
+        self.assertEqual(len(cl), 1)
+        self.assertEqual(cl[0]["claim_id"], claim["claim_id"])
+
+
 if __name__ == "__main__":
     unittest.main()

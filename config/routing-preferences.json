@@ -1,6 +1,28 @@
 {
   "schema_version": 1,
   "note": "The owner's per-class model choices live here. They start empty on purpose: no model is imposed. The native router opens a form for a missing choice.",
-  "global": {},
+  "global": {
+    "retrieval": {
+      "model": "opencode-go/crouton-alpha-free",
+      "approved_at": "2026-11-09",
+      "source": "explicit-owner-chat-selection",
+      "delegated_via": "owner selected Free models for delegated retrieval, implementation and review",
+      "note": "Free model selected by owner; no paid fallback."
+    },
+    "implementation": {
+      "model": "opencode-go/beam-free",
+      "approved_at": "2026-11-09",
+      "source": "explicit-owner-chat-selection",
+      "delegated_via": "owner selected Free models for delegated retrieval, implementation and review",
+      "note": "Free model selected by owner; no paid fallback."
+    },
+    "review": {
+      "model": "opencode-go/beam-free",
+      "approved_at": "2026-11-09",
+      "source": "explicit-owner-chat-selection",
+      "delegated_via": "owner selected Free models for delegated retrieval, implementation and review",
+      "note": "Free model selected by owner; no paid fallback."
+    }
+  },
   "projects": {}
 }

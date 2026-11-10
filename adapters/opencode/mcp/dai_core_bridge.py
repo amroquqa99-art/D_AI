@@ -34,6 +34,8 @@ from dai.memory import MemoryStore
 from dai.scoped_files import search_scoped_files
 from dai.mission import MissionService
 from dai.models import ModelRegistry
+from dai.analysis_tools import (calculate_decimal, summarize_csv, extract_pdf,
+                               crossref_search)
 from dai.tasks import TaskService
 from dai.teams import TeamService
 from dai.tools import ToolGateway
@@ -115,6 +117,36 @@ class DaiCoreBridge:
         return self.missions.claim_add(
             actor, project_id, mission_id, text=text, claim_type=claim_type,
             source_ids=source_ids, limitations=limitations)
+
+    def dai_mission_list(self, actor: Principal, project_id: str,
+                         system: str | None = None, status: str | None = None) -> list[dict[str, Any]]:
+        return self.missions.list_missions(actor, project_id, system=system, status=status)
+
+    def dai_evidence_list(self, actor: Principal, project_id: str,
+                          mission_id: str) -> list[dict[str, Any]]:
+        return self.missions.list_evidence(actor, project_id, mission_id)
+
+    def dai_claim_list(self, actor: Principal, project_id: str,
+                       mission_id: str) -> list[dict[str, Any]]:
+        return self.missions.list_claims(actor, project_id, mission_id)
+
+    def dai_calculate_decimal(self, actor: Principal, operation: str,
+                              values: list[Any]) -> dict[str, Any]:
+        # Deterministic computation; actor recorded for audit via tool gateway elsewhere.
+        return calculate_decimal(operation, values)
+
+    def dai_summarize_csv(self, actor: Principal, csv_text: str,
+                          has_header: bool = True) -> dict[str, Any]:
+        return summarize_csv(csv_text, has_header=has_header)
+
+    def dai_extract_pdf(self, actor: Principal, project_id: str, path: str) -> dict[str, Any]:
+        # Scoped to the project root; native session workspace is preferred but
+        # project root is the durable, authorized boundary.
+        return extract_pdf(self.project_root, path)
+
+    def dai_crossref_search(self, actor: Principal, query: str,
+                            rows: int = 20, filter_type: str | None = None) -> dict[str, Any]:
+        return crossref_search(query, rows=rows, filter_type=filter_type)
 
     def dai_project_grant(self, actor: Principal, project_id: str,
                           member_agent: str, role: str = "contributor") -> dict[str, Any]:
