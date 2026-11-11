@@ -48,6 +48,12 @@
 NOT_READY — السبب: النشر العام كـ V1 كاملة غير جاهز لأن التحقق المهني للمجالات والتحقق من الأ surfaces المضيفة مفقودان، رغم أن النواة صالحة للنشر كأساس. **إصدار 0.1 هو ما يُنشر الآن:** نواة مكتملة ومختبَرة وموثّقة، لا V1 كاملة.
 
 ## 8. تحديث 2026-11-10 — رؤية الوكيل الفرعي وتطويرات
+
+### 2026-11-11 — فحص وتصحيح
+- Router: try/catch حول executePlan في context hook (لا crash/لا إكمال زائف).
+- Worktrees: src/dai/worktrees.py primitives (create/list/remove/verify_merge) + tests (ENV-03/ENV-04 partial).
+- Bridge tests: tests/test_bridge_new_tools.py (6 tests).
+- Reports: D_AI_OVERVIEW_AR.md, TRIAGE_2026-11-11_AR.md.
 - Router: إضافة `dai_jobs`, `dai_job_status`, `dai_job_cancel`, `dai_job_message` + أمر `/dai-jobs` (رؤية/تحكم/تحدث مع الوكيل الفرعي).
 - DAI core/MCP: إضافة `dai_mission_list`, `dai_evidence_list`, `dai_claim_list`.
 - Analysis tools: إضافة `dai_calculate_decimal`, `dai_summarize_csv`, `dai_extract_pdf`, `dai_crossref_search` (src/dai/analysis_tools.py).
