@@ -334,6 +334,24 @@ def dai_task_graph(ctx: Context, project_id: str) -> dict:
     return _call(_get_bridge().dai_task_graph, ctx, project_id)
 
 
+@mcp.tool()
+def dai_task_assign_worktree(ctx: Context, project_id: str, task_id: str,
+                            repo_root: str, worktree_path: str,
+                            base_ref: str = "HEAD", owner: str = "") -> dict:
+    """Record an isolated worktree assignment on a task (ENV-03)."""
+    return _call(_get_bridge().dai_task_assign_worktree, ctx, project_id,
+                 task_id, repo_root, worktree_path, base_ref=base_ref,
+                 owner=owner)
+
+
+@mcp.tool()
+def dai_task_verify_worktree(ctx: Context, project_id: str, task_id: str,
+                            head_ref: str) -> dict:
+    """Read-only verified-merge check recorded on a task (ENV-04)."""
+    return _call(_get_bridge().dai_task_verify_worktree, ctx, project_id,
+                 task_id, head_ref)
+
+
 # ---- decision ----------------------------------------------------------
 
 @mcp.tool()

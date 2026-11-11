@@ -14,6 +14,7 @@ from .charters import CharterService
 from .contracts import Principal, Record, Scope, identifier, json_bytes
 from .errors import AccessDenied, Conflict, IntegrityFailure, InvalidRequest, NotFound
 from .memory import MemoryStore, utc_now
+from .worktrees import verify_merge as _verify_merge_worktree
 
 STATES = ("DISCOVERING","WAITING_FOR_INPUT","PLAN_REVIEW","READY","RUNNING",
           "VERIFYING","REVIEWING","WAITING_FOR_HUMAN","WAITING_FOR_MODEL",
@@ -433,3 +434,51 @@ class TaskService:
         nodes.sort(key=lambda node: node["id"])
         edges.sort(key=lambda edge: (edge["from"], edge["to"]))
         return {"nodes": nodes, "edges": edges}
+
+    def assign_worktree(self, actor: Principal, scope: Scope, task_id: str, *,
+                        repo_root: str, worktree_path: str, base_ref: str = "HEAD",
+                        owner: str = "") -> dict[str, Any]:
+        """Record an isolated worktree assignment on a task (ENV-03)."""
+        record = self.get(actor, scope, task_id)
+        if record.content.get("state") in TERMINAL:
+            raise InvalidRequest("Cannot assign a worktree to a terminal task")
+        self.store._authorize(actor, scope, "write")
+        content = dict(record.content)
+        content["worktree"] = {
+            "repo_root": repo_root, "path": worktree_path, "base_ref": base_ref,
+            "owner": owner or actor.id, "assigned_at": utc_now(),
+            "status": "assigned",
+        }
+        content["state_history"] = list(content.get("state_history") or [])
+        content["state_history"].append(_history_entry(
+            content["state"], content["state"], actor.id, None,
+            f"worktree assigned: {worktree_path} (base={base_ref})"))
+        updated = self.store.update(actor, scope, task_id, content,
+                                    expected_version=record.version)
+        return {"task_id": updated.id, "version": updated.version,
+                "worktree": updated.content.get("worktree")}
+
+    def verify_worktree_merge(self, actor: Principal, scope: Scope, task_id: str, *,
+                              head_ref: str) -> dict[str, Any]:
+        """Read-only verified-merge check recorded on the task (ENV-04)."""
+        record = self.get(actor, scope, task_id)
+        wt = (record.content.get("worktree") or {})
+        base_ref = wt.get("base_ref") or "HEAD"
+        repo_root = wt.get("repo_root")
+        if not repo_root:
+            raise InvalidRequest("Task has no recorded repo_root for its worktree")
+        self.store._authorize(actor, scope, "write")
+        result = _verify_merge_worktree(repo_root, base_ref, head_ref)
+        content = dict(record.content)
+        content["worktree_verification"] = {
+            "head_ref": head_ref, "checked_at": utc_now(),
+            "actor": actor.id, **result,
+        }
+        content["state_history"] = list(content.get("state_history") or [])
+        content["state_history"].append(_history_entry(
+            content["state"], content["state"], actor.id, None,
+            f"worktree merge verified: clean={result.get('clean')}"))
+        updated = self.store.update(actor, scope, task_id, content,
+                                    expected_version=record.version)
+        return {"task_id": updated.id, "version": updated.version,
+                "verification": updated.content.get("worktree_verification")}

@@ -354,15 +354,15 @@
     },
     {
       "id": "ENV-03",
-      "implementation_status": "NOT_IMPLEMENTED",
+      "implementation_status": "PARTIAL",
       "evidence": [],
-      "gap": "Git worktree isolation with declared output ownership is not implemented in the core."
+      "gap": "Primitives + task integration (worktrees.py, TaskService.assign_worktree/verify_worktree_merge, MCP tools) implemented and tested; full automated merge/ownership policy still pending."
     },
     {
       "id": "ENV-04",
-      "implementation_status": "NOT_IMPLEMENTED",
+      "implementation_status": "PARTIAL",
       "evidence": [],
-      "gap": "Verified merge with base/versions, assignment agreement, and result checks is not implemented in the core."
+      "gap": "Primitives + task integration (worktrees.py, TaskService.assign_worktree/verify_worktree_merge, MCP tools) implemented and tested; full automated merge/ownership policy still pending."
     },
     {
       "id": "ENV-05",

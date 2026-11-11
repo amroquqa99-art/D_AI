@@ -130,6 +130,21 @@ class DaiCoreBridge:
                        mission_id: str) -> list[dict[str, Any]]:
         return self.missions.list_claims(actor, project_id, mission_id)
 
+    def dai_task_assign_worktree(self, actor: Principal, project_id: str,
+                                 task_id: str, repo_root: str,
+                                 worktree_path: str, base_ref: str = "HEAD",
+                                 owner: str = "") -> dict[str, Any]:
+        scope = self.project_scope(actor, project_id)
+        return _json_safe(self.tasks.assign_worktree(
+            actor, scope, task_id, repo_root=repo_root,
+            worktree_path=worktree_path, base_ref=base_ref, owner=owner))
+
+    def dai_task_verify_worktree(self, actor: Principal, project_id: str,
+                                 task_id: str, head_ref: str) -> dict[str, Any]:
+        scope = self.project_scope(actor, project_id)
+        return _json_safe(self.tasks.verify_worktree_merge(
+            actor, scope, task_id, head_ref=head_ref))
+
     def dai_calculate_decimal(self, actor: Principal, operation: str,
                               values: list[Any]) -> dict[str, Any]:
         # Deterministic computation; actor recorded for audit via tool gateway elsewhere.
