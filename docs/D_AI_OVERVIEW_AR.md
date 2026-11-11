@@ -1,6 +1,6 @@
 # D_AI — شرح مفصّل (الحالة الحالية)
 
-هذا المستند يشرح **ما هو D_AI الآن** (إصدار 0.1.0)، **أين يذهب الطلب**، **كيف يُوزَّع**، و**كل القدرات** (أنظمة، وكلاء، موظفون، أدوات، نواة، مضيفون). ليس مخططاً (PRD)، بل **وصف للواقع** (code + adapters + tests).
+هذا المستند يشرح **ما هو D_AI الآن** (إصدار 0.5.0-beta)، **أين يذهب الطلب**، **كيف يُوزَّع**، و**كل القدرات** (أنظمة، وكلاء، موظفون، أدوات، نواة، مضيفون). ليس مخططاً (PRD)، بل **وصف للواقع** (code + adapters + tests).
 
 ---
 
@@ -241,7 +241,7 @@ Installer: `scripts/install_opencode.py` (dry-run supported). Verify: `scripts/v
 
 ## 12. الحالة (Status)
 
-- **Version**: 0.1.0 (NOT_READY for full V1).
+- **Version**: 0.5.0-beta (NOT_READY for full V1; beta on OpenCode CLI only).
 - **Tests**: 234 Python OK (5 skipped Windows-only), 48 Node OK.
 - **Requirement coverage**: 113 reqs — 30 IMPLEMENTED, 29 PARTIAL, 2 NOT_IMPLEMENTED (ENV-03/04), 52 NOT_VERIFIED.
 - **NOT VERIFIED**: professional domain validation, 4 host surfaces, ENV-03/04, REL-05 single-command bootstrap, DUR-02 auto-resume.

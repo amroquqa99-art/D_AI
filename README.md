@@ -1,8 +1,8 @@
 # D_AI — النظام المركزي للذكاء الاصطناعي العميق
 
-> **حالة المستودع:** إصدار **0.1.0** (أساس قابل للنشر، وليس V1). النواة (memory, charters, tasks, decisions,
-> teams, models, tools, components, updates) منفَّذة ومغطّاة بـ **193 اختبار وحدة
-> يمرّ**. مواصفات الأنظمة العشرة مكتوبة. **ما لم يُثبت بعد:** التحقّق المهني
+> **حالة المستودع:** إصدار **0.5.0-beta** (beta على OpenCode CLI فقط؛ ليست V1 كاملة). النواة (memory, charters, tasks, decisions,
+> teams, models, tools, components, updates) منفَّذة ومغطّاة بـ **244 اختبار وحدة
+> يمرّ** (Python) + **48** (Node). مواصفات الأنظمة العشرة مكتوبة. **ما لم يُثبت بعد:** التحقّق المهني
 > لكل فرع تخصّصي، واختبار الأسطح الأربعة (OpenCode CLI / OpenCode Desktop /
 > pi CLI / PI-Desktop) على نسخ مثبتة. اقرأ [docs/IMPLEMENTATION_STATE.md](docs/IMPLEMENTATION_STATE.md)
 > قبل أن تعتمد على أي قدرة.

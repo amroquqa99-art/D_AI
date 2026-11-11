@@ -1,3 +1,3 @@
 """Shared D_AI contracts; release readiness is determined by acceptance evidence."""
 
-__version__ = "0.1.0"
+__version__ = "0.5.0b1"
